@@ -1,7 +1,7 @@
 ﻿// Written in the D programming language
 
 /**
- *	Copyright Paul D. Anderson 2009 - 2013.
+ *	Copyright Paul D. Anderson 2013 - 2014.
  *	Distributed under the Boost Software License, Version 1.0.
  *	(See accompanying file LICENSE_1_0.txt or copy at
  *	http://www.boost.org/LICENSE_1_0.txt)
@@ -17,14 +17,11 @@ import std.traits: isIntegral;
 /// Returns true if the actual value equals the expected value.
 /// Otherwise prints an error message and returns false.
 bool assertEqual(T,U)(const T actual, const U expected,
-		string file = __FILE__, int line = __LINE__ )
-{
-	if (expected == actual)
-	{
+		string file = __FILE__, int line = __LINE__ ) {
+	if (expected == actual)	{
 		return true;
 	}
-	else
-	{
+	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
 	        	" expected \"", expected, "\"",
 	        	" but found \"", actual, "\".");
@@ -38,6 +35,14 @@ private string toString(T)(T n) if (__traits(isIntegral, T)){
 
 private string toString(T:bool)(T v) {
 	return std.string.format("%d", v);
+}
+
+/// Returns true if the string representation of the actual value
+/// equals the string representation of the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertStringNotEqual(T,U)(const T actual, const U expected,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertNotEqual(actual.toString, expected.toString, file, line);
 }
 
 /// Returns true if the string representation of the actual value
@@ -86,6 +91,14 @@ bool assertStringEqual(T,U:bool)(const T actual, const U expected,
 bool assertStringEqual(T,U:string)(const T actual, const U expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(actual.toString, expected, file, line);
+}
+
+/// Returns true if the string representation of the actual value
+/// equals the string representation of the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertStringEqual(T:string)(const T actual, const T expected,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertEqual(actual, expected, file, line);
 }
 
 /*bool assertStringEqual(T)(T expected, string actual,

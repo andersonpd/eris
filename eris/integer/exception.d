@@ -23,6 +23,7 @@ version(unittest) {
 }
 
 	/// The base class for integer arithmetic exceptions.
+	@safe
 	class IntegerException: object.Exception {
 		this(string msg = "Integer Exception", string file = __FILE__,
 				uint line = cast(uint)__LINE__, Throwable next = null) {
@@ -30,6 +31,7 @@ version(unittest) {
 		}
 	};
 
+	@safe
 	/// Raised when a result would be undefined or impossible.
 	/// General Decimal Arithmetic Specification, p. 15.
 	class IntegerOverflowException: IntegerException {
@@ -41,6 +43,7 @@ version(unittest) {
 
 	/// Raised when a result would be undefined or impossible.
 	/// General Decimal Arithmetic Specification, p. 15.
+	@safe
 	class InvalidOperationException: IntegerException {
 		this(string msg = "Invalid Integer Operation", string file = __FILE__,
 		     	uint line = cast(uint)__LINE__, Throwable next = null){
@@ -50,6 +53,7 @@ version(unittest) {
 
 	/// Raised when a result would be undefined or impossible.
 	/// General Decimal Arithmetic Specification, p. 15.
+	@safe
 	class DivByZeroException: IntegerException {
 		this(string msg = "Integer Division by Zero", string file = __FILE__,
 		     	uint line = cast(uint)__LINE__, Throwable next = null) {

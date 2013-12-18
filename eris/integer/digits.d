@@ -12,6 +12,7 @@ module eris.integer.digits;
 import std.stdio;
 
 import eris.integer.exception;
+	import std.stdio;
 
 unittest {
 	writeln("==========================");
@@ -37,34 +38,30 @@ version(unittest) {
 	//	integers, such as 64-, 128-, or 256-bit unsigned integers.
 	//
 	//	The digits are stored in increasing index value:
-	//	The index of the least significant digit is 0,
-	//	the index of the most significant digit is the array length - 1.
+	//		the index of the least significant digit is 0,
+	//		the index of the most significant digit is the array length - 1.
 	//
 	//	For example, the
 	//
-	//	This is computationally efficient since leading zeros can be
-	//	ignored, but because we're used to seeing numbers that read
-	//	left-to-right it is easy to forget, especially when trying to
-	//	create a number from a list of digits.
+	//	This is computationally efficient since leading zeros can be ignored,
+	//	but because we're used to seeing numbers that read  left-to-right
+	//	it is easy to forget, especially when trying to create a number
+	//	from a list of digits.
 	//
 	//---------------------------------------------------------
 	//
-	//	Most of the arithmetic functions have two signatures,
-	//	one of which explicitly requires the number of digits
-	//	in the operands as input.
+	//	Most of the arithmetic functions have two signatures, one of which
+	//	explicitly requires the number of digits in the operands as input.
 	//
-	//	If the number of digits in the operands is known
-	//	the explicit functions can be called. If not,
-	//	the non-explicit functions simply count the digits
-	//	and then call the explicit functions.
+	//	If the number of digits in the operands is known the explicit functions
+	//	can be called. If not, the implicit functions simply count the digits
+	//	of the operand(s) and then call the explicit functions.
 	//
-	//	Counting the digits is a fast operation
-	//	and should make the functions run faster, since
-	//	operating on unnecessary digits is slower than counting.
+	//	Counting the digits is a fast operation and should make the functions
+	//	run faster, since operating on unnecessary digits is slower than counting.
 	//
-	// 	If the operands have large numbers of digits
-	//	there is less time saved, but in that case
-	//	the counting function also takes less time.
+	// 	If the operands have many digits there is less time saved,
+	//	but in that case the counting function also takes less time.
 	//
 	//---------------------------------------------------------
 	//
@@ -120,17 +117,6 @@ version(unittest) {
 		return ("0x" ~ str).idup;
 	}
 
-/*	unittest {
-		write("-- toString.........");
-		digit[] digits = [123, 456, 789];
-		assertEqual("0x00000315_000001C8_0000007B", toString(digits));
-		digits = [];
-		assertEqual("0x0", toString(digits));
-		digits = [0];
-		assertEqual("0x00000000", toString(digits));
-		writeln("passed");
-	}
-*/
 	// Returns a decimal string representation of an array of digits.
 	public string toDecimal(const digit[] digits, uint spacing = 0) {
 		uint n = numDigits(digits);
@@ -183,6 +169,7 @@ version(unittest) {
 	/// Compares two arrays of digits.
 	/// Returns -1, 0, or 1 if the first array is, respectively,
 	/// smaller than, equal to or larger than the second.
+	@safe
 	public int compareDigits(const digit[] a, const digit[] b) {
 		return compareDigits(a, numDigits(a), b, numDigits(b));
 	}
@@ -190,6 +177,7 @@ version(unittest) {
 	/// Compares two arrays of digits.
 	/// Returns -1, 0, or 1 if the first array is, respectively,
 	/// smaller than, equal to or larger than the second.
+	@safe
 	private int compareDigits(const digit[] a, digit na, const digit[] b, digit nb) {
 
 		// if lengths differ just compare lengths
@@ -208,6 +196,7 @@ version(unittest) {
 	/// Compares an array of digits to a single digit.
 	/// Returns -1, 0, or 1 if the first argument is, respectively,
 	/// smaller than, equal to or larger than the first.
+	@safe
 	public int compareDigits(const digit[] a, const digit k) {
 		if (numDigits(a) > 1) return +1;
 		if (a[0] < k) return -1;
@@ -246,6 +235,7 @@ version(unittest) {
 	/// Returns the number of digits in the array.
 	/// Leading zero digits are not counted.
 	/// If all digits are zero, returns 0.
+	@safe
 	public int numDigits(const digit[] digits) {
 		int count;
 		for (count = digits.length; count > 0; count--) {
@@ -270,6 +260,7 @@ version(unittest) {
 
 	/// Copies the significant digits of an array to another array.
 	/// Returns the number of significant digits in the first array.
+	@safe
 	public int copyDigits(const digit[] x, out digit[] y) {
 		digit nx = numDigits(x);
 		y = x[0..nx].dup;
@@ -277,6 +268,7 @@ version(unittest) {
 	}
 
 	/// Returns a copy of the array with leading zeros removed.
+	@safe
 	public digit[] trimDigits(const digit[] x) {
 		digit nx = numDigits(x);
 		return x[0..nx].dup;
@@ -300,6 +292,7 @@ version(unittest) {
 	/// Extends the array to the specified length, padding with zeros.
 	/// If the length of the array is already equal to or greater than
 	/// the specified length, the array is not modified.
+	@safe
 	public digit[] extend(ref digit[] digits, int n) {
 		if (digits.length < n) {
 			digits.length = n;
@@ -312,6 +305,7 @@ version(unittest) {
 	/// the specified length, the array is not modified.
 	/// If the first bit of the array is one,
 	///	the array is padded with ones, otherwise it is padded with zeros.
+	@safe
 	public digit[] extendSigned(ref digit[] digits, int n) {
 		if (digits.length < n) {
 			bool signed = digits.isNegative;
@@ -327,6 +321,7 @@ version(unittest) {
 	}
 
 	/// Removes leading zeros.
+	@safe
 	public digit[] reduce(ref digit[] digits) {
 		int n = numDigits(digits);
 		if (n < digits.length) {
@@ -339,6 +334,7 @@ version(unittest) {
 	/// If the first bit of the array is one,
 	/// leading digits equal to 0xFFFFFFFF are removed.
 	///	Otherwise, leading zeros are removed.
+	@safe
 	public digit[] reduceSigned(ref digit[] digits) {
 		if (digits.length > 1) {
 			if (!digits.isNegative) return reduce(digits);
@@ -389,6 +385,7 @@ version(unittest) {
 	}
 
 	/// Extends the shorter of the two arrays.
+	@safe
 	public void matchLength(ref digit[] x, ref digit[] y) {
 		int nx = x.length;
 		int ny = y.length;
@@ -398,6 +395,7 @@ version(unittest) {
 	}
 
 	/// Extends the shorter of the two arrays.
+	@safe
 	public void matchLengthSigned(ref digit[] x, ref digit[] y) {
 		int nx = x.length;
 		int ny = y.length;
@@ -427,6 +425,7 @@ version(unittest) {
 	}
 
 	/// Returns the ones complement of an array.
+	@safe
 	public digit[] compDigits(const digit[] digits, int n = -1) {
 		if (n < 0) {
 			n = digits.length;
@@ -439,6 +438,7 @@ version(unittest) {
 	}
 
 	/// Returns the twos complement of an array.
+	@safe
 	public digit[] negateDigits(const digit[] digits, int n = -1) {
 		// zero is its own complement
 		if (isZero(digits)) {
@@ -462,17 +462,20 @@ version(unittest) {
 //--------------------------------
 
 	/// Returns the last 32 bits of a 64-bit unsigned integer
+	@safe
 	public digit low(const ulong nn) {
 		return nn & 0xFFFFFFFFUL;
 	}
 
 	/// Returns the first 32 bits of a 64-bit unsigned integer
+	@safe
 	public digit high(const ulong nn) {
 		return (nn & 0xFFFFFFFF00000000UL) >> 32;
 	}
 
 	/// Packs two 32-bit unsigned integers into a 64-bit unsigned integer
 	/// and returns the 64-bit integer.
+	@safe
 	public ulong pack(const digit hi, const digit lo) {
 		ulong packed = (cast(ulong) hi) << 32;
 		packed |= lo;
@@ -512,6 +515,7 @@ version(unittest) {
 
 	/// Returns true if the array represents a zero value.
 	/// That is, if there are no non-zero digits in the array.
+	@safe
 	public bool isZero(const digit[] a) {
 		return numDigits(a) == 0;
 	}
@@ -519,6 +523,7 @@ version(unittest) {
  	/// Returns true if the parity bit
 	/// (the last bit of the last digit) is a 1,
 	/// false otherwise.
+	@safe
 	public bool isOdd(const digit[] a) {
 // TODO: this is another place where odd things happen
 //		if (a.length == 0) return false;
@@ -528,6 +533,7 @@ version(unittest) {
  	/// Returns true if the parity bit
 	/// (the last bit of the last digit) is a 0,
 	/// false otherwise.
+	@safe
 	public bool isEven(const digit[] a) {
 		return !isOdd(a);
 	}
@@ -535,6 +541,7 @@ version(unittest) {
 	/// Returns true if the sign bit of the array
 	/// (the first bit of the first digit) is a 1,
 	/// false otherwise.
+	@safe
 	public bool isNegative(const digit[] a) {
 		return cast(int)a[$-1] < 0;
 	}
@@ -565,6 +572,7 @@ version(unittest) {
 //--------------------------------
 
 	/// Returns the sum of two arrays of digits.
+	@safe
 	public digit[] addDigits(const digit[] x, const digit[] y) {
 		int nx = numDigits(x);
 		int ny = numDigits(y);
@@ -579,6 +587,7 @@ version(unittest) {
 	}
 
 	/// Returns the sum of two digit arrays with specified lengths.
+	@safe
 	public digit[] addDigits(
 			const digit[] x, const int nx, const digit[] y, const int ny) {
 
@@ -615,11 +624,13 @@ version(unittest) {
 	}
 
 	/// Returns the sum of an array of digits and a single digit.
+	@safe
 	public digit[] addDigit(const digit[] x, const digit y) {
 		return addDigit(x, numDigits(x), y);
 	}
 
 	/// Returns the sum of an array of digits and a single digit.
+	@safe
 	public digit[] addDigit(const digit[] x, int nx, const digit y) {
 
 		if ( y == 0) return x.dup;
@@ -682,6 +693,7 @@ version(unittest) {
 	}
 
 	// Returns the difference between two arrays of digits.
+	@safe
 	public digit[] subDigits(const digit[] x, const digit[] y) {
 		int nx = numDigits(x);
 		int ny = numDigits(y);
@@ -689,6 +701,7 @@ version(unittest) {
 	}
 
 	// Returns the difference between two digit arrays with specified lengths.
+	@safe
 	public digit[] subDigits(
 		const digit[] xin, int nx, const digit[] y, int ny) {
 
@@ -747,12 +760,14 @@ version(unittest) {
 	}
 
 	/// Returns the difference between an array of digits and a single digit.
+	@safe
 	public digit[] subDigit(const digit[] x, const digit y) {
 		return subDigit(x, numDigits(x), y);
 	}
 
 	/// Returns the difference of a digit array with specified length
 	/// and a single digit.
+	@safe
 	public digit[] subDigit(
 		const digit[] x, const int nx, const digit y) {
 
@@ -819,6 +834,7 @@ version(unittest) {
 //--------------------------------
 
 	/// Returns the product of two arrays of digits.
+	@safe
 	public digit[] mulDigits(const digit[] x, const digit[] y) {
 		int nx = numDigits(x);
 		int ny = numDigits(y);
@@ -826,6 +842,7 @@ version(unittest) {
 	}
 
 	/// Returns the product of the two digit arrays of specified lengths.
+	@safe
 	public digit[] mulDigits(
 		const digit[] x, const int nx, const digit[] y, const int ny) {
 		digit[] p = new digit[nx + ny + 1];
@@ -844,6 +861,7 @@ version(unittest) {
 	}
 
 	/// Returns the product of an array of digits and a single digit
+	@safe
 	public digit[] mulDigit(const digit[] x, const digit k) {
 		int nx = numDigits(x);
 		return mulDigit(x, nx, k);
@@ -851,6 +869,7 @@ version(unittest) {
 
 	/// Returns the product of a digit array of specified length
 	/// and a single digit
+	@safe
 	public digit[] mulDigit(const digit[] x, int nx, const digit k) {
 		digit[] p = new digit[nx+1];
 		ulong carry = 0;
@@ -888,11 +907,13 @@ version(unittest) {
 	}
 
 	/// Returns the ulong product of two uints.
+	@safe
 	public ulong longMul(const digit x, const digit y) {
 		return cast(ulong)x * cast(ulong)y;
 	}
 
 	/// Returns the square of an array of digits.
+	@safe
 	public digit[] sqrDigits(const digit[] x) {
 		int nx = numDigits(x);
 		digit[] sqrx = new digit[2*nx];
@@ -929,6 +950,7 @@ version(unittest) {
 	}
 
 	/// Returns an array of digits raised to the specified power.
+	@safe
 	public digit[] powDigits(const digit[] base, int expo) {
 		if (expo == 0) return [1];
 		if (expo == 1) return base.dup;
@@ -978,6 +1000,7 @@ version(unittest) {
 //--------------------------------
 
 	/// Returns the quotient of the first array of digits divided by the second.
+	@safe
 	public digit[] divmodDigits(
 		const digit[] xin, const digit[] yin, out digit[] mod) {
 		// mutable copies
@@ -999,11 +1022,12 @@ version(unittest) {
 	/// Returns the quotient of the first array of digits of specified length
 	/// divided by the second.
 	/// Preconditions: y != 0
+	@safe
 	public digit[] divmodDigits(
 		ref digit[] x, int nx, ref digit[] y, int ny, out digit[] mod) {
 
 		// normalize the operands
-		digit k = divDigit([0u, 1u], y[ny-1])[0];
+		digit k = divDigit([0u, 1u], y[ny-1]+1)[0];
 		if (k != 1) {
 			x = mulDigit(x, nx, k);
 			nx = numDigits(x);
@@ -1011,18 +1035,14 @@ version(unittest) {
 			ny = numDigits(y);
 		}
 
-
 		digit[] q = new digit[nx-ny+1];
 		digit[] ys = shlDigits(y, nx-ny);
-//		ny = numDigits(ys); // NEW
-		while (compareDigits(x,ys) > 0) {
-//		while (compareDigits(x,ys) >= 0) {
-			q[nx-ny]++;
+		while (compareDigits(x,ys) >= 0) {
 			x = subDigits(x, ys);
 		}
+
 //		nx = numDigits(x); // NEW
 //		ny = numDigits(y); // NEW
-//		nx = numDigits(x); // NEW
 		for (int i = nx-1; i >= ny; i--) {
 			int ix = i-ny;
 			if (x[i] == y[ny-1]) {
@@ -1049,6 +1069,7 @@ version(unittest) {
 	}
 
 	/// Returns the quotient of an array of digits divided by a single digit.
+	@safe
 	public digit[] divmodDigit(
 			const digit[] x, int nx, digit k, out digit mod) {
 		if (nx == 0) {
@@ -1073,6 +1094,7 @@ version(unittest) {
 	}
 
 	/// Returns the quotient of the first array of digits divided by the second.
+	@safe
 	public digit[] divDigits(const digit[] xin, const digit[] yin) {
 		// mutable copies
 		digit[] x, y, mod;
@@ -1089,6 +1111,7 @@ version(unittest) {
 	/// Returns the quotient of the first array of digits of specified length
 	/// divided by the second.
 	/// Preconditions: y != 0
+	@safe
 	public digit[] divDigits(ref digit[] x, int nx, ref digit[] y, int ny) {
 		if (nx == 0) return [0];
         if (ny == 0) throw new Exception("division by zero");
@@ -1099,6 +1122,7 @@ version(unittest) {
 
 	/// Returns the quotient of an array of digits divided by a single digit.
 	/// Preconditions: k != 0
+	@safe
 	public digit[] divDigit(const digit[] x, digit k) {
 		return divDigit(x, numDigits(x), k);
 	}
@@ -1106,6 +1130,7 @@ version(unittest) {
 	/// Returns the quotient of the first array of digits of specified length
 	/// divided by a single digit.
 	/// Preconditions: k != 0
+	@safe
 	public digit[] divDigit(const digit[] x, int nx, digit k) {
 		if (nx == 0) return [0];
 		if (k == 1) return x.dup;
@@ -1122,6 +1147,7 @@ version(unittest) {
 
 	/// Returns the remainder of the first array of digits divided by the second.
 	/// Preconditions: y != 0
+	@safe
 	public digit[] modDigits(const digit[] xin, const digit[] yin) {
 		// mutable copies
 		digit[] x, y, mod;
@@ -1139,6 +1165,7 @@ version(unittest) {
 	/// Returns the remainder of the first array of digits of specified length
 	/// divided by the second.
 	/// Preconditions: y != 0
+	@safe
 	public digit[] modDigits(ref digit[] x, int nx, ref digit[] y, int ny) {
 		digit [] mod;
 		if (ny == 1) return [modDigit(x, nx, y[0])];
@@ -1148,6 +1175,7 @@ version(unittest) {
 
 	/// Returns the remainder of an array of digits divided by a single digit.
 	/// Preconditions: k != 0
+	@safe
 	public digit modDigit(const digit[] x, digit k) {
 		return modDigit(x, numDigits(x), k);
 	}
@@ -1155,6 +1183,7 @@ version(unittest) {
 	/// Returns the remainder of the first array of digits of specified length
 	/// divided by a single digit.
 	/// Preconditions: k != 0
+	@safe
 	public digit modDigit(const digit[] x, int nx, const digit k) {
 		ulong carry = 0;
 		for (int i = nx-1; i >= 0; i--) {
@@ -1196,6 +1225,7 @@ version(unittest) {
 
 	/// Returns the logical and of two arrays of digits.
 	/// If the arrays are of unequal lengths, the longer is truncated.
+	@safe
 	public digit[] andDigits(const digit[] a, const digit[] b) {
 		int n = a.length;
 		if (n > b.length) n = b.length;
@@ -1208,6 +1238,7 @@ version(unittest) {
 
 	/// Returns the logical or of two arrays.
 	/// If the arrays are of unequal lengths, the longer is truncated.
+	@safe
 	public digit[] orDigits(const digit[] a, const digit[] b) {
 		int n = a.length;
 		if (n > b.length) n = b.length;
@@ -1220,6 +1251,7 @@ version(unittest) {
 
 	/// Returns the logical xor of two arrays.
 	/// If the arrays are of unequal lengths, the longer is truncated.
+	@safe
 	public digit[] xorDigits(const digit[] a, const digit[] b) {
 		int n = a.length;
 		if (n > b.length) n = b.length;
@@ -1256,6 +1288,7 @@ version(unittest) {
 //--------------------------------
 
 	// shifts by whole digits (not bits)
+	@safe
 	public digit[] shlDigits(const digit[] array, int nd) {
 		digit[] shifted = array.dup;
 		if (nd > 0) {
@@ -1265,6 +1298,7 @@ version(unittest) {
 	}
 
 	// shifts by bits
+	@safe
 	public digit[] shlBits(const digit[] x, int nb) {
 		int nx = numDigits(x);
 		digit[] shifted = new digit[nx + 1];
@@ -1281,6 +1315,7 @@ version(unittest) {
 	}
 
 	// shifts by whole digits (not bits)
+	@safe
 	public digit[] shrDigits(const digit[] x, int nd) {
 		if (nd == 0) return x.dup;
 		if (nd >= x.length || nd < 0) {
@@ -1297,6 +1332,7 @@ version(unittest) {
 	}
 
 	// shifts by bits
+	@safe
 	public digit[] shrBits(const digit[] x, int nb, bool arithmetic = true) {
 		int nx = numDigits(x);
 		digit[] shifted = new digit[nx];
@@ -1331,6 +1367,7 @@ version(unittest) {
 	}
 
 	// shifts by whole digits (not bits)
+	@safe
 	public digit[] lshrDigits(const digit[] x, int nd) {
 		if (nd == 0) return x.dup;
 		if (nd >= x.length || nd < 0) {
@@ -1340,6 +1377,7 @@ version(unittest) {
 	}
 
 	// shifts by bits
+	@safe
 	public digit[] lshrBits(const digit[] x, int nb) {
 		return shrBits(x, nb, false);
 	}
@@ -1385,6 +1423,7 @@ version(unittest) {
 //--------------------------------
 
 	// greatest common denominator
+	@safe
 	public digit[] gcdDigits(const digit[] xin, const digit[] yin) {
 		digit[] x, y;
 		int nx = copyDigits(xin, x);
@@ -1420,6 +1459,7 @@ version(unittest) {
 	}
 
 	// least common multiple
+	@safe
 	public digit[] lcmDigits(const digit[] xin, const digit[] yin) {
 		digit[] x, y;
 		int nx = copyDigits(xin, x);
