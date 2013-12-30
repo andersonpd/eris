@@ -860,6 +860,7 @@ version(unittest) {
 		return p;
 	}
 
+	// TODO: when used for parsing a string, this method repeatedly allocates
 	/// Returns the product of an array of digits and a single digit
 	@safe
 	public digit[] mulDigit(const digit[] x, const digit k) {

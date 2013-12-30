@@ -57,8 +57,10 @@ public enum : ubyte {
 	CLAMPED            = 0x01
 }
 
+///// Context precision.
+//public int contextPrecision = 0;
 /// Context rounding mode.
-public Rounding contextMode = Rounding.HALF_EVEN;
+public Rounding contextRounding = Rounding.HALF_EVEN;
 
 
 /// "The exceptional conditions are grouped into signals,

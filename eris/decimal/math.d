@@ -38,7 +38,7 @@ version(unittest) {
 
 /// Rounds the argument to an integer using the specified rounding mode.
 /// The default rounding mode is the current context mode.
-public T round(T)(const T arg, const Rounding mode = contextMode) {
+public T round(T)(const T arg, const Rounding mode = contextRounding) {
 	T value = roundToIntegralExact(arg, mode);
 	return value;
 }
@@ -157,6 +157,7 @@ unittest {	// isOdd
 
 // TODO: add bitshift function
 
+// NOTE: faster but not as accurate(?)
 public T reciprocal(T)(const T a, const int precision = T.precision) {
 
 	// special values
@@ -168,25 +169,23 @@ public T reciprocal(T)(const T a, const int precision = T.precision) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return T.infinity(a.sign);
 	}
-
 	if (a.copyAbs.isOne) return a.dup;
 	if (a.isInfinite) return T.zero(a.sign);
 
-	static T one = T.one;
+	T.guardDigits = 2;
+	T x = a.dup; //a.reduce; (?)
+	T x1, x2;
 	// initial estimate
-	T x0 = T(1, -ilogb(a)-1);
-	// initial error
-	T error = one - a * x0;
-	T x1;
-	int count = 0;
-	while (error > T.epsilon) {
-		x1 = x0 + error * x0;
-		error = one - a * x1;
-		x0 = x1;
-		count++;
+	x1 = T.ZERO;
+	x2 = T(2, -ilogb(x)-1);
+	// Newton's method
+	while (true) {
+		x1 = x2;
+		x2 = x1 * (T.TWO - x * x1);
+		if (x2 == x1) break;
 	}
-	// round and reduce the result
-	return cast(T)reduce(roundToPrecision(x1));
+	T.guardDigits = 0;
+	return roundToPrecision(x2);
 }
 
 unittest {	// reciprocal
@@ -195,7 +194,11 @@ unittest {	// reciprocal
 	dec9 num = dec9("1234567890123456789");
 	dec9 a = one/num;
 	dec9 b = reciprocal(num);
-	assertEqual(a, b);
+	assertEqual(b, a);
+	num = dec9("12345678906789");
+	a = one/num;
+	b = reciprocal(num);
+	assertEqual(b, a);
 	writeln("passed");
 }
 
@@ -212,31 +215,52 @@ public T invSqrt(T)(const T a, const int precision = T.precision) {
 	if (a.copyAbs.isOne) return a.dup;
 	if (a.isInfinite) return T.zero(a.sign);
 
-	static T one = T.one;
-	static T half = T.half;
+	T.guardDigits = 2;
+	T x = a.dup;
+
 	// initial estimate
-	T x0 = T(1, -ilogb(a)-1);
-	// initial error
-	T error = one - a * sqr(x0);
-	T x1;
-	while (error > T.epsilon) {
-		x1 = x0 + error * x0 * half;
-		error = one - a * sqr(x1);
-		x0 = x1;
+	T x1, x2, x3;
+	x1 = T.ZERO;
+	int k = ilogb(x);
+	if (isOdd(k)) {
+		x2 = T(2, -1);
 	}
-	// round and reduce the result
-	return reduce(roundToPrecision(x1));
+	else {
+		x2 = T(5, -1);
+		k++;
+	}
+	// reduce the exponent
+	x.exponent = x.exponent - k - 1;
+
+	while (true) {
+		x3 = x1;
+		x1 = x2;
+		x2 = x1 * T.HALF * (T.THREE - x * sqr(x1));
+		if (x2 == x1 || x2 == x3) break;
+	}
+	// restore the exponent
+	x2.exponent = x2.exponent - k/2 - 1;
+	T.guardDigits = 0;
+	return x2;
 }
 
 unittest {
 	write("-- inverse sqrt.....");
-	assertEqual(invSqrt(dec9.two), dec9("0.707106781"));
+	assertEqual(invSqrt(dec9.TWO), dec9("0.707106781"));
+	assertEqual(invSqrt(dec9(20)), dec9("0.223606798"));
+	assertEqual(invSqrt(dec9(20,14)), dec9("2.23606798E-8"));
+	assertEqual(invSqrt(dec9(300,23)), dec9("1.82574186E-13"));
+	assertEqual(invSqrt(dec9(4000,45)), dec9("5E-25"));
+	assertEqual(invSqrt(dec9(50000,7)), dec9("0.00000141421356"));
+	assertEqual(invSqrt(dec9(600000,29)), dec9("4.08248290E-18"));
+/*	assertEqual(invSqrt(dec9(98763)), dec9("0.5"));
+	assertEqual(invSqrt(dec9(98763098)), dec9("0.5"));
+	assertEqual(invSqrt(dec9(9876387982347)), dec9("0.5"));*/
 	writeln("passed");
 }
 
-/// Returns the square root of the argument to the specified precision.
-/// Uses Newton's method. The starting value should be close to the result
-/// to speed convergence and to avoid unstable operation.
+/// Returns the square root of the argument to the type precision.
+/// Uses Newton's method.
 /// TODO: the precision can be adjusted as the computation proceeds
 public T sqrt(T)(const T a) {
 	// special values
@@ -246,29 +270,33 @@ public T sqrt(T)(const T a) {
 	}
 	if (a.isInfinite) return T.infinity;
 
-	T x = reduce(a);
+	T x = a.reduce;
 	if (x.isOne) return x;
 
-	// reduce the argument and estimate the result
-	T x0 = T(6, -1);
+	// reduce the exponent and estimate the result
+	T x1, x2;
 	int k = ilogb(x);
-	if (!isOdd(k)) {
+	if (isOdd(k)) {
+		x1 = T(6, -1);
+	}
+	else {
+		x1 = T(2, -1);
 		k++;
-		x0 = T(2, -1);
 	}
 	x.exponent = x.exponent - k - 1;
 
-	T x1 = x0;
+	// Newton's method
+	x2 = x1;
 	while(true) {
-		x0 = x1;
-		x1 = T.half * (x0 + x/x0);
-		if (x1 == x0) break;
+		x1 = x2;
+		x2 = T.half * (x1 + x/x1);
+		if (x2 == x1) break;
 	}
-	// restore the reduced argument
-	x1.exponent = x1.exponent + k/2 + 1;
-	return x1;
-}
 
+	// restore the reduced exponent
+	x2.exponent = x2.exponent + k/2 + 1;
+	return x2;
+}
 unittest {
 	write("-- square root......");
 /*writeln;
@@ -372,15 +400,6 @@ writefln("e(5)  = %s", e(5));*/
 	writeln("test missing");
 }
 
-/*public T sqr(const T x) {
-	return decimal.arithmetic.sqr(x);
-}
-
-unittest {
-	write("sqr............");
-	writeln("test missing");
-}*/
-
 /+
 unittest {	// PI
 	assert(PI.digits == 99);
@@ -446,44 +465,44 @@ writefln("pi      = %s", pi);
 writefln("pi(25)  = %s", pi(25));
 	writeln("test missing");
 }
-
++/
 //--------------------------------
 //
 // EXPONENTIAL AND LOGARITHMIC FUNCTIONS
 //
 //--------------------------------
 
-public T exp(const T arg, const uint precision) {
+/*public T exp(const T arg, const uint precision) {
 	pushContext(precision);
 	T value = exp(arg);
 	popContext();
 	return value;
-}
+}*/
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-public T exp(const T x) {
+public T exp(T)(const T x) {
 	if (x.isNaN) return T.nan;
-//	if (x.isNegative) return T.nan;
-//	if (x.dup == T.one) return e();
+	if (x.isNegative) return T.nan;
+//	if (x.isOne) return e();
 	return exp0(x);
 }
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-public T exp0(const T x) {
+public T exp0(T)(const T x) {
 	T sqrx = sqr(x);
 	long n = 1;
-	T fact = 1;
-	T t1 = 1;
-	T t2 = x.dup;
+	T fact = T.one;
+	T t1   = T.one;
+	T t2   = x.dup;
 	T term = t1 + t2;
-	T sum = term;
+	T sum  = term;
 	while (term > T.epsilon) {
-		n += 2;
-		t1 = t2*x*n;
-		t2 = t2*sqrx;
-		fact = fact*n*(n-1);
+		n   += 2;
+		t1   = t2*x*n;
+		t2   = t2*sqrx;
+		fact = fact*(n*(n-1));
 		term = (t1 + t2)/fact;
 		sum += term;
 	}
@@ -493,10 +512,11 @@ public T exp0(const T x) {
 unittest {
 	write("exp............");
 writeln;
-writefln("exp(1) = %s", exp(Decimal.one));
+writefln("exp(1) = %s", exp(dec9.ONE));
 	writeln("test missing");
 }
 
+/+
 /**
  * Decimal version of std.math function.
  * 2^x
@@ -539,29 +559,30 @@ unittest {
 	write("expm1..........");
 	writeln("test missing");
 }
++/
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-public Decimal log(const Decimal x) {
+public T log(T)(const T x) {
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
-		return Decimal.infinity;
+		return T.infinity;
 	}
 	if (x.isNegative) {
-		return Decimal.nan;
+		return T.nan;
 	}
 	int k = ilogb(x) + 1;
-	Decimal a = Decimal(x.sign, x.coefficient, x.exponent - k);
-	return calcLog(a) + LN10 * k;
+	T a = T(x.sign, x.coefficient, x.exponent - k);
+	return calcLog(a) + T.LN10 * k;
 }
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-private Decimal calcLog(const Decimal x) {
-	Decimal y = (x - 1)/(x + 1);
-	Decimal ysq = sqr(y);
-	Decimal term = y;
-	Decimal sum  = y;
+private T calcLog(T)(const T x) {
+	T y = (x - 1)/(x + 1);
+	T ysq = sqr(y);
+	T term = y;
+	T sum  = y;
 	long n = 3;
 	while (true) {
 		term *= ysq;
@@ -577,58 +598,59 @@ private Decimal calcLog(const Decimal x) {
 unittest {
 	write("log............");
 writeln;
-	Decimal one = Decimal.one;
+	dec9 one = dec9.one;
 writefln("log(exp(one)) = %s", log(exp(one)));
 	writeln("test missing");
 }
+
 
 /**
  * log1p (== log(1 + x)).
  * Decimal version of std.math function.
  */
-public Decimal log1p(const Decimal x) {
+public T log1p(T)(const T x) {
 	auto term = x.dup;
-	auto pwr = x.dup;
-	auto sum = Decimal.zero;
-	auto n = Decimal.one;
+	auto pwr  = x.dup;
+	auto sum  = T.zero;
+	auto n    = T.one;
 	while (true) {
 		sum += term;
 		pwr = -pwr * x;
 		n++;
 		term = pwr/n;
-		if (term.copyAbs < Decimal.epsilon) {
+		if (term.copyAbs < T.epsilon) {
 			sum += term;
 			break;
 		}
 	}
-	return sum/LN10;
+	return sum/T.LN10;
 }
 
 unittest {
 	write("log1p..........");
-	Decimal x = "0.1";
+	dec9 x = "0.1";
 writefln("log1p(x) = %s", log1p(x));
 	writeln("test missing");
 }
 
 /// Decimal version of std.math.log10.
 /// Required by General Decimal Arithmetic Specification
-public Decimal log10(const Decimal x) {
+public T log10(T)(const T x) {
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
-		return Decimal.infinity;
+		return T.infinity;
 	}
 	if (x.isNegative) {
-		return Decimal.nan;
+		return T.nan;
 	}
 	int k = ilogb(x) + 1;
-	Decimal a = Decimal(x.sign, x.coefficient, x.exponent - k);
-	return calcLog(a)/LN10 + k;
+	T a = T(x.sign, x.coefficient, x.exponent - k);
+	return calcLog(a)/T.LN10 + k;
 }
 
 unittest {
 	writeln("log10..........");
-	Decimal x = Decimal("2.55");
+	dec9 x = dec9("2.55");
 writefln("x = %s", x);
 writefln("log(x) = %s", log10(x));
 writeln("std.math.log10(2.55) = ", std.math.log10(2.55));
@@ -643,6 +665,7 @@ writefln("log(x) = %s", log(x));
 	writeln("test missing");
 }
 
+/+
 /**
  * Decimal version of std.math.log2.
  * Required by General Decimal Arithmetic Specification
@@ -682,43 +705,43 @@ unittest {
 	write("power..........");
 	writeln("test missing");
 }
-
++/
 //--------------------------------
 // TRIGONOMETRIC FUNCTIONS
 //--------------------------------
 
 
 // Returns the argument reduced to 0 <= pi/4 and sets the octant.
-private Decimal reducedAngle(const Decimal x, out int octant) {
-	Decimal x2 = 4*x/pi;
-	Decimal ki = trunc(x2);
+private T reducedAngle(T)(const T x, out int octant) {
+	T x2 = 4*x/T.PI;
+	T ki = trunc(x2);
 	int k2 = trunc(x2).coefficient.toInt;
 	if (k2 < 0) k2 = 1 - k2;
-	Decimal red = pi/4 * (x2 - k2);
+	T red = T.PI/4 * (x2 - k2);
 	octant = k2 % 8;
 	return red;
 }
 
 unittest {
 	writeln("range reduction...");
-/*	Decimal deg = Decimal("180")/pi;
+	dec9 deg = dec9("180")/dec9.PI;
 	int octant;
 	for (int x = 0; x <= 720; x += 35) {
-		Decimal xr = x/deg;
-		Decimal y = reducedAngle(xr, octant);
-		Decimal yd = y*deg;
+		dec9 xr = x/deg;
+		dec9 y = reducedAngle(xr, octant);
+		dec9 yd = y*deg;
 		writefln("   x = %s, y = %s, octant = %s", x, rint(yd), octant);
-		y = reducedAngleOld(xr, octant);
-		yd = y*deg;
+/*		y = reducedAngleOld(xr, octant);
+		yd = y*deg;*/
 		writefln("-- x = %s, y = %s, octant = %s", x, rint(yd), octant);
-	}*/
+	}
 	writeln("passed");
 }
 
 /// Decimal version of std.math function.
-public Decimal sin(const Decimal x) {
+public T sin(T)(const T x) {
 	int octant;
-	Decimal rx = reducedAngle(x, octant);
+	T rx = reducedAngle(x, octant);
 	switch(octant) {
 		case 0: return( calcSin( rx));
 		case 1: return( calcCos(-rx));
@@ -728,27 +751,27 @@ public Decimal sin(const Decimal x) {
 		case 5: return(-calcCos(-rx));
 		case 6: return(-calcCos( rx));
 		case 7: return(-calcSin(-rx));
-		default: return Decimal.nan;
+		default: return T.nan;
 	}
 }
 
-/// Decimal version of std.math function.
+/*/// Decimal version of std.math function.
 public Decimal sin(const Decimal arg, uint precision) {
 	pushContext(precision);
 	Decimal value = sin(arg);
 	popContext();
 	return value;
-}
+}*/
 
 /// Decimal version of std.math function.
-public Decimal calcSin(const Decimal x) {
-	Decimal sum = 0;
+public T calcSin(T)(const T x) {
+	T sum = 0;
 	int n = 1;
-	Decimal powx = x.dup;
-	Decimal sqrx = x * x;
-	Decimal fact = 1;
-	Decimal term = powx;
-	while (term.abs > Decimal.epsilon) {
+	T powx = x.dup;
+	T sqrx = x * x;
+	T fact = 1;
+	T term = powx;
+	while (term.abs > T.epsilon) {
 		sum += term;
 		n += 2;
 		powx = -powx * sqrx;
@@ -762,25 +785,25 @@ unittest {
 	write("sin..........");
 	writeln;
 	writeln("sin(1) = 0.84147098480789650665250232163029899962256306079837");
-	pushContext(50);
-	writefln("calcSin(1) = %s", calcSin(Decimal(1)));
-//	Decimal test = Decimal(10,22);
+//	pushContext(50);
+	writefln("calcSin(1) = %s", calcSin(dec9(1)));
+//	dec9 test = dec9(10,22);
 //	writefln("sin(10^^22) = %s", sin(test));
-	Decimal test = Decimal("22000.12345");
+	dec9 test = dec9("22000.12345");
 	writeln("sin(22) = -0.008851309290403875921690256815772332463289203951");
 	writefln("sin(22) = %s", sin(test));
 /*
 //	popContext();
-	writefln("sin(101.23456789) = %s", sin(Decimal("101.23456789"), 25));
-	writefln("sin(pi + 1.0) = %s", sin(pi(25) + Decimal("1.0"),25));
+	writefln("sin(101.23456789) = %s", sin(dec9("101.23456789"), 25));
+	writefln("sin(pi + 1.0) = %s", sin(pi(25) + dec9("1.0"),25));
 
 	writeln("..failed");*/
 }
 
 /// Decimal version of std.math function.
-public Decimal cos(const Decimal x) {
+public T cos(T)(const T x) {
 	int octant;
-	Decimal y = reducedAngle(x, octant);
+	T y = reducedAngle(x, octant);
 	switch(octant) {
 		case 0: return(calcCos(y));
 		case 1: return(calcSin(-y));
@@ -790,27 +813,27 @@ public Decimal cos(const Decimal x) {
 		case 5: return(-calcSin(-y));
 		case 6: return(calcSin(y));
 		case 7: return(calcCos(-y));
-		default: return Decimal.nan;
+		default: return T.nan;
 	}
 }
 
-/// Decimal version of std.math function.
-public Decimal cos(const Decimal x, uint precision) {
+/*/// Decimal version of std.math function.
+public T cos(T)(const T x, uint precision) {
 	pushContext(precision);
-	Decimal value = cos(x);
+	T value = cos(x);
 	popContext();
 	return value;
-}
+}*/
 
 /// Decimal version of std.math function.
-public Decimal calcCos(const Decimal x) {
-	Decimal sum = 0;
+public T calcCos(T)(const T x) {
+	T sum = 0;
 	int n = 0;
-	Decimal powx = 1;
-	Decimal sqrx = x * x;
-	Decimal fact = 1;
-	Decimal term = powx;
-	while (term.abs > Decimal.epsilon) {
+	T powx = 1;
+	T sqrx = x * x;
+	T fact = 1;
+	T term = powx;
+	while (term.abs > T.epsilon) {
 		sum += term;
 		n += 2;
 		powx = -powx * sqrx;
@@ -824,9 +847,9 @@ unittest {
 	write("cos..........");
 	writeln;
 	writeln("cos(1) = 0.54030230586813971740093660744297660373231042061792");
-	pushContext(50);
-	writefln("cos(1) = %s", calcCos(Decimal(1)));
-	popContext();
+//	pushContext(50);
+	writefln("cos(1) = %s", calcCos(dec9(1)));
+//	popContext();
 	writeln("..failed");
 }
 
@@ -834,17 +857,17 @@ unittest {
  * Replaces std.math function expi
  *
  */
-public void sincos(Decimal x, out Decimal sine, out Decimal cosine) {
-	Decimal[2] result;
+public void sincos(T)(T x, out T sine, out T cosine) {
+	T[2] result;
 
-	Decimal csum, cterm, cx;
-	Decimal ssum, sterm, sx;
-	Decimal sqrx = x*x;
+	T csum, cterm, cx;
+	T ssum, sterm, sx;
+	T sqrx = x*x;
 	long n = 2;
-	Decimal fact = 1;
+	T fact = 1;
 	cx = 1;	cterm = cx;	csum = cterm;
 	sx = x.dup;	sterm = sx;	ssum = sterm;
-	while (sterm.abs > Decimal.epsilon/* && n < 10*/) {
+	while (sterm.abs > T.epsilon/* && n < 10*/) {
 		cx = -sx;
 		fact = fact * n++;
 		cterm = cx/fact;
@@ -860,9 +883,9 @@ public void sincos(Decimal x, out Decimal sine, out Decimal cosine) {
 
 unittest {
 	write("sincos.......");
-	Decimal sine;
-	Decimal cosine;
-	sincos(Decimal("1.0"), sine, cosine);
+	dec9 sine;
+	dec9 cosine;
+	sincos(dec9("1.0"), sine, cosine);
 writeln;
 writefln("sine = %s", sine);
 writefln("cosine = %s", cosine);
@@ -874,9 +897,9 @@ writefln("cosine = %s", cosine);
  *
  */
  // Newton's method .. is it faster
-public Decimal tan(Decimal x) {
-	Decimal sine;
-	Decimal cosine;
+public T tan(T)(T x) {
+	T sine;
+	T cosine;
 	sincos(x, sine, cosine);
 	return sine/cosine;
 }
@@ -884,11 +907,12 @@ public Decimal tan(Decimal x) {
 unittest {
 	write("tan..........");
 	// tan(1.0) = 1.5574077246549022305069748074583601730872507723815
-writefln("tan(1.0) = %s", tan(Decimal("1.0")));
+writefln("tan(1.0) = %s", tan(dec9("1.0")));
 
 	writeln("..failed");
 }
 
+/+
 /**
  * Decimal version of std.math function.
  *

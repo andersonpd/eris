@@ -37,16 +37,14 @@ version(unittest) {
 	//@safe
 public T roundToPrecision(T)(const T num,
 		int precision = T.precision,
-		Rounding mode = contextMode) {
-//		const bool setFlags = true) {
+		Rounding mode = contextRounding) {
 
-	T result = num.dup;
-
-	if (mode == Rounding.NONE) return result;
+	if (mode == Rounding.NONE) return num.dup;
 
 	// special values aren't rounded
-	if (!num.isFinite) return result;
+	if (!num.isFinite) return num.dup;
 
+	T result = num.dup;
 	// zero values aren't rounded, but they are checked for
 	// subnormal and out of range exponents.
 	if (num.isZero) {
@@ -62,7 +60,7 @@ public T roundToPrecision(T)(const T num,
 
 	// handle subnormal numbers
 	if (num.isSubnormal()) {
-		/*if (setFlags)*/ contextFlags.setFlags(SUBNORMAL);
+		contextFlags.setFlags(SUBNORMAL);
 		int diff = T.minExpo - result.adjustedExponent;
 		// use the subnormal precision and round
 		precision -= diff;
@@ -73,7 +71,7 @@ public T roundToPrecision(T)(const T num,
 		// the clamped flag is set. (Spec. p. 51)
 		if (result.isZero) {
 			result.exponent = T.tinyExpo;
-			/*if (setFlags)*/ contextFlags.setFlags(CLAMPED);
+			contextFlags.setFlags(CLAMPED);
 		}
 		return result;
 	}
@@ -150,7 +148,7 @@ unittest {	// roundToPrecision
 /// Flags: OVERFLOW, ROUNDED, INEXACT.
 /// Precondition: number must be finite.
 //@safe
-private bool overflow(T)(ref T num,	Rounding mode = contextMode)  {
+private bool overflow(T)(ref T num,	Rounding mode = contextRounding)  {
 	if (num.adjustedExponent <= T.maxExpo) return false;
 	switch (mode) {
 		case Rounding.NONE:
@@ -189,12 +187,14 @@ private void roundByMode(T)(ref T num, int precision, Rounding mode) {
 
 	if (mode == Rounding.NONE) return;
 
+	// check for precision overrides
+	if (T.tempPrecision) precision  = T.tempPrecision;
+	if (T.guardDigits)   precision += T.guardDigits;
+
 	// calculate the remainder
 	T remainder = getRemainder(num, precision);
 	// if the number wasn't rounded, return
-	if (remainder.isZero) {
-		return;
-	}
+	if (remainder.isZero) return;
 
 	// check for deleted leading zeros in the remainder.
 	// makes a difference only in round-half modes.
@@ -210,24 +210,18 @@ private void roundByMode(T)(ref T num, int precision, Rounding mode) {
 		case Rounding.DOWN:
 			return;
 		case Rounding.CEILING:
-			if (!num.sign) {
-				incrementAndRound(num);
-			}
+			if (!num.sign) incrementAndRound(num);
 			return;
 		case Rounding.FLOOR:
-			if (num.sign) {
-				incrementAndRound(num);
-			}
+			if (num.sign) incrementAndRound(num);
 			return;
 		case Rounding.HALF_UP:
-			if (firstDigit(remainder.coefficient) >= 5) {
+			if (firstDigit(remainder.coefficient) >= 5)
 				incrementAndRound(num);
-			}
 			return;
 		case Rounding.HALF_DOWN:
-			if (testFive(remainder.coefficient) > 0) {
+			if (testFive(remainder.coefficient) > 0)
 				incrementAndRound(num);
-			}
 			return;
 		case Rounding.HALF_EVEN:
 			switch (testFive(remainder.coefficient)) {
@@ -659,7 +653,24 @@ unittest {	// firstDigit
 /// Shifts the number left by the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted right.
-public xint shiftLeft(xint num, const int n, const int precision) {
+public xint shiftLeft(xint num, const int n/*, const int precision*/) {
+	if (n > 0) {
+		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
+		num = num << n;
+		num *= fives;
+	}
+	if (n < 0) {
+		num = shiftRight(num, -n/*, precision*/);
+	}
+	return num;
+}
+
+/*/// Shifts the number left by the specified number of decimal digits.
+/// If n == 0 the number is returned unchanged.
+/// If n < 0 the number is shifted right.
+public xint shiftLeft(xint num, const int n) {
+	return shiftLeft(num, n); //, int.max);
+// const int precision = int.max
 	if (n > 0) {
 		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
 		num = num << n;
@@ -669,42 +680,25 @@ public xint shiftLeft(xint num, const int n, const int precision) {
 		num = shiftRight(num, -n, precision);
 	}
 	return num;
-}
-
-/// Shifts the number left by the specified number of decimal digits.
-/// If n == 0 the number is returned unchanged.
-/// If n < 0 the number is shifted right.
-public xint shiftLeft(xint num, const int n) {
-	return shiftLeft(num, n, int.max);
-// const int precision = int.max
-/*	if (n > 0) {
-		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
-		num = num << n;
-		num *= fives;
-	}
-	if (n < 0) {
-		num = shiftRight(num, -n, precision);
-	}
-	return num;*/
-}
+}*/
 
 unittest {	// shiftLeft(xint)
 	xint m;
 	int n;
 	m = 12345;
 	n = 2;
-	assert(shiftLeft(m, n, 100) == 1234500);
+	assert(shiftLeft(m, n/*, 100*/) == 1234500);
 	m = 1234567890;
 	n = 7;
-	assert(shiftLeft(m, n, 100) == xint(12345678900000000));
+	assert(shiftLeft(m, n/*, 100*/) == xint(12345678900000000));
 	m = 12;
 	n = 2;
-	assert(shiftLeft(m, n, 100) == 1200);
+	assert(shiftLeft(m, n/*, 100*/) == 1200);
 	m = 12;
 	n = 4;
-	assert(shiftLeft(m, n, 100) == 120000);
+	assert(shiftLeft(m, n/*, 100*/) == 120000);
 	uint k;
-	k = 12345;
+/*	k = 12345;
 	n = 2;
 	assert(1234500 == cast(uint)shiftLeft(k, n, 9));
 	k = 1234567890;
@@ -715,13 +709,13 @@ unittest {	// shiftLeft(xint)
 	assert(1200 == cast(uint)shiftLeft(k, n, 9));
 	k = 12;
 	n = 4;
-	assert(120000 == cast(uint)shiftLeft(k, n, 9));
+	assert(120000 == cast(uint)shiftLeft(k, n, 9));*/
 }
 
 /// Shifts the number to the left by the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted to the right.
-public ulong shiftLeft(ulong num, const int n,
+/*public ulong shiftLeft(ulong num, const int n,
 		const int precision = MAX_LONG_DIGITS) {
 	if (n > precision) return 0;
 	if (n > 0) {
@@ -738,25 +732,25 @@ public ulong shiftLeft(ulong num, const int n,
 		num = shiftRight(num, -n, precision);
 	}
 	return num;
-}
+}*/
 
 /// Shifts the number right the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted left.
-public xint shiftRight(xint num, const int n,
-		const int precision) { // = Decimal.context.precision) {
+public xint shiftRight(xint num, const int n) {
+//		const int precision) { // = Decimal.context.precision) {
 	if (n > 0) {
 		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
 		num = num >> n;
 		num /= fives;
 	}
 	if (n < 0) {
-		num = shiftLeft(num, -n, precision);
+		num = shiftLeft(num, -n/*, precision*/);
 	}
 	return num;
 }
 
-/// Shifts the number right the specified number of decimal digits.
+/*/// Shifts the number right the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted left.
 public ulong shiftRight(ulong num, int n,
@@ -768,7 +762,7 @@ public ulong shiftRight(ulong num, int n,
 		num = shiftLeft(num, -n, precision);
 	}
 	return num;
-}
+}*/
 
 /// Rotates the number to the left by the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
@@ -842,6 +836,7 @@ public uint lastDigit(const xint arg) {
 }
 
 unittest {	// lastDigit(xint)
+	write("lastDigit.....");
 	xint n;
 	n = 7;
 	assertEqual(lastDigit(n), 7);
@@ -867,9 +862,11 @@ unittest {	// lastDigit(xint)
 	assertEqual(lastDigit(n), 4);
 	n = long.max;
 	assertEqual(lastDigit(n), 7);
+	writeln("passed");
 }
 
 /// Returns the number of trailing zeros in the argument.
+// TODO: move to arithmetic
 public int trailingZeros(const xint arg, const int digits) {
 	xint n = arg.dup;
 	// shortcuts for frequent values
@@ -892,6 +889,7 @@ public int trailingZeros(const xint arg, const int digits) {
 }
 
 /// Trims any trailing zeros and returns the number of zeros trimmed.
+// TODO: move this to arithmetic?
 public int trimZeros(ref xint n, const int digits) {
 	int zeros = trailingZeros(n, digits);
 	if (zeros == 0) return 0;

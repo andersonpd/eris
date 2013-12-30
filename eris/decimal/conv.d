@@ -39,8 +39,8 @@ version(unittest) {
 //   to!string conversions
 //--------------------------------
 
-/// to!string(ExtendedInt).
-T to(T:string)(const ExtendedInt num) {
+/// to!string(xint).
+T to(T:string)(const xint num) {
 	string outbuff = "";
 	void sink(const(char)[] s) {
 		outbuff ~= s;
@@ -260,7 +260,7 @@ private string decimalForm(T)
 	int diff = num.exponent + precision;
 	if (diff < 0) {
 		int numPrecision = num.digits + num.exponent + precision;
-		num = roundToPrecision(num, numPrecision, contextMode);
+		num = roundToPrecision(num, numPrecision, contextRounding);
 	}
 
 	// convert the coefficient to a string
@@ -339,7 +339,7 @@ private string exponentForm(T)(const T number, const int precision = 6,
 	T num = number.dup;
 	if (T.precision > precision + 1) {
 		int numPrecision = precision + 1;
-		num = roundToPrecision(num, numPrecision, contextMode);
+		num = roundToPrecision(num, numPrecision, contextRounding);
 	}
 	char[] mant = to!string(num.coefficient).dup;
 	auto expo = num.exponent;
@@ -689,7 +689,7 @@ public T toNumber(T)(const string inStr) {
 	if (indexOf(str, '_') >= 0) {
   		str = removechars(str.idup, "_").dup;
 	}
-	// remove internal dec9 point
+	// remove internal decimal point
 	int point = indexOf(str, '.');
 	if (point >= 0) {
 		// excise the point and adjust the exponent
@@ -707,8 +707,8 @@ public T toNumber(T)(const string inStr) {
 			return T.nan;
 		}
 	}
-	// convert coefficient string to ExtendedInt
-	num.coefficient = ExtendedInt(str.idup);
+	// convert coefficient string to xint
+	num.coefficient = xint(str.idup);
 	num.digits = numDigits(num.coefficient);
 	return num;
 }

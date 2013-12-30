@@ -52,12 +52,15 @@ struct Decimal(int P, int X) {
 
 alias decimal = Decimal!(P,X);
 
-	private SV sval = SV.QNAN;		// special values: default value is quiet NaN
+	private SV sval = SV.QNAN;		// special value: default is quiet NaN
 	private bool signed = false;	// true if the value is negative, false otherwise.
 	private int expo = 0;			// the exponent of the decimal value
 	private xint mant;				// the coefficient of the decimal value
 	package int digits; 			// the number of decimal digits in this number.
 									// (unless the number is a special value)
+	// static fields
+	package static int guardDigits = 0;
+	package static int tempPrecision = 0;
 
 	/// Maximum length of the coefficient in decimal digits.
 	public immutable int precision = P;
@@ -74,10 +77,10 @@ alias decimal = Decimal!(P,X);
 	// decimal special values
 	public immutable decimal NAN		= decimal(SV.QNAN);
 	public immutable decimal SNAN		= decimal(SV.SNAN);
-	public immutable decimal INFINITY = decimal(SV.INF);
-	public immutable decimal NEG_INF  = decimal(SV.INF, true);
+	public immutable decimal INFINITY	= decimal(SV.INF);
+	public immutable decimal NEG_INF	= decimal(SV.INF, true);
 	public immutable decimal ZERO		= decimal(SV.NONE);
-	public immutable decimal NEG_ZERO = decimal(SV.NONE, true);
+	public immutable decimal NEG_ZERO	= decimal(SV.NONE, true);
 
 	unittest {	// special values
 		write("-- special values...");
@@ -98,9 +101,11 @@ alias decimal = Decimal!(P,X);
 	}
 
 	// common decimal numbers
+	public immutable decimal HALF		= decimal(5, -1);
 	public immutable decimal ONE		= decimal(xint(1));
 	public immutable decimal NEG_ONE	= decimal(xint(-1));
 	public immutable decimal TWO		= decimal(xint(2));
+	public immutable decimal THREE		= decimal(xint(3));
 	public immutable decimal FIVE		= decimal(xint(5));
 	public immutable decimal TEN		= decimal(xint(10));
 
@@ -579,13 +584,13 @@ alias decimal = Decimal!(P,X);
 
 	/// Returns zero.
 	@safe
-	static immutable decimal zero(bool signed = false) {
+	immutable static decimal zero(bool signed = false) {
 		return signed ? NEG_ZERO.dup : ZERO.dup;
 	}
 
 	/// Returns 1.
 	//@safe
-	static immutable decimal one(bool signed = false) {
+	immutable static decimal one(bool signed = false) {
 		return signed ? NEG_ONE.dup : ONE.dup;
 	}
 
@@ -636,13 +641,13 @@ alias decimal = Decimal!(P,X);
 	/// Returns true if this number is exactly one.
 	//@safe
 	const bool isOne() {
-		if (isOneReduced()) {
+		if (isSimpleOne()) {
 			return true;
 		}
 		if (exponent > 0) {
 			return false;
 		}
-		if (this.reduce.isOneReduced()) {
+		if (this.reduce.isSimpleOne()) {
 			return true;
 		}
 		return false;
@@ -650,7 +655,7 @@ alias decimal = Decimal!(P,X);
 
 	/// Returns true if this number is exactly (false, 1, 0).
 	@safe
-	const bool isOneReduced() {
+	const bool isSimpleOne() {
 		return isFinite && !isSigned && coefficient == 1 && exponent == 0;
 	}
 
@@ -661,7 +666,7 @@ alias decimal = Decimal!(P,X);
 		assertTrue(num.isOne);
 		num = dec9(false, 10, -1);
 		assertTrue(num.isOne);
-		assertFalse(num.isOneReduced);
+		assertFalse(num.isSimpleOne);
 		writeln("passed");
 	}
 
@@ -942,7 +947,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// is made to the current precision.
 	const int opCmp(T:decimal)(const T that) {
 		// TODO: this is a place where the context is set from the outside.
-		return compare(this, that, contextMode);
+		return compare(this, that, contextRounding);
 	}
 
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
@@ -958,12 +963,17 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// Zeros are equal regardless of sign.
 	/// A NaN is not equal to any number, not even to another NaN.
 	/// A number is not even equal to itself (this != this) if it is a NaN.
-	const bool opEquals(T:decimal)(ref const T that) {
-		return equals(this, that, contextMode);
+	const bool opEquals(T:decimal)(const T that) {
+		return equals(this, that, contextRounding);
 	}
 
+/*	/// Returns true if this extended integer is equal to the argument.
+	const bool opEquals(T:long)( const T that) {
+		return opEquals(decimal(that));
+	}*/
+
 	/// Returns true if this extended integer is equal to the argument.
-	const bool opEquals(T)(ref const T that) {
+	const bool opEquals(T)(const T that) {
 		return opEquals(decimal(that));
 	}
 
@@ -972,6 +982,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		dec9 num1, num2;
 		num1 = 105;
 		num2 = 10.543;
+		assert(num1 == 105L);
 		assertGreaterThan(num1, num2);
 		assertNotEqual(num1, num2);
 		assertGreaterThan(num1, num2);
@@ -994,17 +1005,17 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	//@safe
 	private decimal opUnary(string op)() {
 		static if (op == "+") {
-			return plus(this, precision, contextMode);
+			return plus(this, precision, contextRounding);
 		}
 		else static if (op == "-") {
-			return minus(this, precision, contextMode);
+			return minus(this, precision, contextRounding);
 		}
 		else static if (op == "++") {
-			this = add(this, decimal(1), contextMode);
+			this = add(this, decimal(1), contextRounding);
 			return this;
 		}
 		else static if (op == "--") {
-			this = sub(this, decimal(1), contextMode);
+			this = sub(this, decimal(1), contextRounding);
 			return this;
 		}
 	}
@@ -1119,28 +1130,28 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	const decimal opBinary(string op, T:long)(const T arg)
 	{
 		static if (op == "+") {
-			return addLong(this, arg, contextMode);
+			return addLong(this, arg, contextRounding);
 		}
 		else static if (op == "-") {
-			return subLong(this, arg, contextMode);
+			return subLong(this, arg, contextRounding);
 		}
 		else static if (op == "*") {
-			return mulLong(this, arg, contextMode);
+			return mulLong(this, arg, contextRounding);
 		}
 		else static if (op == "/") {
-			return div(this, decimal(arg), contextMode);
+			return div(this, decimal(arg), contextRounding);
 		}
 		else static if (op == "%") {
-			return remainder(this, decimal(arg), contextMode);
+			return remainder(this, decimal(arg), contextRounding);
 		}
 		else static if (op == "&") {
-			return and(this, decimal(arg), contextMode);
+			return and(this, decimal(arg), contextRounding);
 		}
 		else static if (op == "|") {
-			return or(this, decimal(arg), contextMode);
+			return or(this, decimal(arg), contextRounding);
 		}
 		else static if (op == "^") {
-			return xor(this, decimal(arg), contextMode);
+			return xor(this, decimal(arg), contextRounding);
 		}
 	}
 
@@ -1149,28 +1160,28 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	const decimal opBinaryRight(string op, T:long)(const T arg)
 	{
 		static if (op == "+") {
-			return addLong(this, arg, contextMode);
+			return addLong(this, arg, contextRounding);
 		}
 		else static if (op == "-") {
-			return sub(decimal(arg), this, contextMode);
+			return sub(decimal(arg), this, contextRounding);
 		}
 		else static if (op == "*") {
-			return mulLong(this, arg, contextMode);
+			return mulLong(this, arg, contextRounding);
 		}
 		else static if (op == "/") {
-			return div(decimal(arg), this, contextMode);
+			return div(decimal(arg), this, contextRounding);
 		}
 		else static if (op == "%") {
-			return remainder(decimal(arg), this, contextMode);
+			return remainder(decimal(arg), this, contextRounding);
 		}
 		else static if (op == "&") {
-			return and(this, decimal(arg), contextMode);
+			return and(this, decimal(arg), contextRounding);
 		}
 		else static if (op == "|") {
-			return or(this, decimal(arg), contextMode);
+			return or(this, decimal(arg), contextRounding);
 		}
 		else static if (op == "^") {
-			return xor(this, decimal(arg), contextMode);
+			return xor(this, decimal(arg), contextRounding);
 		}
 	}
 
@@ -1340,7 +1351,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	//@safe
 	public static xint pow10(int n) {
 		xint num = 1;
-		return shiftLeft(num, n, precision);
+		return shiftLeft(num, n/*, precision*/);
 	}
 
 //--------------------------------
@@ -1369,11 +1380,11 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	/// natural logarithm of 2 = 0.693147806...
 	immutable decimal LN2 = roundString("0.693147180559945309417232121458176568"
-		"075500134360255254120680009493393621969694715605863326996418688");
+		"075500134360255254120680009493393621969694715605863326996418688");*/
 
 	/// natural logarithm of 10 = 2.30258509...
 	immutable decimal LN10 = roundString("2.30258509299404568401799145468436420"
-		"760110148862877297603332790096757260967735248023599720508959820");*/
+		"760110148862877297603332790096757260967735248023599720508959820");
 
 	/// pi = 3.14159266...
 	immutable decimal PI = roundString("3.1415926535897932384626433832795028841"
