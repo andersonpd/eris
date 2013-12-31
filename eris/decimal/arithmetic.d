@@ -44,7 +44,6 @@ version(unittest) {
 
 alias xcompare = eris.integer.extended.xint.compare;
 
-// TODO: move this to conv? distribute among types?
 //--------------------------------
 // classification functions
 //--------------------------------
@@ -54,32 +53,32 @@ alias xcompare = eris.integer.extended.xint.compare;
 	/// The sign of any NaN values is ignored in the classification.
 	/// The argument is not rounded and no flags are changed.
 	/// Implements the 'class' function in the specification. (p. 42)
-	public string classify(T)(const T arg)  {
-		if (arg.isFinite) {
-			if (arg.isZero) 	 { return arg.sign ? "-Zero" : "+Zero"; }
-			if (arg.isNormal)	 { return arg.sign ? "-Normal" : "+Normal"; }
-			if (arg.isSubnormal) { return arg.sign ? "-Subnormal" : "+Subnormal"; }
+	public string classify(T)(const T x)  {
+		if (x.isFinite) {
+			if (x.isZero) 	 { return x.sign ? "-Zero" : "+Zero"; }
+			if (x.isNormal)	 { return x.sign ? "-Normal" : "+Normal"; }
+			if (x.isSubnormal) { return x.sign ? "-Subnormal" : "+Subnormal"; }
 		}
-		if (arg.isInfinite)  { return arg.sign ? "-Infinity" : "+Infinity"; }
-		if (arg.isSignaling) { return "sNaN"; }
+		if (x.isInfinite)  { return x.sign ? "-Infinity" : "+Infinity"; }
+		if (x.isSignaling) { return "sNaN"; }
 		return "NaN";
 	}
 
 	unittest {	// classify
 		write("-- classify.........");
-		dec9 arg;
-		arg = dec9("Inf");
-		assertEqual(classify(arg), "+Infinity");
-		arg = dec9("1E-10");
-		assertEqual(classify(arg), "+Normal");
-		arg = dec9("-0");
-		assertEqual(classify(arg), "-Zero");
-		arg = dec9("-0.1E-99");
-		assertEqual(classify(arg), "-Subnormal");
-		arg = dec9("NaN");
-		assertEqual(classify(arg), "NaN");
-		arg = dec9("sNaN");
-		assertEqual(classify(arg), "sNaN");
+		dec9 x;
+		x = dec9("Inf");
+		assertEqual(classify(x), "+Infinity");
+		x = dec9("1E-10");
+		assertEqual(classify(x), "+Normal");
+		x = dec9("-0");
+		assertEqual(classify(x), "-Zero");
+		x = dec9("-0.1E-99");
+		assertEqual(classify(x), "-Subnormal");
+		x = dec9("NaN");
+		assertEqual(classify(x), "NaN");
+		x = dec9("sNaN");
+		assertEqual(classify(x), "sNaN");
 		writeln("passed");
 	}
 
@@ -91,16 +90,16 @@ alias xcompare = eris.integer.extended.xint.compare;
 /// The copy is unaffected by context and is quiet -- no flags are changed.
 /// Implements the 'copy' function in the specification. (p. 43)
 //@safe
-public T copy(T)(const T arg)  {
-	return arg.dup;
+public T copy(T)(const T x)  {
+	return x.dup;
 }
 
 /// Returns a copy of the operand with a positive sign.
 /// The copy is unaffected by context and is quiet -- no flags are changed.
 /// Implements the 'copy-abs' function in the specification. (p. 44)
 //@safe
-public T copyAbs(T)(const T arg)  {
-	T copy = arg.dup;
+public T copyAbs(T)(const T x)  {
+	T copy = x.dup;
 	copy.sign = false;
 	return copy;
 }
@@ -109,9 +108,9 @@ public T copyAbs(T)(const T arg)  {
 /// The copy is unaffected by context and is quiet -- no flags are changed.
 /// Implements the 'copy-negate' function in the specification. (p. 44)
 //@safe
-public T copyNegate(T)(const T arg)  {
-	T copy = arg.dup;
-	copy.sign = !arg.sign;
+public T copyNegate(T)(const T x)  {
+	T copy = x.dup;
+	copy.sign = !x.sign;
 	return copy;
 }
 
@@ -226,23 +225,22 @@ unittest {
 /// The result may overflow or underflow.
 /// Flags: INVALID_OPERATION, UNDERFLOW, OVERFLOW.
 /// Implements the 'scaleb' function in the specification. (p. 48)
-public T scaleb(T)(const T arg1, const T arg2)  {
+public T scaleb(T)(const T x, const T y)  {
+
 	T nan;
-	if (operationIsInvalid!T(arg1, arg2, nan)) {
-		return nan;
-	}
-	if (arg1.isInfinite) {
-		return arg1.dup;
-	}
+	if (operationIsInvalid!T(x, y, nan)) return nan;
+
+	if (x.isInfinite) return x.dup;
+
 	T result;
-	int expo = arg2.exponent;
+	int expo = y.exponent;
 	if (expo != 0 /* && not within range */) {
 		result = setInvalidFlag!T;
 		return result;
 	}
-	result = arg1;
-	int scale = cast(int)arg2.coefficient.toInt;
-	if (arg2.isSigned) {
+	result = x;
+	int scale = cast(int)y.coefficient.toInt;
+	if (y.isSigned) {
 		scale = -scale;
 	}
 	// (A)TODO: check for overflow/underflow -- should this be part of setting
@@ -254,10 +252,10 @@ public T scaleb(T)(const T arg1, const T arg2)  {
 unittest {	// scaleb
 	write("-- scaleb...........");
 	dec9 expect, actual;
-	auto arg1 = dec9("7.50");
-	auto arg2 = dec9("-2");
+	auto x = dec9("7.50");
+	auto y = dec9("-2");
 	expect = dec9("0.0750");
-	actual = scaleb(arg1, arg2);
+	actual = scaleb(x, y);
 	assertEqual(actual, expect);
 	writeln("passed");
 }
@@ -275,9 +273,10 @@ unittest {	// scaleb
 /// "This operation was called 'normalize' prior to
 /// version 1.68 of the specification." (p. 37)
 /// Flags: INVALID_OPERATION
-public T reduce(T)(const T arg, int precision = T.precision,
+public T reduce(T)(const T x, int precision = T.precision,
 		Rounding mode = contextRounding)  {
-	T reduced = plus(arg.dup, precision, mode);
+
+	T reduced = plus(x.dup, precision, mode);
 
 	if (!reduced.isFinite()) {
 		return reduced;
@@ -296,62 +295,56 @@ public T reduce(T)(const T arg, int precision = T.precision,
 }
 
 // just a wrapper TODO: can we alias this? does that work?
-public T normalize(T)(const T arg, int precision = T.precision,
+public T normalize(T)(const T x, int precision = T.precision,
 		Rounding mode = contextRounding)  {
-	return reduce!T(arg, precision, mode);
+	return reduce(x, precision, mode);
 }
 
 unittest {	// reduce
 	write("-- reduce...........");
-	dec9 arg;
+	dec9 x;
 	dec9 expect, actual;
-	arg = dec9("1.200");
+	x = dec9("1.200");
 	expect = dec9("1.2");
-	actual = reduce(arg);
-	assertNotEqual(arg.toString, expect.toString);
+	actual = reduce(x);
+	assertNotEqual(x.toString, expect.toString);
 	assertStringEqual(actual, expect);
-	arg = dec9("12.34");
+	x = dec9("12.34");
 	expect = dec9("1.234");
-	actual = reduce(arg);
-	assertStringEqual(actual, arg);
-	assertStringNotEqual(arg, expect);
+	actual = reduce(x);
+	assertStringEqual(actual, x);
+	assertStringNotEqual(x, expect);
 	assertStringNotEqual(actual, expect);
 	writeln("passed");
 }
 
 /// Returns the absolute value of the argument.
 /// This operation rounds the result and may set flags.
-/// The result is equivalent to plus(arg) for positive numbers
-/// and to minus(arg) for negative numbers.
+/// The result is equivalent to plus(x) for positive numbers
+/// and to minus(x) for negative numbers.
 /// To return the absolute value without rounding or setting flags
 /// use the 'copyAbs' function.
 /// Implements the 'abs' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION
-public T abs(T)(const T arg, int precision = T.precision,
+public T abs(T)(const T x, int precision = T.precision,
 		const Rounding mode = contextRounding)  {
-	T result = T.nan;
-	if (operandIsInvalid!T(arg, result)) {
-		return result;
-	}
-	result = copyAbs!T(arg);
-	return roundToPrecision(result, precision, mode);
+  	T nan;
+	if (operandIsInvalid!T(x, nan)) return nan;
+	return roundToPrecision(x.copyAbs, precision, mode);
 }
 
 unittest {	// abs
 	write("-- abs..............");
-	dec9 arg;
-	dec9 expect, actual;
-	arg = dec9("-Inf");
+	dec9 x;
+	dec9 expect;
+	x = dec9("-Inf");
 	expect = dec9("Inf");
-	actual = abs(arg);
-	assertEqual(actual, expect);
-	arg = 101.5;
+	assertEqual(abs(x), expect);
+	x = 101.5;
 	expect = 101.5;
-	actual = abs(arg);
-	assertEqual(actual, expect);
-	arg = -101.5;
-	actual = abs(arg);
-	assertEqual(actual, expect);
+	assertEqual(abs(x), expect);
+	x = -101.5;
+	assertEqual(abs(x), expect);
 	writeln("passed");
 }
 
@@ -360,35 +353,32 @@ unittest {	// abs
 /// If the argument is negative, -1 is returned.
 /// Otherwise +1 is returned.
 /// This function is not required by the specification.
-public int sgn(T)(const T arg)  {
-	if (arg.isZero) return 0;
-	return arg.isNegative ? -1 : 1;
+public int sgn(T)(const T x)  {
+	if (x.isZero) return 0;
+	return x.isNegative ? -1 : 1;
 }
 
 unittest {	// sgn
 	write("-- sgn..............");
-	dec9 arg;
-	arg = -123;
-	assertEqual(sgn(arg), -1);
-	arg = 2345;
-	assertEqual(sgn(arg), 1);
-	arg = dec9("0.0000");
-	assertEqual(sgn(arg), 0);
-	arg = dec9.infinity(true);
-	assertEqual(sgn(arg), -1);
-	xint big = -5;
-	assertEqual(sgn(big), -1);
+	dec9 x;
+	x = -123;
+	assertEqual(sgn(x), -1);
+	x = 2345;
+	assertEqual(sgn(x), 1);
+	x = dec9("0.0000");
+	assertEqual(sgn(x), 0);
+	x = dec9.infinity(true);
+	assertEqual(sgn(x), -1);
+	xint n = -5;
+	assertEqual(sgn(n), -1);
 	writeln("passed");
 }
 
 /// Returns -1, 0, or 1
 /// if the argument is negative, zero, or positive, respectively.
-public int sgn(T:ExtendedInt)(const T num) {
-//	if (num < 0) return -1;
-//	if (num > 0) return 1;
-	ExtendedInt big = num.dup;
-	if (big < 0) return -1;
-	if (big > 0) return 1;
+public int sgn(T:xint)(const T num) {
+	if (num < 0) return -1;
+	if (num > 0) return 1;
 	return 0;
 }
 
@@ -398,15 +388,15 @@ public int sgn(T:ExtendedInt)(const T num) {
 /// To copy without rounding or setting flags use the 'copy' function.
 /// Implements the 'plus' function in the specification. (p. 33)
 /// Flags: INVALID_OPERATION
-public T plus(T)(const T arg, int precision = T.precision,
+public T plus(T)(const T x, int precision = T.precision,
 		Rounding mode = contextRounding)  {
 	T result = T.nan;
-	if (operandIsInvalid!T(arg, result)) {
+	if (operandIsInvalid!T(x, result)) {
 		return result;
 	}
-	result = arg;
+	result = x;
 /*writeln("plus +++++++++++++++");
-writefln("arg = %s", arg);
+writefln("x = %s", x);
 writefln("precision = %s", precision);
 writefln("mode = %s", mode);*/
 	return roundToPrecision(result, precision, mode);
@@ -414,40 +404,37 @@ writefln("mode = %s", mode);*/
 
 /// Returns a copy of the argument with the opposite sign.
 /// This operation rounds the argument and may set flags.
-/// Result is equivalent to subtract('0', arg).
+/// Result is equivalent to subtract('0', x).
 /// To copy without rounding or setting flags use the 'copyNegate' function.
 /// Implements the 'minus' function in the specification. (p. 37)
 /// Flags: INVALID_OPERATION
-public T minus(T)(const T arg, int precision = T.precision,
+public T minus(T)(const T x, int precision = T.precision,
 		const Rounding mode = contextRounding)  {
-	T result = T.nan;
-	if (operandIsInvalid!T(arg, result)) {
-		return result;
-	}
-	result = copyNegate!T(arg);
-	return roundToPrecision(result, precision, mode);
+	T nan;
+	if (operandIsInvalid!T(x, nan)) return nan;
+	return roundToPrecision(x.copyNegate, precision, mode);
 }
 
 unittest {	// plus
 	write("-- plus, minus......");
 	dec9 zero = dec9.zero;
-	dec9 arg, expect, actual;
-	arg = 1.3;
-	expect = add(zero, arg);
-	actual = plus(arg);
+	dec9 x, expect, actual;
+	x = 1.3;
+	expect = add(zero, x);
+	actual = plus(x);
 	assertEqual(actual, expect);
-	arg = -1.3;
-	expect = add(zero, arg);
-	actual = plus(arg);
+	x = -1.3;
+	expect = add(zero, x);
+	actual = plus(x);
 	assertEqual(actual, expect);
 	// minus
-	arg = 1.3;
-	expect = sub(zero, arg);
-	actual = minus(arg);
+	x = 1.3;
+	expect = sub(zero, x);
+	actual = minus(x);
 	assertEqual(actual, expect);
-	arg = -1.3;
-	expect = sub(zero, arg);
-	actual = minus(arg);
+	x = -1.3;
+	expect = sub(zero, x);
+	actual = minus(x);
 	assertEqual(actual, expect);
 	writeln("passed");
 }
@@ -460,31 +447,31 @@ unittest {	// plus
 /// the argument.
 /// Implements the 'next-plus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
-public T nextPlus(T)(const T arg1,
+public T nextPlus(T)(const T x,
 		const Rounding mode = contextRounding)  {
-	T result = T.nan;
-	if (operandIsInvalid!T(arg1, result)) {
-		return result;
-	}
-	if (arg1.isInfinite) {
-		if (arg1.sign) {
-			return copyNegate!T(T.max);
+	T nan;
+	if (operandIsInvalid!T(x, nan)) return nan;
+
+	if (x.isInfinite) {
+		if (x.sign) {
+			return T.max.copyNegate;
 		}
 		else {
-			return arg1.dup;
+			return x.dup;
 		}
 	}
-	int adjustedExpo = arg1.exponent + arg1.digits - T.precision;
+	// TODO: use of precision
+	int adjustedExpo = x.exponent + x.digits - T.precision;
 	if (adjustedExpo < T.tinyExpo) {
 			return T(0L, T.tinyExpo);
 	}
 	// (A)TODO: must add the increment w/o setting flags
-	T arg2 = T(1L, adjustedExpo);
-	result = add!T(arg1, arg2, mode);
-	if (result > T.max) {
-		result = T.infinity;
+	T y = T(1L, adjustedExpo);
+	T next = add(x, y, mode);
+	if (next > T.max) {
+		next = T.infinity;
 	}
-	return result;
+	return next;
 }
 
 /// Returns the largest representable number that is smaller than
@@ -520,23 +507,21 @@ public T nextMinus(T)(const T x, Rounding mode = contextRounding)  {
 	return reduced;
 }
 
-/// Returns the representable number that is closest to the
-/// first operand (but not the first operand) in the
-/// direction toward the second operand.
+/// Returns the representable number that is closest to the first operand
+/// in the direction of the second operand.
 /// Implements the 'next-toward' function in the specification. (p. 34-35)
 /// Flags: INVALID_OPERATION
-public T nextToward(T)(const T arg1, const T arg2,
+public T nextToward(T)(const T x, const T y,
 		const Rounding mode = contextRounding)  {
-	T result = T.nan;
-	if (operationIsInvalid(arg1, arg2, result)) {
-		return result;
-	}
+
+	T nan;
+	if (operationIsInvalid(x, y, nan)) return nan;
+
 	// compare them but don't round
-	int comp = compare!T(arg1, arg2, mode);
-	if (comp < 0) return nextPlus(arg1, mode);
-	if (comp > 0) return nextMinus(arg1, mode);
-	result = copySign(arg1, arg2);
-	return roundToPrecision(result, T.precision, mode);
+	int comp = compare(x, y, mode);
+	if (comp < 0) return nextPlus(x, mode);
+	if (comp > 0) return nextMinus(x, mode);
+	return roundToPrecision(copySign(x,y), T.precision, mode);
 }
 
 unittest {	// nextPlus
@@ -628,13 +613,13 @@ public int compare(T)(const T x, const T y, Rounding mode = contextRounding)  {
 
 unittest {	// compare
 	write("-- compare..........");
-	dec9 arg1, arg2;
-	arg1 = dec9(2.1);
-	arg2 = dec9(3);
-	assertEqual(compare(arg1, arg2), 1);
-	arg1 = 2.1;
-	arg2 = dec9(2.1);
-	assertEqual(compare(arg1, arg2), 0);
+	dec9 x, y;
+	x = dec9(2.1);
+	y = dec9(3);
+	assertEqual(compare(x, y), 1);
+	x = dec9(2.1);
+	y = dec9(2.1);
+	assertEqual(compare(x, y), 0);
 	writeln("passed");
 }
 
@@ -739,7 +724,7 @@ public int compareTotal(T)(const T x, const T y)  {
 
 	// if signs differ...
 	if (x.sign != y.sign) {
-		return !x.sign ? ret1 : ret2;
+		return x.sign ? ret2 : ret1;
 	}
 
 	// if both numbers are signed swap the return values
@@ -822,7 +807,7 @@ public int compareTotal(T)(const T x, const T y)  {
 /// (p. 43)
 /// Flags: NONE.
 int compareTotalMagnitude(T)(const T x, const T y)  {
-	return compareTotal(copyAbs(x), copyAbs(y));
+	return compareTotal(x.copyAbs, y.copyAbs);
 }
 
 unittest {
@@ -1337,13 +1322,10 @@ public T addLong(T)(const T x, const long n,
 
 	// check for NaN operand(s)
 	T nan;
-	if (operandIsInvalid!T(x, nan)) {
-		return nan;
-	}
+	if (operandIsInvalid!T(x, nan)) return nan;
+
 	// if decimal is infinite,
-	if (x.isInfinite) {
-		return x.dup;
-	}
+	if (x.isInfinite) return x.dup;
 
 	T sum;
 	// add(0, 0)
@@ -1923,10 +1905,9 @@ unittest {
 public T quantize(T)(const T arg1, const T arg2, int precision = T.precision,
 		const Rounding mode = contextRounding)  {
 
-	T result = T.nan;
-	if (operationIsInvalid(arg1, arg2, result)) {
-		return result;
-	}
+	T nan;
+	if (operationIsInvalid(arg1, arg2, nan)) return nan;
+
 	// if one operand is infinite and the other is not...
 	if (arg1.isInfinite != arg2.isInfinite()) {
 		return setInvalidFlag!T;
@@ -1935,7 +1916,7 @@ public T quantize(T)(const T arg1, const T arg2, int precision = T.precision,
 	if (arg1.isInfinite() && arg2.isInfinite()) {
 		return arg1.dup;
 	}
-	result = arg1;
+	T result = arg1.dup;
 	int diff = arg1.exponent - arg2.exponent;
 
 	if (diff == 0) {

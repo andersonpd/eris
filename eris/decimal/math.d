@@ -472,12 +472,13 @@ writefln("pi(25)  = %s", pi(25));
 //
 //--------------------------------
 
-/*public T exp(const T arg, const uint precision) {
-	pushContext(precision);
-	T value = exp(arg);
-	popContext();
+public T exp(T)(const T x, const uint precision) {
+	int savedPrecision = T.tempPrecision;
+	T.tempPrecision = precision;
+	T value = exp(x);
+	T.tempPrecision = savedPrecision;
 	return value;
-}*/
+}
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
@@ -490,7 +491,7 @@ public T exp(T)(const T x) {
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-public T exp0(T)(const T x) {
+private T exp0(T)(const T x) {
 	T sqrx = sqr(x);
 	long n = 1;
 	T fact = T.one;
@@ -500,9 +501,9 @@ public T exp0(T)(const T x) {
 	T sum  = term;
 	while (term > T.epsilon) {
 		n   += 2;
-		t1   = t2*x*n;
-		t2   = t2*sqrx;
-		fact = fact*(n*(n-1));
+		t1   = t2 * x * n;
+		t2   = t2 * sqrx;
+		fact = fact * (n * (n-1));
 		term = (t1 + t2)/fact;
 		sum += term;
 	}

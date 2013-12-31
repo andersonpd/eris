@@ -465,6 +465,7 @@ public struct ExtendedInt {
 	public const int toInt() {
 		if (this > INT_MAX) return int.max;
 		if (this < INT_MIN) return int.min;
+		if (this == ZERO) return 0;
 		return cast(int)digits[0];
 	}
 
