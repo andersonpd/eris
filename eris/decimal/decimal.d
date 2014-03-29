@@ -47,10 +47,10 @@ private enum SV { NONE, INF, QNAN, SNAN };
 /// Specification, Version 1.70 (25 Mar 2009),
 /// http://www.speleotrove.com/decimal.
 /// This specification conforms with IEEE standard 754-2008.
-//struct Decimal(int P = 99, int X = 999) {
-struct Decimal(int P, int X) {
+struct Decimal(int MAX_DIGITS = 99, int MAX_EXPO = 9999) {
+//struct Decimal(int MAX_DIGITS, int MAX_EXPO) {
 
-alias decimal = Decimal!(P,X);
+alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 
 	private SV sval = SV.QNAN;		// special value: default is quiet NaN
 	private bool signed = false;	// true if the value is negative, false otherwise.
@@ -61,26 +61,34 @@ alias decimal = Decimal!(P,X);
 	// static fields
 	package static int guardDigits = 0;
 	package static int tempPrecision = 0;
+	package static Rounding rounding = Rounding.HALF_EVEN;
+	package static int netPrecision() {
+		if (tempPrecision) return tempPrecision + guardDigits;
+		return precision + guardDigits;
+	}
 
+	package static bool verbose = false; // for debugging
+
+	public:
 	/// Maximum length of the coefficient in decimal digits.
-	public immutable int precision = P;
+	enum int precision = MAX_DIGITS;
 	/// Maximum value of the adjusted exponent.
-	public immutable int maxExpo = X;
+	enum int maxExpo = MAX_EXPO;
 	/// Smallest normalized exponent.
-	public immutable int minExpo = 1 - maxExpo;
+	enum int minExpo = 1 - maxExpo;
 	/// Smallest non-normalized exponent.
-	public immutable int tinyExpo = 2 - maxExpo - precision;
+	enum int tinyExpo = 2 - maxExpo - precision;
 
 	/// Marker used to identify this type irrespective of size.
-	private static immutable bool IS_DECIMAL = true;
+	private enum bool IS_DECIMAL = true;
 
 	// decimal special values
-	public immutable decimal NAN		= decimal(SV.QNAN);
-	public immutable decimal SNAN		= decimal(SV.SNAN);
-	public immutable decimal INFINITY	= decimal(SV.INF);
-	public immutable decimal NEG_INF	= decimal(SV.INF, true);
-	public immutable decimal ZERO		= decimal(SV.NONE);
-	public immutable decimal NEG_ZERO	= decimal(SV.NONE, true);
+	enum decimal NAN		= decimal(SV.QNAN);
+	enum decimal SNAN		= decimal(SV.SNAN);
+	enum decimal INFINITY	= decimal(SV.INF);
+	enum decimal NEG_INF	= decimal(SV.INF, true);
+	enum decimal ZERO		= decimal(SV.NONE);
+	enum decimal NEG_ZERO	= decimal(SV.NONE, true);
 
 	unittest {	// special values
 		write("-- special values...");
@@ -101,13 +109,13 @@ alias decimal = Decimal!(P,X);
 	}
 
 	// common decimal numbers
-	public immutable decimal HALF		= decimal(5, -1);
-	public immutable decimal ONE		= decimal(xint(1));
-	public immutable decimal NEG_ONE	= decimal(xint(-1));
-	public immutable decimal TWO		= decimal(xint(2));
-	public immutable decimal THREE		= decimal(xint(3));
-	public immutable decimal FIVE		= decimal(xint(5));
-	public immutable decimal TEN		= decimal(xint(10));
+	enum decimal HALF		= decimal(5, -1);
+	enum decimal ONE		= decimal(1);
+	enum decimal NEG_ONE	= decimal(-1);
+	enum decimal TWO		= decimal(2);
+	enum decimal THREE		= decimal(3);
+	enum decimal FIVE		= decimal(5);
+	enum decimal TEN		= decimal(10);
 
 //--------------------------------
 // construction
@@ -166,6 +174,9 @@ alias decimal = Decimal!(P,X);
 		dec9 num;
 		num = dec9(true, xint(7254), 94);
 		assertStringEqual(num, "-7.254E+97");
+		num = dec9(true, xint(7254), 194);
+		num = roundToPrecision(num);
+		assertStringEqual(num, "-Infinity");
 		writeln("passed");
 	}
 
@@ -330,6 +341,7 @@ alias decimal = Decimal!(P,X);
 		return output;
 	}*/
 
+	// NOTE: will cast to true precision, not temp value
 	public T opcast(T)() {
 		T that;
 		that.sign = this.sign;
@@ -413,7 +425,7 @@ alias decimal = Decimal!(P,X);
 		return eris.decimal.conv.toAbstract(this);
 	}
 
-	/// Converts a number to an abstract string representation.
+	/// Converts a number to a full string representation.
 	const string toExact() {
 		return eris.decimal.conv.toExact(this);
 	}
@@ -429,6 +441,7 @@ alias decimal = Decimal!(P,X);
 	}
 
 	/// Converts a number to its string representation.
+//	override
 	const string toString() {
 		return eris.decimal.conv.sciForm(this);
 	}
@@ -564,23 +577,23 @@ alias decimal = Decimal!(P,X);
 	alias min_10_exp = minExpo;
 	alias max_10_exp = maxExpo;
 
-	// Returns the maximum representable normal value in the current context.
-	immutable xint maxCoefficient =	pow10(P) - 1;
+	/// Returns the maximum representable normal value in the current context.
+	enum xint maxCoefficient =	pow10(MAX_DIGITS) - 1;
 
-	// Returns the maximum representable normal value in the current context.
-	immutable decimal max = decimal(maxCoefficient, maxExpo);
+	/// Returns the maximum representable normal value in the current context.
+	enum decimal max = decimal(maxCoefficient, maxExpo);
 
 	/// Returns the minimum representable normal value in this context.
-	immutable decimal min_normal = decimal(1, minExpo);
+	enum decimal min_normal = decimal(1, minExpo);
 
 	/// Returns the minimum representable subnormal value in this context.
-	 immutable decimal min = decimal(1, tinyExpo);
+	enum decimal min = decimal(1, tinyExpo);
 
 	/// Returns the smallest available increment to 1.0 in this context
-	immutable decimal epsilon = decimal(1, -precision);
+	static decimal epsilon() {return decimal(1, -netPrecision);}
 
 	/// Returns the radix, which is always ten for decimal numbers.
-	immutable int radix = 10;
+	enum int radix = 10;
 
 	/// Returns zero.
 	@safe
@@ -588,29 +601,35 @@ alias decimal = Decimal!(P,X);
 		return signed ? NEG_ZERO.dup : ZERO.dup;
 	}
 
+//	/// Returns 1.
+//	//@safe
+//	immutable static decimal one(bool signed = false) {
+//		return signed ? NEG_ONE.dup : ONE.dup;
+//	}
+
 	/// Returns 1.
 	//@safe
-	immutable static decimal one(bool signed = false) {
-		return signed ? NEG_ONE.dup : ONE.dup;
+	immutable static decimal one() {
+		return ONE.dup;
 	}
 
 	/// Returns 2.
 	//@safe
 	immutable static decimal two() {
-		return decimal(false, 2, 0);
+		return TWO.dup;
 	}
 
 	/// Returns 1/2.
 	//@safe
-	static decimal half() {
-		return decimal(false, 5, -1);
+	immutable static decimal half() {
+		return HALF.dup;
 	}
 
 	unittest {
 		write("-- constants........");
-//		assertEqual(dec99.half, dec99(1/2));
-		assertEqual(dec9.half, dec9(0.5));
-		writeln("test missing");
+//		assertEqual(dec99.HALF, dec99(1/2));
+		assertEqual(dec9.HALF, dec9(0.5));
+		writeln("passed");
 	}
 
 //--------------------------------
@@ -947,7 +966,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// is made to the current precision.
 	const int opCmp(T:decimal)(const T that) {
 		// TODO: this is a place where the context is set from the outside.
-		return compare(this, that, contextRounding);
+		return compare(this, that, rounding);
 	}
 
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
@@ -964,7 +983,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// A NaN is not equal to any number, not even to another NaN.
 	/// A number is not even equal to itself (this != this) if it is a NaN.
 	const bool opEquals(T:decimal)(const T that) {
-		return equals(this, that, contextRounding);
+		return equals!T(this, that/*, rounding*/);
 	}
 
 /*	/// Returns true if this extended integer is equal to the argument.
@@ -1005,17 +1024,17 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	//@safe
 	private decimal opUnary(string op)() {
 		static if (op == "+") {
-			return plus(this, precision, contextRounding);
+			return plus(this, precision, rounding);
 		}
 		else static if (op == "-") {
-			return minus(this, precision, contextRounding);
+			return minus(this, precision, rounding);
 		}
 		else static if (op == "++") {
-			this = add(this, decimal(1), contextRounding);
+			this = add(this, decimal(1), rounding);
 			return this;
 		}
 		else static if (op == "--") {
-			this = sub(this, decimal(1), contextRounding);
+			this = sub(this, decimal(1), rounding);
 			return this;
 		}
 	}
@@ -1044,14 +1063,14 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		actual = num--;
 		assertEqual(actual, expect);
 		// FIXTHIS: these break the compiler...
-/*		num = dec9(9999999, 90);
+		num = dec9(9999999, 90);
 		expect = num;
 		actual = num++;
 		assertEqual(actual, expect);
 		num = 12.35;
 		expect = 11.35;
 		actual = --num;
-		assertEqual(actual, expect)*/
+		assertEqual(actual, expect);
 		writeln("passed");
 	}
 
@@ -1130,28 +1149,28 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	const decimal opBinary(string op, T:long)(const T arg)
 	{
 		static if (op == "+") {
-			return addLong(this, arg, contextRounding);
+			return addLong(this, arg, rounding);
 		}
 		else static if (op == "-") {
-			return subLong(this, arg, contextRounding);
+			return subLong(this, arg, rounding);
 		}
 		else static if (op == "*") {
-			return mulLong(this, arg, contextRounding);
+			return mulLong(this, arg, rounding);
 		}
 		else static if (op == "/") {
-			return div(this, decimal(arg), contextRounding);
+			return div(this, decimal(arg), rounding);
 		}
 		else static if (op == "%") {
-			return remainder(this, decimal(arg), contextRounding);
+			return remainder(this, decimal(arg), rounding);
 		}
 		else static if (op == "&") {
-			return and(this, decimal(arg), contextRounding);
+			return and(this, decimal(arg), rounding);
 		}
 		else static if (op == "|") {
-			return or(this, decimal(arg), contextRounding);
+			return or(this, decimal(arg), rounding);
 		}
 		else static if (op == "^") {
-			return xor(this, decimal(arg), contextRounding);
+			return xor(this, decimal(arg), rounding);
 		}
 	}
 
@@ -1160,28 +1179,28 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	const decimal opBinaryRight(string op, T:long)(const T arg)
 	{
 		static if (op == "+") {
-			return addLong(this, arg, contextRounding);
+			return addLong(this, arg, rounding);
 		}
 		else static if (op == "-") {
-			return sub(decimal(arg), this, contextRounding);
+			return sub(decimal(arg), this, rounding);
 		}
 		else static if (op == "*") {
-			return mulLong(this, arg, contextRounding);
+			return mulLong(this, arg, rounding);
 		}
 		else static if (op == "/") {
-			return div(decimal(arg), this, contextRounding);
+			return div(decimal(arg), this, rounding);
 		}
 		else static if (op == "%") {
-			return remainder(decimal(arg), this, contextRounding);
+			return remainder(decimal(arg), this, rounding);
 		}
 		else static if (op == "&") {
-			return and(this, decimal(arg), contextRounding);
+			return and(this, decimal(arg), rounding);
 		}
 		else static if (op == "|") {
-			return or(this, decimal(arg), contextRounding);
+			return or(this, decimal(arg), rounding);
 		}
 		else static if (op == "^") {
-			return xor(this, decimal(arg), contextRounding);
+			return xor(this, decimal(arg), rounding);
 		}
 	}
 
@@ -1359,55 +1378,55 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 //--------------------------------
 
 	/// base of natural logarthims, e = 2.7182818283...
-	immutable decimal E = roundString("2.71828182845904523536028747135266249775"
+	enum decimal E = roundString("2.71828182845904523536028747135266249775"
 		"724709369995957496696762772407663035354759457138217852516643");
 
 /*	/// base 2 logarithm of 10 = 3.32192809...
-	immutable decimal LG_10 = roundString("3.3219280948873623478703194294893901"
+	enum decimal LG_10 = roundString("3.3219280948873623478703194294893901"
 		"7586483139302458061205475639581593477660862521585013974335937016");
 
 	/// base 2 logarithm of e = 1.44269504...
-	immutable decimal LG_E = roundString("1.44269504088896340735992468100189213"
+	enum decimal LG_E = roundString("1.44269504088896340735992468100189213"
 		"742664595415298593413544940693110921918118507988552662289350634");
 
 	/// base 10 logarithm of 2 = 0.301029996...
-	immutable decimal LOG_2 = roundString("0.3010299956639811952137388947244930"
+	enum decimal LOG_2 = roundString("0.3010299956639811952137388947244930"
 		"26768189881462108541310427461127108189274424509486927252118186172");
 
 	/// base 10 logarithm of e  = 4.34294482...
-	immutable decimal LOG_E = roundString("4.3429448190325182765112891891660508"
+	enum decimal LOG_E = roundString("4.3429448190325182765112891891660508"
 		"2294397005803666566114453783165864649208870774729224949338431748");
 
 	/// natural logarithm of 2 = 0.693147806...
-	immutable decimal LN2 = roundString("0.693147180559945309417232121458176568"
+	enum decimal LN2 = roundString("0.693147180559945309417232121458176568"
 		"075500134360255254120680009493393621969694715605863326996418688");*/
 
 	/// natural logarithm of 10 = 2.30258509...
-	immutable decimal LN10 = roundString("2.30258509299404568401799145468436420"
+	enum decimal LN10 = roundString("2.30258509299404568401799145468436420"
 		"760110148862877297603332790096757260967735248023599720508959820");
 
 	/// pi = 3.14159266...
-	immutable decimal PI = roundString("3.1415926535897932384626433832795028841"
+	enum decimal PI = roundString("3.1415926535897932384626433832795028841"
 		"9716939937510582097494459230781640628620899862803482534211707");
 
 /*	/// pi/2
-	immutable decimal PI_2 = roundString("1.57079632679489661923132169163975144"
+	enum decimal PI_2 = roundString("1.57079632679489661923132169163975144"
 		"209858469968755291048747229615390820314310449931401741267105853");
 
 	/// pi/4
-	immutable decimal PI_4 = roundString("0.78539816339744830961566084581987572"
+	enum decimal PI_4 = roundString("0.78539816339744830961566084581987572"
 		"1049292349843776455243736148076954101571552249657008706335529267");
 
 	/// 1/pi
-	immutable decimal INV_PI = roundString("0.318309886183790671537767526745028"
+	enum decimal INV_PI = roundString("0.318309886183790671537767526745028"
 		"724068919291480912897495334688117793595268453070180227605532506172");
 
 	/// 1/2*pi
-	immutable decimal INV_2PI = roundString("0.15915494309189533576888376337251"
+	enum decimal INV_2PI = roundString("0.15915494309189533576888376337251"
 		"4362034459645740456448747667344058896797634226535090113802766253086");*/
 
 	/// square root of two = 1.41421357
-	immutable decimal SQRT2 = roundString("1.4142135623730950488016887242096980"
+	enum decimal SQRT2 = roundString("1.4142135623730950488016887242096980"
 		"7856967187537694807317667973799073247846210703885038753432764157");
 
 /*	/// square root of one half = 0.707106781...

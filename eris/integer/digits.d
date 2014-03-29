@@ -237,8 +237,20 @@ version(unittest) {
 	/// If all digits are zero, returns 0.
 	@safe
 	public int numDigits(const digit[] digits) {
+        // special cases --
+		int len = digits.length;
+		// check for zero length
+		if (len == 0) return 0;
+		// check for single digit
+		if (len == 1) return digits[0] ? 1 : 0;
+		// check for no leading zeros
+		if (digits[$-1]) return len;
+		// check for one leading zero
+		if (digits[$-2]) return len-1;
+
+		// loop
 		int count;
-		for (count = digits.length; count > 0; count--) {
+		for (count = len - 2; count > 0; count--) {
 			if (digits[count-1]) break;
 		}
 		return count;
@@ -324,7 +336,8 @@ version(unittest) {
 	@safe
 	public digit[] reduce(ref digit[] digits) {
 		int n = numDigits(digits);
-		if (n < digits.length) {
+		if (n == 0) digits.length = 1;
+		else if (n < digits.length) {
 			digits.length = n;
 		}
 		return digits;
@@ -614,13 +627,15 @@ version(unittest) {
 			i++;
 		}
 		while (i < nx) {
+			// TODO -- there's probably a way to slice this
 			sum[i] = x[i];
 			i++;
 		}
-		if (carry == 1) {
+		if (carry) {
 			sum[i] = carry;
 		}
-		return sum;
+		return reduce(sum);
+//		return (sum);
 	}
 
 	/// Returns the sum of an array of digits and a single digit.
@@ -654,7 +669,8 @@ version(unittest) {
 		if (carry == 1) {
 			sum[i] = carry;
 		}
-		return sum;
+//		return (sum);
+		return reduce(sum);
 	}
 
 	unittest {
@@ -673,21 +689,21 @@ version(unittest) {
 		x = [1, 2, 3, 4, 5];
 		y = [6, 7, 8, 9, 10];
 		sum = addDigits(x, y);
-		reduce(sum);
+//		reduce(sum);
 		assertEqual(sum, [7, 9, 11, 13, 15]);
 		x.length = 4;
 		sum = addDigits(x,y);
-		reduce(sum);
+//		reduce(sum);
 		assertEqual(sum, [7, 9, 11, 13, 10]);
 		sum = addDigit(x, 7);
-		reduce(sum);
+//		reduce(sum);
 		assertEqual(sum, [8, 2, 3, 4]);
 		extend(x, 7);
 		sum = addDigits(x,y);
-		reduce(sum);
+//		reduce(sum);
 		assertEqual(sum, [7, 9, 11, 13, 10]);
 		sum = addDigit(x, 7);
-		reduce(sum);
+//		reduce(sum);
 		assertEqual(sum, [8, 2, 3, 4]);
 		writeln("passed");
 	}

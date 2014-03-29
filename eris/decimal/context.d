@@ -1,4 +1,5 @@
-﻿// Written in the D programming language
+﻿
+// Written in the D programming language
 
 /**
  *	A D programming language implementation of the
@@ -14,16 +15,16 @@
 
 module eris.decimal.context;
 
-unittest {
-	writeln("==========================");
-	writeln("decimal context......begin");
-	writeln("==========================");
-}
-
-version(unittest) {
-	import std.stdio;
-	import eris.assertions;
-}
+//unittest {
+//	writeln("==========================");
+//	writeln("decimal context......begin");
+//	writeln("==========================");
+//}
+//
+//version(unittest) {
+//	import std.stdio;
+//	import eris.assertions;
+//}
 
 /// The available rounding modes. For cumulative operations use the
 /// HALF_EVEN mode to prevent accumulation of errors. Otherwise the
@@ -57,12 +58,6 @@ public enum : ubyte {
 	CLAMPED            = 0x01
 }
 
-///// Context precision.
-//public int contextPrecision = 0;
-/// Context rounding mode.
-public Rounding contextRounding = Rounding.HALF_EVEN;
-
-
 /// "The exceptional conditions are grouped into signals,
 /// which can be controlled individually.
 /// The context contains a flag (which is either 0 or 1)
@@ -77,7 +72,7 @@ public struct ContextFlags {
 	private static ubyte traps;
 
 	/// Sets or resets the specified context flag(s).
-	//@safe
+@safe
 	void setFlags(const ubyte flags, const bool value = true) {
 		if (value) {
 			ubyte saved = this.flags;
@@ -92,7 +87,7 @@ public struct ContextFlags {
 
 	// Checks the state of the flags. If a flag is set and its
 	// trap-enabler is set, an exception is thrown.
-	//@safe
+@safe
 	 void checkFlags(const ubyte flags) {
 		if (flags & INVALID_OPERATION && traps & INVALID_OPERATION) {
 			throw new InvalidOperationException("INVALID_OPERATION");
@@ -170,11 +165,10 @@ public ContextFlags contextFlags;
 //--------------------------
 
 /// The base class for all decimal arithmetic exceptions.
-	//@safe
+@safe
 class DecimalException: object.Exception {
 	this(string msg, string file = __FILE__,
-		uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+		uint line = cast(uint)__LINE__, Throwable next = null) {
 		super(msg, file, line, next);
 	}
 };
@@ -182,22 +176,20 @@ class DecimalException: object.Exception {
 /// Raised when the exponent of a result has been altered or constrained
 /// in order to fit the constraints of a specific concrete representation.
 /// General Decimal Arithmetic Specification, p. 15.
-	//@safe
+@safe
 class ClampedException: DecimalException {
 	this(string msg, string file = __FILE__,
-	     uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+	     uint line = cast(uint)__LINE__, Throwable next = null) {
 		super(msg, file, line, next);
 	}
 };
 
 /// Raised when a non-zero dividend is divided by zero.
 /// General Decimal Arithmetic Specification, p. 15.
-	//@safe
+@safe
 class DivByZeroException: DecimalException {
 	this(string msg, string file = __FILE__,
-	     uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+	     uint line = cast(uint)__LINE__, Throwable next = null) {
 		super(msg, file, line, next);
 	}
 };
@@ -205,33 +197,30 @@ class DivByZeroException: DecimalException {
 /// Raised when a result is not exact (one or more non-zero coefficient
 /// digits were discarded during rounding).
 /// General Decimal Arithmetic Specification, p. 15.
-	//@safe
+@safe
 class InexactException: DecimalException {
 	this(string msg, string file = __FILE__,
-	     uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+	     uint line = cast(uint)__LINE__, Throwable next = null) {
 		super(msg, file, line, next);
 	}
 };
 
 /// Raised when a result would be undefined or impossible.
 /// General Decimal Arithmetic Specification, p. 15.
-	//@safe
+@safe
 class InvalidOperationException: DecimalException {
 	this(string msg, string file = __FILE__,
-	     uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+	     uint line = cast(uint)__LINE__, Throwable next = null) {
 		super(msg, file, line, next);
 	}
 };
 
 /// Raised when the exponent of a result is too large to be represented.
 /// General Decimal Arithmetic Specification, p. 15.
-	//@safe
+@safe
 class OverflowException: DecimalException {
 	this(string msg, string file = __FILE__,
-	     uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+	     uint line = cast(uint)__LINE__, Throwable next = null) {
 		super(msg, file, line, next);
 	}
 };
@@ -239,11 +228,10 @@ class OverflowException: DecimalException {
 /// Raised when a result has been rounded (that is, some zero or non-zero
 /// coefficient digits were discarded).
 /// General Decimal Arithmetic Specification, p. 15.
-	//@safe
+@safe
 class RoundedException: DecimalException {
 	this(string msg, string file = __FILE__,
-	     uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+	     uint line = cast(uint)__LINE__, Throwable next = null) {
 		super(msg, file, line, next);
 	}
 };
@@ -251,29 +239,27 @@ class RoundedException: DecimalException {
 /// Raised when a result is subnormal (its adjusted exponent is less
 /// than the minimum exponent) before any rounding.
 /// General Decimal Arithmetic Specification, p. 15.
-	//@safe
+@safe
 class SubnormalException: DecimalException {
 	this(string msg, string file = __FILE__,
-	     uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+	     uint line = cast(uint)__LINE__, Throwable next = null) {
 		super(msg, file, line, next);
 	}
 };
 
 /// Raised when a result is both subnormal and inexact.
 /// General Decimal Arithmetic Specification, p. 15.
-	//@safe
+@safe
 class UnderflowException: DecimalException {
 	this(string msg, string file = __FILE__,
-	     uint line = cast(uint)__LINE__, Throwable next = null)
-	{
+	     uint line = cast(uint)__LINE__, Throwable next = null)	{
 		super(msg, file, line, next);
 	}
 };
 
-unittest {
-	writeln("==========================");
-	writeln("decimal context........end");
-	writeln("==========================");
-}
+//unittest {
+//	writeln("==========================");
+//	writeln("decimal context........end");
+//	writeln("==========================");
+//}
 

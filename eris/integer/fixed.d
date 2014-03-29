@@ -263,7 +263,8 @@ unittest {
 		writeln("passed");
 	}}
 
- 	/// Constructs a fixed-size integer from a fixed size integer of a different type.
+ 	/// Constructs a fixed-size integer from a fixed-size integer
+	/// of a different size.
 	public this(T)(const T that)
 			if (__traits(hasMember, that, "IS_FIXED_INTEGER")) {
 		this(that.digits);
@@ -670,7 +671,7 @@ writefln("chars = %s", chars);
 			if (ch != '0' && ch != '1') throw
 				new ConvException("Invalid binary char: [" ~ ch ~ "]");
 			value = mulDigit(value, 2);
-			if (ch == '1') value = addDigit(value, 1);
+
 		}
 		return value;
 	}

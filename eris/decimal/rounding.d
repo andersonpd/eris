@@ -16,7 +16,7 @@ module eris.decimal.rounding;
 
 import eris.decimal.context;
 import eris.decimal.decimal;
-import eris.decimal.arithmetic: compare, copyNegate, equals;
+import eris.decimal.arithmetic: copyNegate;
 import eris.integer.extended;
 
 unittest {
@@ -36,8 +36,8 @@ version(unittest) {
 /// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 	//@safe
 public T roundToPrecision(T)(const T num,
-		int precision = T.precision,
-		Rounding mode = contextRounding) {
+		int precision = T.netPrecision,
+		Rounding mode = T.rounding) {
 
 	if (mode == Rounding.NONE) return num.dup;
 
@@ -148,7 +148,7 @@ unittest {	// roundToPrecision
 /// Flags: OVERFLOW, ROUNDED, INEXACT.
 /// Precondition: number must be finite.
 //@safe
-private bool overflow(T)(ref T num,	Rounding mode = contextRounding)  {
+private bool overflow(T)(ref T num,	Rounding mode = T.rounding)  {
 	if (num.adjustedExponent <= T.maxExpo) return false;
 	switch (mode) {
 		case Rounding.NONE:
@@ -170,6 +170,7 @@ private bool overflow(T)(ref T num,	Rounding mode = contextRounding)  {
 		default:
 			break;
 	}
+	// TODO: don't set flags if not rounded??
 	contextFlags.setFlags(OVERFLOW | INEXACT | ROUNDED);
 	return true;
 }

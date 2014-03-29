@@ -38,7 +38,7 @@ version(unittest) {
 
 /// Rounds the argument to an integer using the specified rounding mode.
 /// The default rounding mode is the current context mode.
-public T round(T)(const T arg, const Rounding mode = contextRounding) {
+public T round(T)(const T arg, const Rounding mode = T.rounding) {
 	T value = roundToIntegralExact(arg, mode);
 	return value;
 }
@@ -150,41 +150,41 @@ private bool isOdd(int n) {
 }
 
 unittest {	// isOdd
-	assert(isOdd(3));
-	assert(!isOdd(8));
-	assert(isOdd(-1));
+	assertTrue(isOdd(3));
+	assertTrue(!isOdd(8));
+	assertTrue(isOdd(-1));
 }
 
 // TODO: add bitshift function
 
 // NOTE: faster but not as accurate(?)
-public T reciprocal(T)(const T a, const int precision = T.precision) {
+public T reciprocal(T)(const T x, const int precision = T.netPrecision) {
 
 	// special values
-	if (a.isNaN) {
+	if (x.isZero) {
+		contextFlags.setFlags(DIVISION_BY_ZERO);
+		return T.infinity(x.sign);
+	}
+	if (x.copyAbs.isOne) return x.dup;
+	if (x.isInfinite) return T.zero(x.sign);
+	if (x.isNaN) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
 	}
-	if (a.isZero) {
-		contextFlags.setFlags(DIVISION_BY_ZERO);
-		return T.infinity(a.sign);
-	}
-	if (a.copyAbs.isOne) return a.dup;
-	if (a.isInfinite) return T.zero(a.sign);
 
-	T.guardDigits = 2;
-	T x = a.dup; //a.reduce; (?)
+	T.guardDigits += 2;
+	T x0 = x.dup; //x.reduce; (?)
 	T x1, x2;
 	// initial estimate
 	x1 = T.ZERO;
-	x2 = T(2, -ilogb(x)-1);
+	x2 = T(2, -ilogb(x0)-1);
 	// Newton's method
 	while (true) {
 		x1 = x2;
-		x2 = x1 * (T.TWO - x * x1);
+		x2 = x1 * (T.TWO - x0 * x1);
 		if (x2 == x1) break;
 	}
-	T.guardDigits = 0;
+	T.guardDigits -= 2;
 	return roundToPrecision(x2);
 }
 
@@ -202,7 +202,7 @@ unittest {	// reciprocal
 	writeln("passed");
 }
 
-public T invSqrt(T)(const T a, const int precision = T.precision) {
+public T invSqrt(T)(const T a, const int precision = T.netPrecision) {
 	// special values
 	if (a.isNaN) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -215,7 +215,7 @@ public T invSqrt(T)(const T a, const int precision = T.precision) {
 	if (a.copyAbs.isOne) return a.dup;
 	if (a.isInfinite) return T.zero(a.sign);
 
-	T.guardDigits = 2;
+	T.guardDigits += 2;
 	T x = a.dup;
 
 	// initial estimate
@@ -229,7 +229,7 @@ public T invSqrt(T)(const T a, const int precision = T.precision) {
 		x2 = T(5, -1);
 		k++;
 	}
-	// reduce the exponent
+	// reduce the exponent and estimate the result
 	x.exponent = x.exponent - k - 1;
 
 	while (true) {
@@ -240,8 +240,8 @@ public T invSqrt(T)(const T a, const int precision = T.precision) {
 	}
 	// restore the exponent
 	x2.exponent = x2.exponent - k/2 - 1;
-	T.guardDigits = 0;
-	return x2;
+	T.guardDigits -= 2;
+	return roundToPrecision(x2);
 }
 
 unittest {
@@ -262,7 +262,7 @@ unittest {
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
 /// TODO: the precision can be adjusted as the computation proceeds
-public T sqrt(T)(const T a) {
+public T sqrt(T)(const T a, int precision = T.netPrecision) {
 	// special values
 	if (a.isNaN || a.isNegative) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -270,35 +270,58 @@ public T sqrt(T)(const T a) {
 	}
 	if (a.isInfinite) return T.infinity;
 
-	T x = a.reduce;
+	int savedPrecision = T.tempPrecision;
+	if (precision != T.netPrecision) {
+		T.tempPrecision = precision;
+	}
+
+	T x = a.dup;
 	if (x.isOne) return x;
 
+	T.guardDigits += 2;
 	// reduce the exponent and estimate the result
 	T x1, x2;
 	int k = ilogb(x);
 	if (isOdd(k)) {
-		x1 = T(6, -1);
+		x2 = T(6, -1);
 	}
 	else {
-		x1 = T(2, -1);
+		x2 = T(2, -1);
 		k++;
 	}
 	x.exponent = x.exponent - k - 1;
 
 	// Newton's method
-	x2 = x1;
-	while(true) {
+	int count = 0;
+	while(count < 200) { //true) {
+
 		x1 = x2;
-		x2 = T.half * (x1 + x/x1);
+		count++;
+		x2 = T.HALF * (x1 + x/x1);
 		if (x2 == x1) break;
 	}
 
-	// restore the reduced exponent
-	x2.exponent = x2.exponent + k/2 + 1;
-	return x2;
+	// restore the exponent
+	x2.exponent = x2.exponent + (k+1)/2;
+	T.guardDigits -= 2;
+	T.tempPrecision = savedPrecision;
+	return roundToPrecision(x2, precision);
 }
+
 unittest {
 	write("-- square root......");
+writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9.TWO, 25));
+writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9(2), 25));
+
+dec9.tempPrecision = 13;
+auto r1 = sqrt(dec9(2));
+auto r2 = reciprocal(r1);
+auto r3 = sqrt(r2);
+writefln("r1 = %s", r1);
+writefln("r2 = %s", r2);
+writefln("r3 = %s", r3);
+dec9.tempPrecision = 0;
+
 /*writeln;
 for (int i = 0; i < 10; i++) {
 	dec9 val = dec9(3, i);
@@ -317,11 +340,15 @@ sqrt(val) = 17320.5081
 sqrt(val) = 54772.2560*/
 
 assertEqual(sqrt(dec9(2)), dec9("1.41421356"));
+// 1.41421356237310
+// 0.707106781186548
+// 0.840896415253715
+assertEqual(sqrt(dec9(dec9.one/sqrt(dec9(2)))), dec9("0.840896416"));
 assertEqual(sqrt(dec9(200)), dec9("14.1421356"));
 assertEqual(sqrt(dec9(25)), dec9("5.00000000"));
-assertEqual(sqrt(dec9(2E-5)), dec9("0.0447213596"));
-assertEqual(sqrt(dec9(1E-15)), dec9("3.16227766E-7"));
-assertEqual(sqrt(dec9(1E-16)), dec9("1.00000000E-7"));
+assertEqual(sqrt(dec9(2E-5)), dec9("0.00447213596"));
+assertEqual(sqrt(dec9(1E-15)), dec9("3.16227766E-8"));
+assertEqual(sqrt(dec9(1E-16)), dec9("1.00000000E-8"));
 	writeln("passed");
 }
 
@@ -330,10 +357,13 @@ assertEqual(sqrt(dec9(1E-16)), dec9("1.00000000E-7"));
 public T hypot(T)(const T x, const T y)
 {
 	// special values
-	if (x.isNaN) return T.nan;
 	if (x.isInfinite || y.isInfinite) return T.infinity();
     if (x.isZero) return y.copy;
 	if (y.isZero) return x.copy;
+	if (x.isNaN || y.isNaN) {
+		contextFlags.setFlags(INVALID_OPERATION);
+		return T.nan;
+	}
 
 	T a = x.copyAbs;
     T b = y.copyAbs;
@@ -359,7 +389,7 @@ unittest {
 }
 
 /// Returns the value of e at the current precision.
-public T e(T)(int precision = T.precision) {
+public T e(T)(int precision = T.netPrecision) {
 	static int lastPrecision = 0;
 	static T value;
 	if (precision != lastPrecision) {
@@ -377,13 +407,16 @@ public T e(T)(int precision = T.precision) {
 /// Calculates and returns the value of e at the current precision.
 private T calcE(T)() {
 	long n = 2;
-	T term = 1;
-	T sum  = 1;
+	T.guardDigits += 2;
+	T term = T.one;
+	T sum  = T.one;
+	// T.epsilon varies as precision varies...
 	while (term > T.epsilon) {
 		sum += term;
 		term /= n++;
 	}
-	return sum;
+	T.guardDigits -= 2;
+	return roundToPrecision(sum);
 }
 
 unittest {
@@ -400,76 +433,80 @@ writefln("e(5)  = %s", e(5));*/
 	writeln("test missing");
 }
 
-/+
 unittest {	// PI
-	assert(PI.digits == 99);
-	assert(numDigits(PI.coefficient) == 99);
+	assertEqual(dec9.PI.digits, 9);
+	assertEqual(numDigits(dec9.PI.coefficient),99);
 }
 
 /// Returns the value of pi to the specified precision.
-public Decimal pi(uint precision) {
-	static int lastPrecision = 0;
-	static Decimal value;
-	if (precision != lastPrecision) {
-		pushContext(precision);
-		value = pi();
-		popContext();
-		lastPrecision = precision;
-	}
+public T pi(T)(uint precision) {
+	int savedPrecision = T.tempPrecision;
+	T.tempPrecision = precision;
+	T value = pi!T();
+	T.tempPrecision = savedPrecision;
 	return value;
 }
 
 /// Returns the value of pi to the current precision.
-public Decimal pi() {
-	static int lastPrecision = 0;
-	static Decimal value;
-	int precision = decimalContext.precision;
-	if (precision != lastPrecision) {
-		if (precision > 99) {
-			value = calcPi();
-		}
-		else {
-			value = roundToPrecision(PI, decimalContext);
-		}
-		lastPrecision = precision;
-	}
+public T pi(T)() {
+//	static int lastPrecision = 0;
+	 T value;
+//	int precision = T.netPrecision;
+//	if (precision != lastPrecision) {
+//		if (precision > 99) {
+			value = calcPi!T();
+//		}
+//		else {
+//			value = roundToPrecision(PI, decimalContext);
+//		}
+//		lastPrecision = precision;
+//	}
 	return value;
 }
 
 /// Calculates the value of pi to the current precision.
-public Decimal calcPi() {
-	const Decimal one = Decimal(1);
-	const Decimal two = Decimal(2L);
-	const Decimal four = Decimal(4L);
-	Decimal a = one.dup;
-	Decimal b = a / sqrt(two); // TODO: use sqrt2 constant
-	Decimal t = one/four;
-	Decimal x = one.dup;
-	while (a != b) {
-		Decimal y = a;    // save the value of a
-		a = (a + b)/two;     // arithmetic mean
-		b = sqrt(b * y);       // geometric mean
-		t -= x * (sqr(a) - sqr(b));  // weighted sum of the difference of the means
-		// TODO: x = 2;
-		x = x * 2;
+private T calcPi(T)() {
+writefln("netPrecision = %s", T.netPrecision);
+	int k = 1;
+	T a1 = T.one;
+	T b1 = invSqrt(T.TWO); // TODO: use sqrt2 constant
+	T s1 = T.half;
+	T a2, b2, s2;
+	T.guardDigits += 2;
+	while (a1 != b1) {
+		a2 = (a1+b1)* T.half;	// arithmetic mean
+writefln("a2 = %s", a2);
+		b2 = sqrt(a1*b1);		// geometric mean
+writefln("b2 = %s", b2);
+		k *= 2;
+		s2 = s1 - k*(sqr(a2)-sqr(b2));  // weighted sum of the difference of the means
+writefln("s2 = %s", s2);
+		T p = T.two * sqr(a2)/s2;
+writefln("p = %s", p);
+		a1 = a2;
+		b1 = b2;
+		s1 = s2;
 	}
-	Decimal result = sqr(a+b)/(four*t);
-	return result;
+	T pi = T.two * sqr(a2)/s2;
+	T.guardDigits -= 2;
+	return roundToPrecision(pi);
 }
 
 unittest {
 	write("pi.............");
-writeln;
-writefln("PI      = %s", PI);
-writefln("pi      = %s", pi);
-writefln("pi(25)  = %s", pi(25));
+/*writeln;
+writefln("PI      = %s", dec9.PI);
+writefln("pi      = %s", pi!dec9);
+writefln("pi( 5)  = %s", pi!dec9(05));
+writefln("pi(15)  = %s", pi!dec9(15));
+writefln("pi(25)  = %s", pi!dec9(25));*/
 	writeln("test missing");
 }
-+/
+//	immutable decimal PI = roundString("3.1415926535897932384626433832795028841"
+//		"9716939937510582097494459230781640628620899862803482534211707");
+
 //--------------------------------
-//
 // EXPONENTIAL AND LOGARITHMIC FUNCTIONS
-//
 //--------------------------------
 
 public T exp(T)(const T x, const uint precision) {
@@ -483,8 +520,10 @@ public T exp(T)(const T x, const uint precision) {
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 public T exp(T)(const T x) {
-	if (x.isNaN) return T.nan;
-	if (x.isNegative) return T.nan;
+	if (x.isNaN || x.isNegative) {
+		contextFlags.setFlags(INVALID_OPERATION);
+		return T.nan;
+	}
 //	if (x.isOne) return e();
 	return exp0(x);
 }
@@ -492,6 +531,7 @@ public T exp(T)(const T x) {
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 private T exp0(T)(const T x) {
+	T.guardDigits += 2;
 	T sqrx = sqr(x);
 	long n = 1;
 	T fact = T.one;
@@ -507,13 +547,16 @@ private T exp0(T)(const T x) {
 		term = (t1 + t2)/fact;
 		sum += term;
 	}
-	return sum;
+	T.guardDigits -= 2;
+	return roundToPrecision(sum);
 }
 
 unittest {
 	write("exp............");
 writeln;
 writefln("exp(1) = %s", exp(dec9.ONE));
+writefln("exp(1) = %s", exp(dec9.ONE,11));
+writefln("exp(1) = %s", exp(dec9.ONE,15));
 	writeln("test missing");
 }
 
@@ -952,7 +995,7 @@ writefln("a = %s", a);
 writefln("g = %s", g);
 	for (int i = 0; i < 10; i++) {//while (abs(a-g) < Decimal.epsilon) {
 writeln (" -- " );
-		a = (a + g) * Decimal.half;
+		a = (a + g) * Decimal.HALF;
 writefln("a = %s", a);
 writefln("a*g = %s", a*g);
 		g = sqrt(a*g);
@@ -1115,7 +1158,7 @@ unittest {
 public Decimal atanh(const Decimal x) {
 	// TODO: special values
 	Decimal arg = (x + Decimal.one)/(x-Decimal.one);
-	return Decimal.half * ln(arg);
+	return Decimal.HALF * ln(arg);
 	// also atanh(x) = x + x^3/3 + x^5/5 + x^7/7 + ... (speed of convergence?)
 }
 

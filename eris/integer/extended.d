@@ -465,7 +465,7 @@ public struct ExtendedInt {
 	public const int toInt() {
 		if (this > INT_MAX) return int.max;
 		if (this < INT_MIN) return int.min;
-		if (this == ZERO) return 0;
+		if (this.isZero) return 0;
 		return cast(int)digits[0];
 	}
 
@@ -483,7 +483,7 @@ public struct ExtendedInt {
 		// if too big to represent...
 		if (this > LONG_MAX) return long.max;
 		if (this < LONG_MIN) return long.min;
-		if (digits.length == 0) return 0;
+		if (this.isZero) return 0;
 		// positive integers
 		if (this >= 0) {
 			// if single digit...
@@ -1214,31 +1214,22 @@ public struct ExtendedInt {
 	@safe
 	private static xint mul(const xint x, const xint y) {
 		uint[] xd;
-//writefln("x = %s", x);
-//writefln("y = %s", y);
 		int nx = copyDigits(x.digits, xd);
-//writefln("nx = %s", nx);
 		// special cases: x = 0, x = 1, x = -1
 		if (nx == 0) return ZERO.dup;
 		if (nx == 1 && xd[0] == 1) {
-//writefln("x.sign = %s", x.sign);
-//writefln("y.dup = %s", y.dup);
-//writefln("y.minus = %s", y.minus);
 			return x.sign ? y.minus : y.dup;
 		}
 
 		uint[] yd;
 		int ny = copyDigits(y.digits, yd);
-//writefln("ny = %s", ny);
 		// special cases: y = 0, y = 1, y = -1
 		if (ny == 0) return ZERO.dup;
 		if (ny == 1 && yd[0] == 1) {
-//			return y.sign ? x.dup : x.minus;
 			return y.sign ? x.minus : x.dup;
 		}
 
 		xint product = xint(mulDigits(xd, nx, yd, ny));
-//writefln("product = %s", product);
 		product.sign = x.sign ^ y.sign;
 		return product;
 	}
@@ -1268,10 +1259,6 @@ public struct ExtendedInt {
 		if (nx == 0) return ZERO.dup;
 		uint[] yd;
 		int ny = copyDigits(y.digits, yd);
-/*writefln("x = %s", x);
-writefln("nx = %s", nx);
-writefln("y = %s", y);
-writefln("ny = %s", ny);*/
 		auto quotient = xint(divDigits(xd, nx, yd, ny));
 		quotient.sign = x.sign ^ y.sign;
 		return quotient;
@@ -1493,6 +1480,10 @@ assertEqual(x/y, 2234);
 		assertEqual(B | C, xint("0xFF00FF00_88883333_AAAA5555"));
 		assertEqual(B ^ C, xint("0xFF00FF00_88883333_2AAA5555"));
 
+writeln;
+writefln("eris.integer.digits.toString(B.digits) = %s", eris.integer.digits.toString(B.digits));
+writefln("eris.integer.digits.toString(D.digits) = %s", eris.integer.digits.toString(D.digits));
+writefln("eris.integer.digits.toString(U.digits) = %s", eris.integer.digits.toString((B&D).digits));
 		assertEqual(B & D, xint("0xFF00FF00_88883333_AAAA4054"));
 		assertEqual(B | D, xint("0x7FFFFFFF_FFFFFFFF_FFFFFFFF_BEEFDFFF"));
 		assertEqual(B ^ D, xint("0x7FFFFFFF_00FF00FF_7777CCCC_14459FAB"));
