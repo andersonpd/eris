@@ -1634,6 +1634,8 @@ public T div(T)(const T x, const T y, int precision = T.netPrecision,
 //	if (divisionIsInvalid!T(xx, yy, q)) {
 //		return nan;
 //	}
+//writefln("xx.coefficient = %s", xx.coefficient);
+//writefln("yy.coefficient = %s", yy.coefficient);
 	q.coefficient = xx.coefficient / yy.coefficient;
 	q.exponent = xx.exponent - yy.exponent;
 	q.sign = xx.sign ^ yy.sign;
@@ -2052,7 +2054,10 @@ public T roundToIntegralExact(T)(const T arg,
 
 	// TODO: need to prevent precision overrides
 	int precision = result.digits + result.exponent;
+if (T.verbose) writefln("result = %s", result.toExact);
+if (T.verbose) writefln("precision = %s", precision);
 	result = roundToPrecision(result, precision, rounding);
+if (T.verbose) writefln("result = %s", result);
 	return result;
 }
 

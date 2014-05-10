@@ -137,11 +137,16 @@ unittest {	// rounding
 	assertEqual(floor(num), dec9("-3"));
 	assertEqual(ceil(num) , dec9("-2"));
 	assertEqual(trunc(num), dec9("-2"));
+	num = dec9("-2.5");
+	assertEqual(rint(num) , dec9("-2"));
+	assertEqual(floor(num), dec9("-3"));
+	assertEqual(ceil(num) , dec9("-2"));
+	assertEqual(trunc(num), dec9("-2"));
 	writeln("passed");
 }
 
 //--------------------------------
-// CONSTANTS
+//
 //--------------------------------
 
 /// Returns true if n is odd, false otherwise.
@@ -202,6 +207,7 @@ unittest {	// reciprocal
 	writeln("passed");
 }
 
+// TODO: need to allow specified precision
 public T invSqrt(T)(const T a, const int precision = T.netPrecision) {
 	// special values
 	if (a.isNaN) {
@@ -212,7 +218,7 @@ public T invSqrt(T)(const T a, const int precision = T.netPrecision) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return T.infinity(a.sign);
 	}
-	if (a.copyAbs.isOne) return a.dup;
+	if (a.isOne) return a.dup;
 	if (a.isInfinite) return T.zero(a.sign);
 
 	T.guardDigits += 2;
@@ -220,7 +226,7 @@ public T invSqrt(T)(const T a, const int precision = T.netPrecision) {
 
 	// initial estimate
 	T x1, x2, x3;
-	x1 = T.ZERO;
+	x1 = T.zero;
 	int k = ilogb(x);
 	if (isOdd(k)) {
 		x2 = T(2, -1);
@@ -229,7 +235,7 @@ public T invSqrt(T)(const T a, const int precision = T.netPrecision) {
 		x2 = T(5, -1);
 		k++;
 	}
-	// reduce the exponent and estimate the result
+	// reduce the exponent
 	x.exponent = x.exponent - k - 1;
 
 	while (true) {
@@ -268,6 +274,8 @@ public T sqrt(T)(const T a, int precision = T.netPrecision) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
 	}
+	if (a.isOne) return T.one;
+	if (a.isZero) return T.zero;
 	if (a.isInfinite) return T.infinity;
 
 	int savedPrecision = T.tempPrecision;
@@ -313,7 +321,7 @@ unittest {
 writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9.TWO, 25));
 writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9(2), 25));
 
-dec9.tempPrecision = 13;
+//dec9.tempPrecision = 13;
 auto r1 = sqrt(dec9(2));
 auto r2 = reciprocal(r1);
 auto r3 = sqrt(r2);
@@ -553,11 +561,10 @@ private T exp0(T)(const T x) {
 
 unittest {
 	write("exp............");
-writeln;
-writefln("exp(1) = %s", exp(dec9.ONE));
-writefln("exp(1) = %s", exp(dec9.ONE,11));
-writefln("exp(1) = %s", exp(dec9.ONE,15));
-	writeln("test missing");
+	assertEqual(exp(dec9.one), dec9("2.71828183"));
+	assertEqual(exp(dec9.one, 11), dec9("2.7182818285"));
+	assertEqual(exp(dec9.one, 15), dec9("2.71828182845905"));
+	writeln("passed");
 }
 
 /+
@@ -605,6 +612,13 @@ unittest {
 }
 +/
 
+public T log(T)(const T x, const uint precision) {
+	int savedPrecision = T.tempPrecision;
+	T.tempPrecision = precision;
+	T value = log(x);
+	T.tempPrecision = savedPrecision;
+	return value;
+}
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 public T log(T)(const T x) {
@@ -623,6 +637,7 @@ public T log(T)(const T x) {
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 private T calcLog(T)(const T x) {
+	T.guardDigits += 2;
 	T y = (x - 1)/(x + 1);
 	T ysq = sqr(y);
 	T term = y;
@@ -637,6 +652,8 @@ private T calcLog(T)(const T x) {
 		sum = nsum;
 		n += 2;
 	}
+	T.guardDigits -= 2;
+	return roundToPrecision(sum);
 }
 
 unittest {
@@ -757,12 +774,19 @@ unittest {
 
 // Returns the argument reduced to 0 <= pi/4 and sets the octant.
 private T reducedAngle(T)(const T x, out int octant) {
+if (T.verbose) writefln("x = %s", x);
 	T x2 = 4*x/T.PI;
+if (T.verbose) writefln("x2 = %s", x2);
 	T ki = trunc(x2);
-	int k2 = trunc(x2).coefficient.toInt;
+if (T.verbose) writefln("ki = %s", ki);
+//	int k2 = trunc(x2).coefficient.toInt;
+//	int k2 = trunc(x2).coefficient.toInt;
+	int k2 = trunc(x2).toInt;
+if (T.verbose) writefln("k2 = %s", k2);
 	if (k2 < 0) k2 = 1 - k2;
 	T red = T.PI/4 * (x2 - k2);
 	octant = k2 % 8;
+if (T.verbose) writefln("red = %s", red);
 	return red;
 }
 
@@ -815,12 +839,16 @@ public T calcSin(T)(const T x) {
 	T sqrx = x * x;
 	T fact = 1;
 	T term = powx;
-	while (term.abs > T.epsilon) {
+writefln("term = %s", term);
+	while (term.copyAbs > T.epsilon) {
 		sum += term;
+writefln("n = %s", n);
 		n += 2;
 		powx = -powx * sqrx;
 		fact = fact * (n*(n-1));
+writefln("fact = %s", fact);
 		term = powx/fact;
+writefln("term = %s", term);
 	}
 	return sum;
 }
@@ -831,11 +859,24 @@ unittest {
 	writeln("sin(1) = 0.84147098480789650665250232163029899962256306079837");
 //	pushContext(50);
 	writefln("calcSin(1) = %s", calcSin(dec9(1)));
-//	dec9 test = dec9(10,22);
+writefln("...");
+writeln;
+	dec9 test = dec9(2); //10,22);
+writefln("test = %s", test);
 //	writefln("sin(10^^22) = %s", sin(test));
-	dec9 test = dec9("22000.12345");
-	writeln("sin(22) = -0.008851309290403875921690256815772332463289203951");
-	writefln("sin(22) = %s", sin(test));
+	/*dec9*/ test = dec9("22000.12345");
+writefln("test = %s", test);
+	/*dec9*/ test = dec9("2");
+//	/*dec9*/ test = dec9("1");
+//	/*dec9*/ test = dec9("0.5");
+//	writeln("sin(22) = -0.008851309290403875921690256815772332463289203951");
+	// TODO: including the following line causes an uncaught division by zero error.
+	// And it doesn't give the right answer either!
+dec9.verbose = true;
+writefln("test = %s", test);
+	writefln("sin(test) = %s", sin(dec9(2)));
+	writefln("calcSin(2) = %s", calcSin(dec9(2)));
+dec9.verbose = false;
 /*
 //	popContext();
 	writefln("sin(101.23456789) = %s", sin(dec9("101.23456789"), 25));

@@ -457,9 +457,11 @@ alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 		return this.expo;
 	}
 
+
+	// TODO: What does it take to make this an l-value?
 	@property
 	@safe
-	int exponent(int expo) {
+	int exponent(const int expo) {
 		this.expo = expo;
 		return this.expo;
 	}

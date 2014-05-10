@@ -40,6 +40,9 @@ public T roundToPrecision(T)(const T num,
 		Rounding mode = T.rounding) {
 
 	if (mode == Rounding.NONE) return num.dup;
+//if (T.verbose) writefln("num = %s", num);
+//if (T.verbose) writefln("precision = %s", precision);
+//if (T.verbose) writefln("mode = %s", mode);
 
 	// special values aren't rounded
 	if (!num.isFinite) return num.dup;
@@ -189,8 +192,8 @@ private void roundByMode(T)(ref T num, int precision, Rounding mode) {
 	if (mode == Rounding.NONE) return;
 
 	// check for precision overrides
-	if (T.tempPrecision) precision  = T.tempPrecision;
-	if (T.guardDigits)   precision += T.guardDigits;
+//	if (T.tempPrecision) precision  = T.tempPrecision;
+//	if (T.guardDigits)   precision += T.guardDigits;
 
 	// calculate the remainder
 	T remainder = getRemainder(num, precision);
