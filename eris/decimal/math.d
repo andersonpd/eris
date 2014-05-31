@@ -283,6 +283,8 @@ public T sqrt(T)(in T x, in int precision = T.precision,
 	if (x.isZero) return T.zero;
 	if (x.isInfinite) return T.infinity;
 
+	Context context = Context(precision, rounding);
+
 	// guard the operands
 	T arg = T.guard!T(x);
 	T old = T.guard!T;
@@ -305,8 +307,7 @@ public T sqrt(T)(in T x, in int precision = T.precision,
 		old = est;
 		// calculate the new value
 		// est = 1/2 * (old + arg/old);	// TODO: isn't there a way to avoid division?
-		est = mul(T.HALF, add(old, div(arg, old,
-			precision, rounding), precision, rounding), precision, rounding);
+		est = mul(T.HALF, add(old, div(arg, old, context), context), context);
 		// if new == old, we're done
 		if (est == old) break;
 	}

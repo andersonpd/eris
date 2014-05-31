@@ -58,6 +58,23 @@ public enum : ubyte {
 	CLAMPED            = 0x01
 }
 
+public struct Context {
+
+	public const int precision;
+	public const Rounding rounding;
+
+	public this(int precision, Rounding rounding) {
+		this.precision = precision;
+		this.rounding = rounding;
+	}
+
+	public this(int precision) {
+		this.precision = precision;
+		this.rounding = Rounding.HALF_EVEN;
+	}
+
+}
+
 /// "The exceptional conditions are grouped into signals,
 /// which can be controlled individually.
 /// The context contains a flag (which is either 0 or 1)
