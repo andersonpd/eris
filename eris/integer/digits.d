@@ -361,9 +361,7 @@ version(unittest) {
 				}
 				count++;
 			}
-			if (count > 0) {
-				digits.length = digits.length - count;
-			}
+			digits.length -= count;
 		}
 		return digits;
 	}

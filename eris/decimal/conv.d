@@ -337,7 +337,7 @@ private string exponentForm(T)(const T number, const int precision = 6,
 	const bool lowerCase = false, const bool padExpo = true) /+if (isDecimal!T)+/ {
 
 	T num = number.dup;
-	if (T.netPrecision > precision + 1) {
+	if (T.precision > precision + 1) {
 		int numPrecision = precision + 1;
 		num = roundToPrecision(num, numPrecision, T.rounding);
 	}

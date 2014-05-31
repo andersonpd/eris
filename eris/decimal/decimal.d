@@ -47,10 +47,10 @@ private enum SV { NONE, INF, QNAN, SNAN };
 /// Specification, Version 1.70 (25 Mar 2009),
 /// http://www.speleotrove.com/decimal.
 /// This specification conforms with IEEE standard 754-2008.
-struct Decimal(int MAX_DIGITS = 99, int MAX_EXPO = 9999) {
+struct Decimal(int MAX_DIGITS = 99, int MAX_EXPO = 9999, int GUARD_DIGITS = 2) {
 //struct Decimal(int MAX_DIGITS, int MAX_EXPO) {
 
-alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
+alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO, GUARD_DIGITS);
 
 	private SV sval = SV.QNAN;		// special value: default is quiet NaN
 	private bool signed = false;	// true if the value is negative, false otherwise.
@@ -58,15 +58,10 @@ alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 	private xint mant;				// the coefficient of the decimal value
 	package int digits; 			// the number of decimal digits in this number.
 									// (unless the number is a special value)
-	// static fields
-	package static int guardDigits = 0;
-	package static int tempPrecision = 0;
-	package static Rounding rounding = Rounding.HALF_EVEN;
-	package static int netPrecision() {
-		if (tempPrecision) return tempPrecision + guardDigits;
-		return precision + guardDigits;
-	}
+	private bool guarded = false;	// true if guard digits are in use, false otherwise.
 
+	// static fields
+	package static Rounding rounding = Rounding.HALF_EVEN;
 	package static bool verbose = false; // for debugging
 
 	public:
@@ -78,6 +73,8 @@ alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 	enum int minExpo = 1 - maxExpo;
 	/// Smallest non-normalized exponent.
 	enum int tinyExpo = 2 - maxExpo - precision;
+	/// Number of additional (decimal) digits added to prevent rounding errors.
+	enum int guardDigits = GUARD_DIGITS;
 
 	/// Marker used to identify this type irrespective of size.
 	private enum bool IS_DECIMAL = true;
@@ -304,6 +301,7 @@ alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 		this.digits = that.digits;
 		this.expo	= that.expo;
 		this.mant	= that.mant.dup;
+		this.guarded = that.guarded;
 	};
 
 	/// dup property
@@ -323,6 +321,13 @@ alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 		assertEqual(num, copy);
 		writeln("passed");
 	}
+
+	public static T guard(T)(const T x = T.init)  {
+		T copy = x.dup;
+		copy.guarded = true;
+		return copy;
+	}
+
 
 //--------------------------------
 // casts
@@ -366,11 +371,12 @@ alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 
 	/// Assigns a decimal number (makes a copy)
 	void opAssign(T:decimal)(const T that) {
-		this.signed = that.signed;
-		this.sval	= that.sval;
-		this.digits = that.digits;
-		this.expo	= that.expo;
-		this.mant	= that.mant;
+		this.signed  = that.signed;
+		this.sval	 = that.sval;
+		this.digits  = that.digits;
+		this.expo	 = that.expo;
+		this.mant	 = that.mant;
+		this.guarded = that.guarded;
 	}
 
 	///    Assigns an xint value.
@@ -524,6 +530,19 @@ alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 		return signed;
 	}
 
+	@property
+	@safe
+	const bool isGuarded() {
+		return this.guarded;
+	}
+
+	@property
+	@safe
+	bool isGuarded(bool value) {
+		guarded = value;
+		return guarded;
+	}
+
 //--------------------------------
 // floating point properties
 //--------------------------------
@@ -592,7 +611,7 @@ alias decimal = Decimal!(MAX_DIGITS, MAX_EXPO);
 	enum decimal min = decimal(1, tinyExpo);
 
 	/// Returns the smallest available increment to 1.0 in this context
-	static decimal epsilon() {return decimal(1, -netPrecision);}
+	static decimal epsilon() {return decimal(1, -precision);}
 
 	/// Returns the radix, which is always ten for decimal numbers.
 	enum int radix = 10;
@@ -968,7 +987,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// is made to the current precision.
 	const int opCmp(T:decimal)(const T that) {
 		// TODO: this is a place where the context is set from the outside.
-		return compare(this, that, rounding);
+		return compare(this, that, precision, rounding);
 	}
 
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
@@ -1020,23 +1039,22 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 // unary arithmetic operators
 //--------------------------------
 
-
 	/// Returns the result of performing the specified
 	/// unary operation on this number.
 	//@safe
 	private decimal opUnary(string op)() {
 		static if (op == "+") {
-			return plus(this, precision, rounding);
+			return plus(this, decimal.precision, decimal.rounding);
 		}
 		else static if (op == "-") {
-			return minus(this, precision, rounding);
+			return minus(this, decimal.precision, decimal.rounding);
 		}
 		else static if (op == "++") {
-			this = add(this, decimal(1), rounding);
+			this = add(this, 1, decimal.precision, decimal.rounding);
 			return this;
 		}
 		else static if (op == "--") {
-			this = sub(this, decimal(1), rounding);
+			this = sub(this, 1, precision, rounding);
 			return this;
 		}
 	}
@@ -1085,28 +1103,28 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	const decimal opBinary(string op, T:decimal)(const T arg)
 	{
 		static if (op == "+") {
-			return add(this, arg);
+			return add(this, arg, precision, rounding);
 		}
 		else static if (op == "-") {
-			return sub(this, arg);
+			return sub(this, arg, precision, rounding);
 		}
 		else static if (op == "*") {
-			return mul(this, arg);
+			return mul(this, arg, precision, rounding);
 		}
 		else static if (op == "/") {
-			return div(this, arg);
+			return div(this, arg, precision, rounding);
 		}
 		else static if (op == "%") {
 			return remainder(this, arg);
 		}
 		else static if (op == "&") {
-			return and(this, arg, context);
+			return and(this, arg/*, context*/);
 		}
 		else static if (op == "|") {
-			return or(this, arg, context);
+			return or(this, arg/*, context*/);
 		}
 		else static if (op == "^") {
-			return xor(this, arg, context);
+			return xor(this, arg/*, context*/);
 		}
 	}
 
@@ -1151,28 +1169,28 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	const decimal opBinary(string op, T:long)(const T arg)
 	{
 		static if (op == "+") {
-			return addLong(this, arg, rounding);
+			return add(this, arg, precision, rounding);
 		}
 		else static if (op == "-") {
-			return subLong(this, arg, rounding);
+			return sub(this, arg, precision, rounding);
 		}
 		else static if (op == "*") {
-			return mulLong(this, arg, rounding);
+			return mul(this, arg, precision, rounding);
 		}
 		else static if (op == "/") {
-			return div(this, decimal(arg), rounding);
+			return div(this, decimal(arg), precision, rounding);
 		}
 		else static if (op == "%") {
-			return remainder(this, decimal(arg), rounding);
+			return remainder(this, decimal(arg), precision, rounding);
 		}
 		else static if (op == "&") {
-			return and(this, decimal(arg), rounding);
+			return and(this, decimal(arg), precision, rounding);
 		}
 		else static if (op == "|") {
-			return or(this, decimal(arg), rounding);
+			return or(this, decimal(arg), precision, rounding);
 		}
 		else static if (op == "^") {
-			return xor(this, decimal(arg), rounding);
+			return xor(this, decimal(arg), precision, rounding);
 		}
 	}
 
@@ -1181,19 +1199,19 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	const decimal opBinaryRight(string op, T:long)(const T arg)
 	{
 		static if (op == "+") {
-			return addLong(this, arg, rounding);
+			return add(this, arg, precision, rounding);
 		}
 		else static if (op == "-") {
-			return sub(decimal(arg), this, rounding);
+			return sub(decimal(arg), this, precision, rounding);
 		}
 		else static if (op == "*") {
-			return mulLong(this, arg, rounding);
+			return mul(this, arg, precision, rounding);
 		}
 		else static if (op == "/") {
-			return div(decimal(arg), this, rounding);
+			return div(decimal(arg), this, precision, rounding);
 		}
 		else static if (op == "%") {
-			return remainder(decimal(arg), this, rounding);
+			return remainder(decimal(arg), this, precision, rounding);
 		}
 		else static if (op == "&") {
 			return and(this, decimal(arg), rounding);
@@ -1334,20 +1352,20 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// Returns the smallest representable number that is larger than
 	/// this number.
 	const decimal nextUp() {
-		return nextPlus(this);
+		return nextPlus(this, precision, rounding);
 	}
 
 	/// Returns the largest representable number that is smaller than
 	/// this number.
 	const decimal nextDown() {
-		return nextMinus(this);
+		return nextMinus(this, precision, rounding);
 	}
 
 	/// Returns the representable number that is closest to the
 	/// this number (but not this number) in the
 	/// direction toward the argument.
 	const decimal nextAfter(const decimal arg) {
-		return nextToward(this, arg);
+		return nextToward(this, arg, precision, rounding);
 	}
 
 	unittest {	// nextUp, nextDown, nextAfter

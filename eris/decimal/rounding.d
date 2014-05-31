@@ -36,18 +36,16 @@ version(unittest) {
 /// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 	//@safe
 public T roundToPrecision(T)(const T num,
-		int precision = T.netPrecision,
+		int precision = T.precision,
 		Rounding mode = T.rounding) {
 
-	if (mode == Rounding.NONE) return num.dup;
-//if (T.verbose) writefln("num = %s", num);
-//if (T.verbose) writefln("precision = %s", precision);
-//if (T.verbose) writefln("mode = %s", mode);
+	T result = num.dup;	// copy the input
+
+	if (mode == Rounding.NONE) return result;
 
 	// special values aren't rounded
-	if (!num.isFinite) return num.dup;
+	if (!num.isFinite) return result;
 
-	T result = num.dup;
 	// zero values aren't rounded, but they are checked for
 	// subnormal and out of range exponents.
 	if (num.isZero) {
@@ -82,7 +80,12 @@ public T roundToPrecision(T)(const T num,
 	// Don't round the number if it is too large to represent
 	if (overflow(result, mode)) return result;
 	// round the number
-	roundByMode(result, precision, mode);
+	if (result.isGuarded) {
+		roundByMode(result, precision + T.guardDigits, mode);
+	}
+	else {
+		roundByMode(result, precision, mode);
+	}
 	// check again for an overflow
 	overflow(result, mode);
 	return result;
@@ -192,7 +195,6 @@ private void roundByMode(T)(ref T num, int precision, Rounding mode) {
 	if (mode == Rounding.NONE) return;
 
 	// check for precision overrides
-//	if (T.tempPrecision) precision  = T.tempPrecision;
 //	if (T.guardDigits)   precision += T.guardDigits;
 
 	// calculate the remainder

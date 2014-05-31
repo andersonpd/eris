@@ -13,6 +13,12 @@
 **/
 
 
+/// Most of the arithmetic operations accept values for precision and
+/// rounding modes, but these parameters are not generally available to
+/// the ordinary user. They are included to allow algorithm designers to
+/// carry out internal operations at a precision higher than the type
+/// precision.
+
 // TODO: ensure context flags are being set and cleared properly.
 
 // TODO: opEquals unit test should include numerically equal testing.
@@ -53,7 +59,7 @@ alias xcompare = eris.integer.extended.xint.compare;
 	/// The sign of any NaN values is ignored in the classification.
 	/// The argument is not rounded and no flags are changed.
 	/// Implements the 'class' function in the specification. (p. 42)
-	public string classify(T)(const T x)  {
+	public string classify(T)(in T x)  {
 		if (x.isFinite) {
 			if (x.isZero) 	 { return x.sign ? "-Zero" : "+Zero"; }
 			if (x.isNormal)	 { return x.sign ? "-Normal" : "+Normal"; }
@@ -90,7 +96,7 @@ alias xcompare = eris.integer.extended.xint.compare;
 /// The copy is unaffected by context and is quiet -- no flags are changed.
 /// Implements the 'copy' function in the specification. (p. 43)
 //@safe
-public T copy(T)(const T x)  {
+public T copy(T)(in T x)  {
 	return x.dup;
 }
 
@@ -98,7 +104,7 @@ public T copy(T)(const T x)  {
 /// The copy is unaffected by context and is quiet -- no flags are changed.
 /// Implements the 'copy-abs' function in the specification. (p. 44)
 //@safe
-public T copyAbs(T)(const T x)  {
+public T copyAbs(T)(in T x)  {
 	T copy = x.dup;
 	copy.sign = false;
 	return copy;
@@ -108,7 +114,7 @@ public T copyAbs(T)(const T x)  {
 /// The copy is unaffected by context and is quiet -- no flags are changed.
 /// Implements the 'copy-negate' function in the specification. (p. 44)
 //@safe
-public T copyNegate(T)(const T x)  {
+public T copyNegate(T)(in T x)  {
 	T copy = x.dup;
 	copy.sign = !x.sign;
 	return copy;
@@ -162,7 +168,7 @@ unittest {	// copy
 /// limiting the resulting exponent)".
 /// May set the INVALID_OPERATION and DIVISION_BY_ZERO flags.
 /// Implements the 'logb' function in the specification. (p. 47)
-public int ilogb(T)(const T x) {
+public int ilogb(T)(in T x) {
 
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
@@ -186,7 +192,7 @@ public int ilogb(T)(const T x) {
 /// limiting the resulting exponent)".
 /// May set the INVALID_OPERATION and DIVISION_BY_ZERO flags.
 /// Implements the 'logb' function in the specification. (p. 47)
-public T logb(T)(const T x) {
+public T logb(T)(in T x) {
 
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
@@ -225,7 +231,7 @@ unittest {
 /// The result may overflow or underflow.
 /// Flags: INVALID_OPERATION, UNDERFLOW, OVERFLOW.
 /// Implements the 'scaleb' function in the specification. (p. 48)
-public T scaleb(T)(const T x, const T y)  {
+public T scaleb(T)(in T x, in T y)  {
 
 	T nan;
 	if (operationIsInvalid(x, y, nan)) return nan;
@@ -273,11 +279,13 @@ unittest {	// scaleb
 /// "This operation was called 'normalize' prior to
 /// version 1.68 of the specification." (p. 37)
 /// Flags: INVALID_OPERATION
-public T reduce(T)(const T x, int precision = T.netPrecision,
-		Rounding rounding = T.rounding)  {
+/// NOTE: if the operand is guarded, the result will be guarded.
+public T reduce(T)(in T x,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 	// special cases
 	T nan;
 	if (operandIsInvalid(x, nan)) return nan;
+
 	if (!x.isFinite) return x.dup;
 
 	T reduced = plus(x.dup, precision, rounding);
@@ -297,9 +305,9 @@ public T reduce(T)(const T x, int precision = T.netPrecision,
 	return reduced;
 }
 
-// just a wrapper TODO: can we alias this? does that work?
-public T normalize(T)(const T x, int precision = T.netPrecision,
-		Rounding rounding = T.rounding)  {
+// just a wrapper
+public T normalize(T)(in T x,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 	return reduce(x, precision, rounding);
 }
 
@@ -329,8 +337,8 @@ unittest {	// reduce
 /// use the 'copyAbs' function.
 /// Implements the 'abs' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION
-public T abs(T)(const T x, int precision = T.netPrecision,
-		const Rounding rounding = T.rounding)  {
+public T abs(T)(in T x,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
   	T nan;
 	if (operandIsInvalid!T(x, nan)) return nan;
 	return roundToPrecision(x.copyAbs, precision, rounding);
@@ -356,7 +364,7 @@ unittest {	// abs
 /// If the argument is negative, -1 is returned.
 /// Otherwise +1 is returned.
 /// This function is not required by the specification.
-public int sgn(T)(const T x)  {
+public int sgn(T)(in T x)  {
 	if (x.isZero) return 0;
 	return x.isNegative ? -1 : 1;
 }
@@ -391,8 +399,8 @@ public int sgn(T:xint)(const T num) {
 /// To copy without rounding or setting flags use the 'copy' function.
 /// Implements the 'plus' function in the specification. (p. 33)
 /// Flags: INVALID_OPERATION
-public T plus(T)(const T x, int precision = T.netPrecision,
-		Rounding rounding = T.rounding)  {
+public T plus(T)(in T x,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 	T nan;
 	if (operandIsInvalid!T(x, nan)) return nan;
 	return roundToPrecision(x, precision, rounding);
@@ -404,7 +412,8 @@ public T plus(T)(const T x, int precision = T.netPrecision,
 /// To copy without rounding or setting flags use the 'copyNegate' function.
 /// Implements the 'minus' function in the specification. (p. 37)
 /// Flags: INVALID_OPERATION
-public T minus(T)(const T x, int precision = T.netPrecision,
+public T minus(T)(in T x,
+		int precision = T.precision,
 		Rounding rounding = T.rounding) {
 	T nan;
 	if (operandIsInvalid!T(x, nan)) return nan;
@@ -443,8 +452,8 @@ unittest {	// plus
 /// the argument.
 /// Implements the 'next-plus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
-public T nextPlus(T)(const T x,
-		const Rounding rounding = T.rounding)  {
+public T nextPlus(T)(in T x,
+		in int precision = T.precision, in Rounding rounding = T.rounding) {
 	T nan;
 	if (operandIsInvalid!T(x, nan)) return nan;
 
@@ -457,13 +466,13 @@ public T nextPlus(T)(const T x,
 		}
 	}
 	// TODO: use of precision
-	int adjustedExpo = x.exponent + x.digits - T.netPrecision;
+	int adjustedExpo = x.exponent + x.digits - T.precision;
 	if (adjustedExpo < T.tinyExpo) {
 			return T(0L, T.tinyExpo);
 	}
 	// (A)TODO: must add the increment w/o setting flags
 	T y = T(1L, adjustedExpo);
-	T next = add(x, y, rounding);
+	T next = add(x, y, precision, rounding);
 	if (next > T.max) {
 		next = T.infinity;
 	}
@@ -474,7 +483,8 @@ public T nextPlus(T)(const T x,
 /// the argument.
 /// Implements the 'next-minus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
-public T nextMinus(T)(const T x, Rounding rounding = T.rounding)  {
+public T nextMinus(T)(in T x,
+		in int precision = T.precision, in Rounding rounding = T.rounding) {
 
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
@@ -489,14 +499,14 @@ public T nextMinus(T)(const T x, Rounding rounding = T.rounding)  {
 		}
 	}
 	// This is necessary to catch the special case where the coefficient == 1
-	T reduced = reduce!T(x, T.netPrecision, rounding);
-	int adjustedExpo = reduced.exponent + reduced.digits - T.netPrecision;
+	T reduced = reduce!T(x, T.precision, rounding);
+	int adjustedExpo = reduced.exponent + reduced.digits - T.precision;
 	if (x.coefficient == 1) adjustedExpo--;
 	if (adjustedExpo < T.tinyExpo) {
 		return T(0L, T.tinyExpo);
 	}
 	T addend = T(1, adjustedExpo);
-	reduced = sub!T(x, addend, rounding);	//(A)TODO: are the flags set/not set correctly?
+	reduced = sub!T(x, addend, precision, rounding);	//(A)TODO: are the flags set/not set correctly?
 		if (reduced < copyNegate(T.max)) {
 		reduced = copyNegate(T.infinity);
 	}
@@ -507,17 +517,17 @@ public T nextMinus(T)(const T x, Rounding rounding = T.rounding)  {
 /// in the direction of the second operand.
 /// Implements the 'next-toward' function in the specification. (p. 34-35)
 /// Flags: INVALID_OPERATION
-public T nextToward(T)(const T x, const T y,
-		const Rounding rounding = T.rounding)  {
+public T nextToward(T)(in T x, in T y,
+		in int precision = T.precision, in Rounding rounding = T.rounding) {
 
 	T nan;
 	if (operationIsInvalid(x, y, nan)) return nan;
 
 	// compare them but don't round
-	int comp = compare(x, y, rounding);
-	if (comp < 0) return nextPlus(x, rounding);
-	if (comp > 0) return nextMinus(x, rounding);
-	return roundToPrecision(copySign(x,y), T.netPrecision, rounding);
+	int comp = compare(x, y, precision, rounding);
+	if (comp < 0) return nextPlus(x, precision, rounding);
+	if (comp > 0) return nextMinus(x, precision, rounding);
+	return roundToPrecision(copySign(x,y), precision, rounding);
 }
 
 unittest {	// nextPlus
@@ -559,12 +569,15 @@ unittest {	// nextPlus
 // comparison functions
 //--------------------------------
 
+// TODO: compares to full precision, not context precision.
 /// Compares two operands numerically to the current precision.
 /// Returns -1, 0, or +1 if the second operand is, respectively,
 /// less than, equal to, or greater than the first operand.
 /// Implements the 'compare' function in the specification. (p. 27)
 /// Flags: INVALID_OPERATION
-public int compare(T)(const T x, const T y, Rounding rounding = T.rounding)  {
+public int compare(T)(in T x, in T y,
+		in int precision = T.precision, in Rounding rounding = T.rounding) {
+
 	// any operation with a signaling NaN is invalid.
 	// if both are signaling, return as if x > y.
 	if (x.isSignaling || y.isSignaling) {
@@ -577,12 +590,6 @@ public int compare(T)(const T x, const T y, Rounding rounding = T.rounding)  {
 		return x.isNaN ? 1 : -1;
 	}
 
-	// if either is infinite...
-	if (x.isInfinite || y.isInfinite) {
-		return (x.isInfinite && y.isInfinite
-			&& x.isSigned == y.isSigned);
-	}
-
 	// if signs differ, just compare the signs
 	if (x.sign != y.sign) {
 		// check for zeros: +0 and -0 are equal
@@ -590,6 +597,22 @@ public int compare(T)(const T x, const T y, Rounding rounding = T.rounding)  {
 		return x.sign ? -1 : 1;
 	}
 
+	// if either is infinite...
+	if (x.isInfinite || y.isInfinite) {
+		if (x.isInfinite && y.isInfinite) return 0;
+		// TODO: still need to test the signs
+		return x.isInfinite ? -1 : 1;
+	}
+
+/*	// TODO: here is where they should be rounded
+	// restrict operands to current precision
+	if (x.digits > precision) {
+		roundToPrecision(x, precision, rounding);
+	}
+	if (y.digits > precision) {
+		roundToPrecision(y, precision, rounding);
+	}
+*/
 	// compare the magnitudes of the numbers
 	int diff = (x.exponent + x.digits) - (y.exponent + y.digits);
 	if (diff != 0)
@@ -628,8 +651,8 @@ unittest {	// compare
 /// A decimal NaN is not equal to itself (this != this).
 /// This function is not included in the specification.
 /// Flags: INVALID_OPERATION
-public bool equals(T)(const T x, const T y,
-		Rounding rounding = T.rounding, int precision = T.netPrecision) {
+public bool equals(T)(in T x, in T y,
+		in int precision = T.precision, in Rounding rounding = T.rounding) {
 
 	// any operation with a signaling NaN is invalid.
 	if (x.isSignaling || y.isSignaling) {
@@ -662,22 +685,23 @@ public bool equals(T)(const T x, const T y,
 	}
 
 	// restrict operands to current precision
-	if (x.digits > precision) {
-		roundToPrecision(x, precision, rounding);
+	// NOTE: they will be rounded to the guarded precision
+	T rx, ry;
+	if (x.isGuarded || y.isGuarded) {
+		rx.isGuarded = true;
+		ry.isGuarded = true;
 	}
-	if (y.digits > precision) {
-		roundToPrecision(y, precision, rounding);
-	}
+	rx = roundToPrecision(x, precision, rounding);
+	ry = roundToPrecision(y, precision, rounding);
+
 	// if they have different magnitudes, they are not equal
-	// TODO: this is not true for equality to precision
-	int diff = (x.exponent + x.digits) - (y.exponent + y.digits);
+	int diff = (rx.exponent + rx.digits) - (ry.exponent + ry.digits);
 	if (diff != 0) {
 		return false;
 	}
 
 	// otherwise they are equal if they represent the same value
-	// TODO: this is not true for equality to precision
-	return x.reduce.coefficient == y.reduce.coefficient;
+	return rx.reduce.coefficient == ry.reduce.coefficient;
 }
 
 unittest {	// equals
@@ -690,11 +714,7 @@ unittest {	// equals
 	assertTrue(equals(x, y));
 	// test for equality to precision
 	x = 123.45671234;
-//writefln("x = %s", x);
-//writefln("roundToPrecision(x) = %s", roundToPrecision(x));
 	y = 123.4567121;
-//writefln("y = %s", y);
-//writefln("roundToPrecision(y) = %s", roundToPrecision(y));
 	assertTrue(equals(x, y));
 	writeln("passed");
 }
@@ -704,8 +724,8 @@ unittest {	// equals
 /// This operation may set the invalid-operation flag.
 /// Implements the 'compare-signal' function in the specification. (p. 27)
 /// Flags: INVALID_OPERATION
-public int compareSignal(T) (const T x, const T y,
-		const Rounding rounding = T.rounding)  {
+public int compareSignal(T) (in T x, in T y,
+		in int precision = T.precision, in Rounding rounding = T.rounding) {
 
 	// any operation with NaN is invalid.
 	// if both are NaN, return as if x > y.
@@ -713,7 +733,7 @@ public int compareSignal(T) (const T x, const T y,
 		contextFlags.setFlags(INVALID_OPERATION);
 		return x.isNaN ? 1 : -1;
 	}
-	return (compare!T(x, y, context, rounding));
+	return (compare!T(x, y, precision, rounding));
 }
 
 /// Numbers (representations which are not NaNs) are ordered such that
@@ -726,7 +746,7 @@ public int compareSignal(T) (const T x, const T y,
 /// Returns 0 if the numbers are equal and have the same representation.
 /// Implements the 'compare-total' function in the specification. (p. 42-43)
 /// Flags: NONE.
-public int compareTotal(T)(const T x, const T y)  {
+public int compareTotal(T)(in T x, in T y)  {
 
 	if (x.isFinite && y.isFinite
 		&& x.sign == y.sign
@@ -821,7 +841,7 @@ public int compareTotal(T)(const T x, const T y)  {
 /// Implements the 'compare-total-magnitude' function in the specification.
 /// (p. 43)
 /// Flags: NONE.
-int compareTotalMagnitude(T)(const T x, const T y)  {
+int compareTotalMagnitude(T)(in T x, in T y)  {
 	return compareTotal(x.copyAbs, y.copyAbs);
 }
 
@@ -854,7 +874,7 @@ unittest {	// compareTotal
 /// both operands are NaN or Infinity, respectively.
 /// No context flags are set.
 /// Implements the 'same-quantum' function in the specification. (p. 48)
-public bool sameQuantum(T)(const T x, const T y)  {
+public bool sameQuantum(T)(in T x, in T y)  {
 	if (x.isNaN || y.isNaN) {
 		return x.isNaN && y.isNaN;
 	}
@@ -889,8 +909,8 @@ unittest {	// sameQuantum
 /// The returned number will be rounded to the current context.
 /// Implements the 'max' function in the specification. (p. 32)
 /// Flags: INVALID_OPERATION, ROUNDED.
-public T max(T)(const T x, const T y, int precision = T.netPrecision,
-		const Rounding rounding = T.rounding)  {
+public T max(T)(in T x, in T y,
+		in int precision = T.precision, in Rounding rounding = T.rounding)  {
 
 	// if both are NaNs or either is an sNan, return NaN.
 	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
@@ -916,7 +936,7 @@ public T max(T)(const T x, const T y, int precision = T.netPrecision,
 	}
 	else {
 		// if not numerically equal, return the larger
-		int comp = compare!T(x, y, rounding);
+		int comp = compare!T(x, y, precision, rounding);
 		if (comp != 0) {
 			if (comp < 0) result = y;
 		}
@@ -951,8 +971,8 @@ unittest {	// max
 /// as the 'max' function if the signs of the operands are ignored.
 /// Implements the 'max-magnitude' function in the specification. (p. 32)
 /// Flags: NONE.
-public T maxMagnitude(T)(const T x, const T y,
-		int precision = T.netPrecision, const Rounding rounding = T.rounding)  {
+public T maxMagnitude(T)(in T x, in T y,
+		int precision = T.precision, const Rounding rounding = T.rounding)  {
 // FIXTHIS: special values...
 
 	// both positive
@@ -995,8 +1015,8 @@ unittest {	// max
 /// 4) Otherwise, they are indistinguishable; the first is returned.
 /// Implements the 'min' function in the specification. (p. 32-33)
 /// Flags: INVALID OPERATION, ROUNDED.
-public T min(T)(const T x, const T y, int precision = T.netPrecision,
-		const Rounding rounding = T.rounding)  {
+public T min(T)(in T x, in T y,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 
 	// if both are NaNs or either is an sNan, return NaN.
 	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
@@ -1057,8 +1077,8 @@ unittest {
 /// as the 'max' function if the signs of the operands are ignored.
 /// Implements the 'min-magnitude' function in the specification. (p. 33)
 /// Flags: INVALID OPERATION, ROUNDED.
-public T minMagnitude(T)(const T x, const T y,
-		int precision = T.netPrecision, const Rounding rounding = T.rounding)  {
+public T minMagnitude(T)(in T x, in T y,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 	return min(copyAbs!T(x), copyAbs!T(y), precision, rounding);
 }
 
@@ -1107,7 +1127,7 @@ public T shl(T)(const T arg, const int n,
 		coefficient = coefficient << n;
 		digits = numDigits(coefficient);
 	}
-	return roundToPrecision(result, T.netPrecision, rounding);
+	return roundToPrecision(result, T.precision, rounding);
 }
 
 unittest {	// shl
@@ -1168,15 +1188,15 @@ public bool isOdd(const ExtendedInt big) {
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T)(const T x, const int n,
-		const DecimalContext context = T.context)  {
+public T shift(T)(const T x, const int n //,
+		/*const DecimalContext context = T.context*/)  {
 
 	// check for NaN operand
 	if (operandIsInvalid(x, x)) {
 		return T.nan;
 	}
 	// can't shift more than precision
-	if (n < -context.precision || n > context.precision) {
+	if (n < -precision || n > precision) {
 		return setInvalidFlag!T;
 	}
 	// shift by zero returns the argument
@@ -1190,10 +1210,10 @@ public T shift(T)(const T x, const int n,
 
 	Decimal result = x.dup; //toBigDecimal!T(x);
 	if (n > 0) {
-		shiftLeft(result.coefficient, n, context.precision);
+		shiftLeft(result.coefficient, n, precision);
 	}
 	else {
-		shiftRight(result.coefficient, n, context.precision);
+		shiftRight(result.coefficient, n, precision);
 	}
 	return T(result);
 }
@@ -1210,14 +1230,14 @@ unittest {
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T)(const T arg, const int n,
-		const DecimalContext context = T.context)  {
+public T rotate(T)(const T arg, const int n/*,
+		const DecimalContext context = T.context*/)  {
 
 	// check for NaN operand
 	if (operandIsInvalid!T(arg, result)) {
 		return T.nan;
 	}
-	if (n < -context.precision || n > context.precision) {
+	if (n < -precision || n > precision) {
 		return setInvalidFlag();
 	}
 	if (arg.isInfinite) {
@@ -1255,7 +1275,10 @@ unittest {
 /// The result may be rounded and context flags may be set.
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T add(T)(const T x, const T y, Rounding rounding = T.rounding)  {
+/// If either operand is guarded the result is guarded and is rounded
+/// to the guarded precision.
+public T add(T)(in T x, in T y,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 
 	T nan;
 	if (operationIsInvalid(x, y, nan)) {
@@ -1318,9 +1341,10 @@ public T add(T)(const T x, const T y, Rounding rounding = T.rounding)  {
 	}
 	sum.digits = numDigits(sum.coefficient);
 	sum.exponent = xx.exponent;
+	sum.isGuarded = (x.isGuarded || y.isGuarded);
 
 	// round the result
-	return roundToPrecision(sum, T.netPrecision, rounding);
+	return roundToPrecision(sum, precision, rounding);
 }	 // end add(x, y)
 
 
@@ -1329,10 +1353,12 @@ public T add(T)(const T x, const T y, Rounding rounding = T.rounding)  {
 /// The result may be rounded and context flags may be set.
 /// This function is not included in the specification.
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T addLong(T)(const T x, const long n,
-		const Rounding rounding = T.rounding)  {
+/// If the decimal operand is guarded the result is guarded and is rounded
+/// to the guarded precision.
+public T add(T)(in T x, in long n,
+		in int precision = T.precision, in Rounding rounding = T.rounding)  {
 
-	// check for NaN operand(s)
+	// check for invalid operand(s)
 	T nan;
 	if (operandIsInvalid!T(x, nan)) return nan;
 
@@ -1388,8 +1414,9 @@ public T addLong(T)(const T x, const long n,
 	// set the number of digits and the exponent
 	sum.digits = numDigits(sum.coefficient);
 	sum.exponent = augend.exponent;
+	sum.isGuarded = x.isGuarded;
 
-	return roundToPrecision(sum, T.netPrecision, rounding);
+	return roundToPrecision(sum, precision, rounding);
 }	 // end add(x, n)
 
 	// (A)TODO: change inputs to real numbers
@@ -1404,14 +1431,27 @@ unittest {	// add, addLOng
 	arg2 = dec9("1E+4");
 	sum = add(arg1, arg2);
 	assertStringEqual(sum, "1.01E+4");
+	dec9 arg12, arg22, sum2;
+	arg12 = dec9("12345678901");
+	arg12.isGuarded = true;
+writefln("arg12 = %s", arg12);
+	arg22 = dec9("54321098765");
+	arg22.isGuarded = true;
+writefln("arg22 = %s", arg22);
+	sum2 = add(arg12, arg22);
+writefln("sum2 = %s", sum2);
+	arg12.isGuarded(false);
+	arg22.isGuarded(false);
+	sum2 = add(arg12, arg22);
+writefln("sum2 = %s", sum2);
 	long arg3;
 	arg3 = 12;
 	arg1 = dec9("7.00");
-	sum = addLong(arg1, arg3);
+	sum = add(arg1, arg3);
 	assertStringEqual(sum, "19.00");
 	arg1 = dec9("1E+2");
 	arg3 = 10000;
-	sum = addLong(arg1, arg3);
+	sum = add(arg1, arg3);
 	assertStringEqual(sum, "10100");
 	writeln("passed");
 }
@@ -1419,8 +1459,11 @@ unittest {	// add, addLOng
 /// Subtracts the second operand from the first operand.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'subtract' function in the specification. (p. 26)
-public T sub(T) (const T x, const T y, Rounding rounding = T.rounding) {
-	return add(x, copyNegate(y), rounding);
+/// If either operand is guarded the result is guarded and is rounded
+/// to the guarded precision.
+public T sub(T) (in T x, in T y,
+		int precision = T.precision, Rounding rounding = T.rounding) {
+	return add(x, copyNegate(y), precision, rounding);
 }	 // end sub(x, y)
 
 
@@ -1428,9 +1471,12 @@ public T sub(T) (const T x, const T y, Rounding rounding = T.rounding) {
 /// The result is identical to that of the 'subtract' function
 /// as if the long value were converted to a decimal number.
 /// This function is not included in the specification.
-public T subLong(T) (const T x, long y, Rounding rounding = T.rounding)  {
-	return addLong(x, -y, rounding);
-}	 // end sub(x, y)
+/// If the decimal operand is guarded the result is guarded and is rounded
+/// to the guarded precision.
+public T sub(T) (in T x, in long n,
+		in int precision = T.precision, in Rounding rounding = T.rounding)  {
+	return add(x, -n, precision, rounding);
+}	 // end sub(x, n)
 
 
 unittest {
@@ -1452,46 +1498,53 @@ unittest {
 /// Multiplies the two operands.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'multiply' function in the specification. (p. 33-34)
-public T mul(T)(const T x, const T y, Rounding rounding = T.rounding)  {
+/// If either operand is guarded the result is guarded and is rounded
+/// to the guarded precision.
+public T mul(T)(in T x, in T y,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 
+	T product;	// NaN
 	// if invalid, return NaN
-	T p;	// initial value is NaN
-	if (operationIsInvalid!T(x, y, p)) {
-		return p;
+	if (operationIsInvalid!T(x, y, product)) {
+		return product;
 	}
 	// infinity * zero => invalid operation
 	if (x.isZero && y.isInfinite || x.isInfinite && y.isZero) {
-		return p;
+		return product;
 	}
 	// if either operand is infinite, return infinity
 	if (x.isInfinite || y.isInfinite) {
-		p = T.INFINITY;
-		p.sign = x.sign ^ y.sign;
-		return p;
+		product = T.INFINITY;
+		product.sign = x.sign ^ y.sign;
+		return product;
 	}
 
 	// product is a finite number, not NaN
-	p = T.ZERO;
+	product = T.ZERO;
 	// mul(0,f) or (f,0)
 	if (x.isZero || y.isZero) {
-		p.exponent = x.exponent + y.exponent;
-		p.sign = x.sign ^ y.sign;
+		product.exponent = x.exponent + y.exponent;
+		product.sign = x.sign ^ y.sign;
 	}
 	else {
-		p.coefficient = x.coefficient * y.coefficient;
-		p.exponent = x.exponent + y.exponent;
-		p.sign = x.sign ^ y.sign;
-		p.digits = numDigits(p.coefficient);
+		product.coefficient = x.coefficient * y.coefficient;
+		product.exponent = x.exponent + y.exponent;
+		product.sign = x.sign ^ y.sign;
+		product.digits = numDigits(product.coefficient);
 	}
 
-	return roundToPrecision(p, T.netPrecision, rounding);
+	product.isGuarded = (x.isGuarded || y.isGuarded);
+	return roundToPrecision(product, precision, rounding);
 }
 
 /// Multiplies a decimal number by a long integer.
 /// The result may be rounded and context flags may be set.
 /// Not a required function, but useful because it avoids
 /// an unnecessary conversion to a decimal when multiplying.
-public T mulLong(T)(const T x, long n, const Rounding rounding = T.rounding)  {
+/// If the decimal operand is guarded the result is guarded and is rounded
+/// to the guarded precision.
+public T mul(T)(in T x, long n,
+		int precision = T.precision, const Rounding rounding = T.rounding)  {
 
 	T nan;
 	// if invalid, return NaN
@@ -1502,27 +1555,28 @@ public T mulLong(T)(const T x, long n, const Rounding rounding = T.rounding)  {
 	if (x.isInfinite && n == 0) {
 		return nan;
 	}
-	T p = T.zero;
+	T product = T.zero;
 	// if decimal operand is infinite, return infinity
 	if (x.isInfinite) {
-		p = T.infinity;
-		p.sign = x.sign ^ (n < 0);
-		return p;
+		product = T.infinity;
+		product.sign = x.sign ^ (n < 0);
+		return product;
 	}
 
 	// mul(0,f) or (f,0)
 	if (x.isZero || n == 0) {
-		p = T.zero;
-		p.exponent = x.exponent;
-		p.sign = x.sign ^ (n < 0);
+		product = T.zero;
+		product.exponent = x.exponent;
+		product.sign = x.sign ^ (n < 0);
 	}
 	else {
-		p.coefficient = x.coefficient * n;
-		p.exponent = x.exponent;
-		p.sign = x.sign ^ (n < 0);
-		p.digits = numDigits(p.coefficient);
+		product.coefficient = x.coefficient * n;
+		product.exponent = x.exponent;
+		product.sign = x.sign ^ (n < 0);
+		product.digits = numDigits(product.coefficient);
 	}
-	return roundToPrecision(p, T.netPrecision, rounding);
+	product.isGuarded = x.isGuarded;
+	return roundToPrecision(product, precision, rounding);
 }
 
 unittest {	// mul
@@ -1538,10 +1592,10 @@ unittest {	// mul
 	long arg3;
 	arg1 = dec9("1.20");
 	arg3 = 3;
-	result = mulLong(arg1, arg3);
+	result = mul(arg1, arg3);
 	assertStringEqual(result, "3.60");
 	arg1 = -7000;
-	result = mulLong(arg1, arg3);
+	result = mul(arg1, arg3);
 	assertStringEqual(result, "-21000");
 	result = mul(dec9.infinity, arg2);
 writefln("result = %s", result);
@@ -1550,7 +1604,10 @@ writefln("result = %s", result);
 
 /// Squares the argument and returns the xx.
 /// The result may be rounded and context flags may be set.
-public T sqr(T)(const T x, Rounding rounding = T.rounding)  {
+/// If the operand is guarded the result is guarded and is rounded
+/// to the guarded precision.
+public T sqr(T)(in T x,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 
 	// if operand is invalid, return NaN
 	T nan;
@@ -1572,16 +1629,18 @@ public T sqr(T)(const T x, Rounding rounding = T.rounding)  {
 	xx.exponent = 2 * x.exponent;
 	xx.sign = false;
 	xx.digits = numDigits(xx.coefficient);
-	return roundToPrecision(xx, T.netPrecision, rounding);
+	xx.isGuarded = (x.isGuarded);
+	return roundToPrecision(xx, T.precision, rounding);
 }
 
 /// Multiplies the first two operands and adds the third operand to the result.
 /// The result of the multiplication is not rounded prior to the addition.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'fused-multiply-add' function in the specification. (p. 30)
-public T fma(T)(const T x, const T y, const T z, Rounding rounding = T.rounding)  {
-	T xy = mul(x, y, Rounding.NONE);
-	return add(xy, z, rounding);
+public T fma(T)(in T x, in T y, in T z,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
+	T xy = mul(x, y, precision, Rounding.NONE);
+	return add(xy, z, precision, rounding);
 }
 
 unittest {	// fma
@@ -1605,8 +1664,8 @@ unittest {	// fma
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T)(const T x, const T y, int precision = T.netPrecision,
-		Rounding rounding = T.rounding)  {
+public T div(T)(in T x, in T y,
+		int precision = T.precision, Rounding rounding = T.rounding)  {
 
 	// check for NaN and division by zero
 	T nan;
@@ -1640,6 +1699,7 @@ public T div(T)(const T x, const T y, int precision = T.netPrecision,
 	q.exponent = xx.exponent - yy.exponent;
 	q.sign = xx.sign ^ yy.sign;
 	q.digits = numDigits(q.coefficient);
+	q.isGuarded = x.isGuarded || y.isGuarded;	// TODO: how does this affect reduction?
 	q = roundToPrecision(q, precision, rounding);
 	q = reduceToIdeal(q, diff);
 	return q;
@@ -1661,7 +1721,7 @@ private T reduceToIdeal(T)(const T num, int ideal)  {
 
 	int idealshift = ideal - result.exponent;
 	int	canshift = idealshift > zeros ? zeros : idealshift;
-	result.coefficient = shiftRight(result.coefficient, canshift/*, T.netPrecision*/);
+	result.coefficient = shiftRight(result.coefficient, canshift/*, T.precision*/);
 	result.exponent = result.exponent + canshift;
 
 	if (result.coefficient == 0) {
@@ -1743,6 +1803,7 @@ unittest {	// div
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
+// TODO: guard?
 public T divideInteger(T)(const T arg1, const T arg2)  {
 	// check for NaN or divide by zero
 	T result = T.nan;
@@ -1768,7 +1829,7 @@ public T divideInteger(T)(const T arg1, const T arg2)  {
 	quotient.exponent = 0;
 	// number of digits cannot exceed precision
 	int digits = numDigits(quotient.coefficient);
-	if (digits > T.netPrecision) {
+	if (digits > T.precision) {
 		return setInvalidFlag!T;
 	}
 	quotient.digits = digits;
@@ -1801,13 +1862,15 @@ unittest {	// divideInteger
 /// The sign of the remainder is the same as that of the first operand.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'remainder' function in the specification. (p. 37-38)
-public T remainder(T)(const T arg1, const T arg2)  {
+// TODO: guard?
+public T remainder(T)(const T arg1, const T arg2,
+		in int precision = T.precision)  {
 	T quotient;
 	if (divisionIsInvalid!T(arg1, arg2, quotient)) {
 		return quotient;
 	}
 	quotient = divideInteger!T(arg1, arg2,);
-	T remainder = arg1 - mul!T(arg2, quotient, Rounding.NONE);
+	T remainder = arg1 - mul!T(arg2, quotient, precision, Rounding.NONE);
 	return remainder;
 }
 
@@ -1853,6 +1916,7 @@ unittest {	// remainder
 /// The sign of the remainder is the same as that of the first operand.
 /// This function corresponds to the "remainder" function
 /// in the General Decimal Arithmetic Specification.
+// TODO: guard?
 public T remainderNear(T)(const T dividend, const T divisor)  {
 	T quotient;
 	if (divisionIsInvalid!T(dividend, divisor, quotient)) {
@@ -1916,7 +1980,7 @@ unittest {
 /// The returned value is rounded to the current precision.
 /// This operation may set the invalid-operation flag.
 /// Implements the 'quantize' function in the specification. (p. 36-37)
-public T quantize(T)(const T arg1, const T arg2, int precision = T.netPrecision,
+public T quantize(T)(const T arg1, const T arg2, int precision = T.precision,
 		const Rounding rounding = T.rounding)  {
 
 	T nan;
@@ -1942,7 +2006,7 @@ public T quantize(T)(const T arg1, const T arg2, int precision = T.netPrecision,
 		result.coefficient = shiftLeft(result.coefficient, diff/*, precision*/);
 		result.digits = result.digits + diff;
 		result.exponent = arg2.exponent;
-		if (result.digits > T.netPrecision) {
+		if (result.digits > T.precision) {
 			result = T.nan;
 		}
 		return result;
@@ -2230,9 +2294,9 @@ unittest {	// inverse
 //--------------------------------
 
 /// called by opBinary.
-private T opLogical(string op, T)(const T arg1, const T arg2,
-		const DecimalContext context = T.context) if(isDecimal!T) {
-	int precision = T.context.precision;
+private T opLogical(string op, T)(const T arg1, const T arg2/*,
+		const DecimalContext context = T.context*/) /*if(isDecimal!T)*/ {
+	int precision = T.precision;
 	string str1;
 	if (!isLogicalOperand(arg1, str1)) {
 		return setInvalidFlag!T;
@@ -2255,9 +2319,9 @@ private T opLogical(string op, T)(const T arg1, const T arg2,
 
 /// Performs a logical 'and' of the arguments and returns the result
 /// Implements the 'and' function in the specification. (p. 41)
-public T and(T)(const T arg1, const T arg2,
-		const DecimalContext context = T.context)  {
-	return opLogical!("and", T)(arg1, arg2, context);
+public T and(T)(const T arg1, const T arg2/*,
+		const DecimalContext context = T.context*/)  {
+	return opLogical!("and", T)(arg1, arg2/*, context*/);
 }
 
 /// Performs a logical 'and' of the (string) arguments and returns the result
@@ -2294,9 +2358,9 @@ T and(T: string)(const T arg1, const T arg2) {
 
 /// Performs a logical 'or' of the arguments and returns the result
 /// Implements the 'or' function in the specification. (p. 47)
-public T or(T)(const T arg1, const T arg2,
-		const DecimalContext context = T.context)  {
-	return opLogical!("or", T)(arg1, arg2, context);
+public T or(T)(const T arg1, const T arg2/*,
+		const DecimalContext context = T.context*/)  {
+	return opLogical!("or", T)(arg1, arg2/*, context*/);
 }
 
 /// Performs a logical 'or' of the (string) arguments and returns the result
@@ -2330,9 +2394,9 @@ T or(T: string)(const T arg1, const T arg2) {
 
 /// Performs a logical 'xor' of the arguments and returns the result
 /// Implements the 'xor' function in the specification. (p. 49)
-public T xor(T)(const T arg1, const T arg2,
-		const DecimalContext context = T.context)  {
-	return opLogical!("xor", T)(arg1, arg2, context);
+public T xor(T)(const T arg1, const T arg2/*,
+		const DecimalContext context = T.context*/)  {
+	return opLogical!("xor", T)(arg1, arg2/*, context*/);
 }
 
 /// Performs a logical 'xor' of the (string) arguments
@@ -2366,17 +2430,17 @@ T xor(T: string)(const T arg1, const T arg2) {
 }
 
 unittest { // binary logical ops
-/*	dec9 op1, op2;
+	dec9 op1, op2;
 	op1 = 10010101;
 	op2 = 11100100;
-//	assert((op1 & op2) == dec9(10000100));
+	assert((op1 & op2) == dec9(10000100));
 //	assert((op1 | op2) == dec9(11110101));
 //	assert((op1 ^ op2) == dec9( 1110001));
 	op1 =   100101;
 	op2 = 11100100;
 //	assert((op1 & op2) == dec9(  100100));
 //	assert((op1 | op2) == dec9(11100101));
-//	assert((op1 ^ op2) == dec9(11000001));*/
+//	assert((op1 ^ op2) == dec9(11000001));
 }
 
 //--------------------------------
@@ -2447,7 +2511,7 @@ unittest {
 /// from the first operand which is a signaling NaN, or if neither is
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
-private bool operationIsInvalid(T)(const T x, const T y, out T nan)
+private bool operationIsInvalid(T)(in T x, in T y, out T nan)
 		 {
 	// if either operand is a quiet NaN...
 	if (x.isQuiet || y.isQuiet) {

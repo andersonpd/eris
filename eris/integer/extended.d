@@ -1480,13 +1480,9 @@ assertEqual(x/y, 2234);
 		assertEqual(B | C, xint("0xFF00FF00_88883333_AAAA5555"));
 		assertEqual(B ^ C, xint("0xFF00FF00_88883333_2AAA5555"));
 
-writeln;
-writefln("eris.integer.digits.toString(B.digits) = %s", eris.integer.digits.toString(B.digits));
-writefln("eris.integer.digits.toString(D.digits) = %s", eris.integer.digits.toString(D.digits));
-writefln("eris.integer.digits.toString(U.digits) = %s", eris.integer.digits.toString((B&D).digits));
-		assertEqual(B & D, xint("0xFF00FF00_88883333_AAAA4054"));
-		assertEqual(B | D, xint("0x7FFFFFFF_FFFFFFFF_FFFFFFFF_BEEFDFFF"));
-		assertEqual(B ^ D, xint("0x7FFFFFFF_00FF00FF_7777CCCC_14459FAB"));
+		assertEqual(B & D, xint("0x7FFFFFFF_FF00FF00_88883333_AAAA4054"));
+		assertEqual(B | D, xint("0xFFFFFFFF_FFFFFFFF_FFFFFFFF_BEEFDFFF"));
+		assertEqual(B ^ D, xint("0x80000000_00FF00FF_7777CCCC_14459FAB"));
 
 		assertEqual(C & D, xint("0x80000000"));
 		assertEqual(C | D, xint("0x7FFFFFFF_FFFFFFFF_FFFFFFFF_BEEFCAFE"));
