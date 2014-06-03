@@ -96,7 +96,7 @@ public struct ContextFlags {
 			this.flags |= flags;
 			ubyte changed = saved ^ flags;
 			checkFlags(changed);
-			// (X)TODO: if this flag is trapped an exception should be thrown.
+			// TODO: (behavior) if this flag is trapped an exception should be thrown.
 		} else {
 			this.flags &= !flags;
 		}

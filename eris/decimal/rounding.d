@@ -31,17 +31,25 @@ version(unittest) {
 //	alias dectest = Decimal!(9,99);
 }
 
+public T roundToPrecision(T)(in T num, in Context context) {
+	return roundToPrecision(num, context.precision, context.rounding);
+}
+
+public T roundToPrecision(T)(in T num, in Rounding rounding) {
+	return roundToPrecision(num, T.precision, rounding);
+}
+
+public T roundToPrecision(T)(in T num,
+	in int precision = T.precision,
+	in Rounding rounding = T.rounding) {
+
 /// Rounds the referenced number using the precision and rounding mode of
 /// the context parameter.
 /// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 	//@safe
-public T roundToPrecision(T)(const T num,
-		int precision = T.precision,
-		Rounding mode = T.rounding) {
-
 	T result = num.dup;	// copy the input
 
-	if (mode == Rounding.NONE) return result;
+	if (rounding == Rounding.NONE) return result;
 
 	// special values aren't rounded
 	if (!num.isFinite) return result;
@@ -64,9 +72,9 @@ public T roundToPrecision(T)(const T num,
 		contextFlags.setFlags(SUBNORMAL);
 		int diff = T.minExpo - result.adjustedExponent;
 		// use the subnormal precision and round
-		precision -= diff;
-		if (result.digits > precision) {
-			roundByMode(result, precision, mode);
+		int subprecision = precision - diff;
+		if (result.digits > subprecision) {
+			roundByMode(result, subprecision, rounding);
 		}
 		// if the result of rounding a subnormal is zero
 		// the clamped flag is set. (Spec. p. 51)
@@ -78,16 +86,16 @@ public T roundToPrecision(T)(const T num,
 	}
 
 	// Don't round the number if it is too large to represent
-	if (overflow(result, mode)) return result;
+	if (overflow(result, rounding)) return result;
 	// round the number
-	if (result.isGuarded) {
-		roundByMode(result, precision + T.guardDigits, mode);
-	}
-	else {
-		roundByMode(result, precision, mode);
-	}
+//	if (result.isGuarded) {
+//		roundByMode(result, precision + T.guardDigits, rounding);
+//	}
+//	else {
+		roundByMode(result, precision, rounding);
+//	}
 	// check again for an overflow
-	overflow(result, mode);
+	overflow(result, rounding);
 	return result;
 
 } // end roundToPrecision()
@@ -123,7 +131,7 @@ unittest {	// roundToPrecision
 	before = 12459;
 	after = roundToPrecision(before, 3);;
 	assertStringEqual(after.toAbstract(), "[0,125,2]");
-	// TODO: test for subnormal as below...
+	// TODO: (testing) test for subnormal as below...
 /*	Dec32 a = Dec32(0.1);
 	Dec32 b = Dec32.min * Dec32(8888888);
 	assert("[0,8888888,-101]" == b.toAbstract);
@@ -176,7 +184,7 @@ private bool overflow(T)(ref T num,	Rounding mode = T.rounding)  {
 		default:
 			break;
 	}
-	// TODO: don't set flags if not rounded??
+	// TODO: (behavior) don't set flags if not rounded??
 	contextFlags.setFlags(OVERFLOW | INEXACT | ROUNDED);
 	return true;
 }
@@ -333,7 +341,7 @@ unittest {	// getRemainder
 /// the last digit (it will be zero) and incrementing the exponent.
 private void incrementAndRound(T)(ref T num)  {
 
-	num.coefficient = num.coefficient + 1;	// TODO: why not num.co...++?
+	num.coefficient = num.coefficient + 1;	// TODO: (language) why not num.co...++?
 	int digits = num.digits;
 	// if num was zero
 	if (digits == 0) {
@@ -369,7 +377,7 @@ unittest {	// increment
 /// Returns -1, 1, or 0 if the remainder is less than, more than,
 /// or exactly half the least significant digit of the shortened coefficient.
 /// Exactly half is a five followed by zero or more zero digits.
-// TODO: calls firstDigit and then numDigits: combine these calls.
+// TODO: (efficiency) calls firstDigit and then numDigits: combine these calls.
 public int testFive(const xint arg) {
 	int first = firstDigit(arg);
 	if (first < 5) return -1;
@@ -396,7 +404,7 @@ unittest {	// testFive
 /// an increase in the number of digits, i.e., input number was all 9s.
 private void increment(T)(ref T num, ref uint digits) {
 	num++;
-	// TODO: there should be a smarter way to do this: num > pow10(digits)?
+	// TODO: (efficiency) there should be a smarter way to do this: num > pow10(digits)?
 	digits = numDigits(num);
 }
 
@@ -872,7 +880,7 @@ unittest {	// lastDigit(xint)
 }
 
 /// Returns the number of trailing zeros in the argument.
-// TODO: move to arithmetic
+// TODO: (language) move to arithmetic
 public int trailingZeros(const xint arg, const int digits) {
 	xint n = arg.dup;
 	// shortcuts for frequent values
@@ -895,7 +903,7 @@ public int trailingZeros(const xint arg, const int digits) {
 }
 
 /// Trims any trailing zeros and returns the number of zeros trimmed.
-// TODO: move this to arithmetic?
+// TODO: (language) move this to arithmetic?
 public int trimZeros(ref xint n, const int digits) {
 	int zeros = trailingZeros(n, digits);
 	if (zeros == 0) return 0;

@@ -35,7 +35,7 @@ unittest {
 
 alias xint = ExtendedInt;
 //alias dec99 = Decimal!(99,999);
-alias dec9 = Decimal!(9,99);
+alias dec9 = Decimal!(9,99, 5);
 
 // special values for NaN, Inf, etc.
 private enum SV { NONE, INF, QNAN, SNAN };
@@ -49,7 +49,7 @@ private enum SV { NONE, INF, QNAN, SNAN };
 /// This specification conforms with IEEE standard 754-2008.
 struct Decimal(int PRECISION = 99, int MAX_EXPO = 9999,
 		int GUARD_DIGITS = 2, Rounding ROUNDING_MODE = Rounding.HALF_EVEN) {
-
+// TODO (language) the mode and guard digit parameters should be swapped.
 alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 
 	private SV sval = SV.QNAN;		// special value: default is quiet NaN
@@ -58,7 +58,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 	private xint mant;				// the coefficient of the decimal value
 	package int digits; 			// the number of decimal digits in this number.
 									// (unless the number is a special value)
-	private bool guarded = false;	// true if guard digits are in use, false otherwise.
+//	private bool guarded = false;	// true if guard digits are in use, false otherwise.
 
 	// static fields
 //	package static Rounding rounding = Rounding.HALF_EVEN;
@@ -80,9 +80,15 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 	enum Rounding rounding = ROUNDING_MODE;
 	/// Struct containing the precision and rounding mode.
 	enum Context context = Context(precision, rounding);
+	/// Struct containing the precision and rounding mode.
+	enum Context guardedContext = Context(precision + guardDigits, rounding);
 
 	/// Marker used to identify this type irrespective of size.
 	private enum bool IS_DECIMAL = true;
+
+	private bool isDecimal(T)() {
+		return __traits(hasMember, T, "IS_DECIMAL");
+			}
 
 	// decimal special values
 	enum decimal NAN		= decimal(SV.QNAN);
@@ -172,7 +178,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 	}
 
 	unittest {	// bool, xint, int construction
-		write("-- this(bool,n,n)...");
+		write("-- this(bool,big,int)...");
 		dec9 num;
 		num = dec9(true, xint(7254), 94);
 		assertStringEqual(num, "-7.254E+97");
@@ -205,7 +211,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 	/// Constructs a number from a sign, a long integer coefficient and
 	/// an integer exponent.
 	//@safe
-	this(const bool sign, const long coefficient, const int exponent) {
+	private this(const bool sign, const long coefficient, const int exponent) {
 		this(sign, xint(coefficient), exponent);
 	}
 
@@ -254,7 +260,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 		writeln("passed");
 	}
 
-	// TODO: this(str): add tests for just over/under int.max, int.min
+	// TODO: (testing) this(str): add tests for just over/under int.max, int.min
 	// Constructs a decimal number from a string representation
 	this(const string str) {
 		this = eris.decimal.conv.toNumber!decimal(str);
@@ -289,14 +295,14 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 		writeln("passed");
 	}
 
-	// TODO: convert real to decimal w/o going to a string.
+	// TODO: (efficiency) convert real to decimal w/o going to a string.
 	/// Constructs a decimal number from a real value.
 	this(const real r) {
 		string str = format("%.*G", cast(int)precision, r);
 		this(str);
 	}
 
-    // TODO: add unittest for real value construction
+    // TODO: (testing) add unittest for real value construction
 
 	// copy constructor
 	//@safe
@@ -306,7 +312,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 		this.digits = that.digits;
 		this.expo	= that.expo;
 		this.mant	= that.mant.dup;
-		this.guarded = that.guarded;
+//		this.guarded = that.guarded;
 	};
 
 	/// dup property
@@ -327,11 +333,11 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 		writeln("passed");
 	}
 
-	public static T guard(T)(const T x = T.init)  {
-		T copy = x.dup;
-		copy.guarded = true;
-		return copy;
-	}
+//	public static T guard(T)(const T x = T.init)  {
+//		T copy = x.dup;
+//		copy.guarded = true;
+//		return copy;
+//	}
 
 
 //--------------------------------
@@ -351,23 +357,30 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 		return output;
 	}*/
 
-	// NOTE: will cast to true precision, not temp value
-	public T opcast(T)() {
+	// NOTE: will cast to current precision(?) why?
+/*	public Decimal opCast(T:Decimal)() if(!isDecimal(T)) {
+//writefln("calling opcast = %s", typeof(T));
 		T that;
 		that.sign = this.sign;
 		that.sval = this.sval;
 		that.expo = this.expo;
 		that.digits = this.digits;
+writefln("T.precision = %s", T.precision);
 		return roundToPrecision(that, T.precision);
-	}
+	}*/
 
 	unittest {
 		write("casts...");
-//		alias dec10 = Decimal!(10,99);
-		dec9  bingo = 123.45;
-//		dec10 result = cast(dec10)bingo;
-//writefln("result = %s", result);
-		writeln("test missing");
+/*		alias dec10 = Decimal!(10,99);
+		dec9  bingo = "123.4567890123";
+		dec10 result = cast(dec10)bingo;
+//writefln("result = %s", result.toAbstract);
+		bingo = cast(dec9)result;
+//writefln("bingo = %s", bingo.toAbstract);
+		bingo -= 2;
+		dec10 c10 = cast(dec10)(bingo);
+//writefln("c10 = %s", c10);*/
+		writeln("passed");
 	}
 
 //--------------------------------
@@ -381,7 +394,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 		this.digits  = that.digits;
 		this.expo	 = that.expo;
 		this.mant	 = that.mant;
-		this.guarded = that.guarded;
+//		this.guarded = that.guarded;
 	}
 
 	///    Assigns an xint value.
@@ -389,7 +402,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 		this = decimal(that);
 	}
 
-// TODO: if a ulong is converted to a long, the sign will be wrong.
+// TODO: (behavior) if a ulong is converted to a long, the sign will be wrong.
 	///    Assigns a long value.
 	void opAssign(T:long)(const T that) {
 		this = decimal(that);
@@ -469,7 +482,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 	}
 
 
-	// TODO: What does it take to make this an l-value?
+	// TODO: (language) What does it take to make this an l-value?
 	@property
 	@safe
 	int exponent(const int expo) {
@@ -535,18 +548,18 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 		return signed;
 	}
 
-	@property
-	@safe
-	const bool isGuarded() {
-		return this.guarded;
-	}
-
-	@property
-	@safe
-	bool isGuarded(bool value) {
-		guarded = value;
-		return guarded;
-	}
+//	@property
+//	@safe
+//	const bool isGuarded() {
+//		return this.guarded;
+//	}
+//
+//	@property
+//	@safe
+//	bool isGuarded(bool value) {
+//		guarded = value;
+//		return guarded;
+//	}
 
 //--------------------------------
 // floating point properties
@@ -604,7 +617,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 	alias max_10_exp = maxExpo;
 
 	/// Returns the maximum representable normal value in the current context.
-	enum xint maxCoefficient =	pow10(PRECISION) - 1;
+	enum xint maxCoefficient =	pow10(precision) - 1;
 
 	/// Returns the maximum representable normal value in the current context.
 	enum decimal max = decimal(maxCoefficient, maxExpo);
@@ -891,7 +904,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 /*	/// Returns true if this number is integral;
 	/// that is, if its fractional part is zero.
 	 const bool isIntegral() {
-	 	// TODO: need to take trailing zeros into account
+	 	// TODO: (tbd) need to take trailing zeros into account
 		return expo >= 0;
 	 }*/
 /+
@@ -991,7 +1004,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// or greater than the argument, respectively. NOTE: The comparison
 	/// is made to the current precision.
 	const int opCmp(T:decimal)(const T that) {
-		// TODO: this is a place where the context is set from the outside.
+		// TODO: (behavior) this is a place where the context is set from the outside.
 		return compare(this, that, context);
 	}
 
@@ -1135,6 +1148,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 /*	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
+	// TODO: (language, behavior) is this needed?
 	const decimal opBinaryRight(string op, T:decimal)(const T arg)
 	{
 		static if (op == "+") {
@@ -1229,66 +1243,6 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		}
 	}
 
-/+	/// Returns true if the type T is promotable to a decimal type.
-	private template isPromotable(T) {
-		enum bool isPromotable = is(T:ulong) || is(T:real);
-	}
-
-	/// Returns the result of performing the specified
-	/// binary operation on this number and the argument.
-	const decimal opBinary(string op, T)(const T arg) if (isPromotable!T)	{
-		return opBinary!(op,decimal)(decimal(arg));
-	}
-
-	/// Returns the result of performing the specified
-	/// binary operation on this number and the argument.
-	const decimal opBinaryRight(string op, T)(const T arg) if (isPromotable!T)	{
-		static if (op == "+") {
-			return add(decimal(arg), this, context);
-		}
-		else static if (op == "-") {
-			return sub(decimal(arg), this, context);
-		}
-		else static if (op == "*") {
-			return mul(decimal(arg), this, context);
-		}
-		else static if (op == "/") {
-			return div(decimal(arg), this, context);
-		}
-		else static if (op == "%") {
-			return remainder(decimal(arg), this, context);
-		}
-		else static if (op == "&") {
-			return and(this, decimal(arg), context);
-		}
-		else static if (op == "|") {
-			return or(this, decimal(arg), context);
-		}
-		else static if (op == "^") {
-			return xor(this, decimal(arg), context);
-		}
-	}
-
-	/// Returns the result of performing the specified
-	/// binary operation on this number and the argument.
-	// TODO: separate out the long arithmetic
-/*	const decimal opBinary(string op, T)(const long arg) if (isPromotable!T)	{
-		return opBinary!(op,decimal)(decimal(arg));
-	}*/
-
-/*	unittest {	// ???
-		decimal num = dec9(591.3);
-		dec9 result = num * 5;
-		writefln("result = %s", result);
-
-//		assertEqual(result, dec9(2956.5));
-	}*/
-
-/*	unittest {	// isPromotable
-		write("isPromotable...");
-		writeln("test missing");
-	}*/
-+/
 	unittest {	// opBinary
 		write("-- opBinary.........");
 		dec9 op1, op2, actual, expect;
@@ -1389,8 +1343,8 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		writeln("passed");
 	}
 
-	// (B)TODO: move this outside the struct
-	// TODO: currently multiplies by 5s and shifts bits
+	// TODO: (language) move this outside the struct
+	// TODO: (efficiency) currently multiplies by 5s and shifts bits
 	/// Returns a xint value of ten raised to the specified power.
 	//@safe
 	public static xint pow10(int n) {

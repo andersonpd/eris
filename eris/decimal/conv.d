@@ -558,7 +558,7 @@ unittest {
 }
 
 
-// TODO: Doesn't work yet. Uncertain how to merge the string versions
+// TODO: (language) Doesn't work yet. Uncertain how to merge the string versions
 // with the sink versions.
 /// Converts a decimal number to a string representation.
 void writeTo(T)(const T num, scope void delegate(const(char)[]) sink,
@@ -831,17 +831,17 @@ unittest {	// toAbstract
 	string str;
 	num = dec9("-inf");
 	str = "[1,inf]";
-	assert(num.toAbstract == str);
+	assertStringEqual(num.toAbstract, str);
 	num = dec9("nan");
 	str = "[0,qNaN]";
-	assert(num.toAbstract == str);
+	assertStringEqual(num.toAbstract, str);
 	num = dec9("snan1234");
 	str = "[0,sNaN1234]";
-	assert(num.toAbstract == str);
+	assertStringEqual(num.toAbstract, str);
 	writeln("passed");
 }
 
-// (V)TODO: Does exact representation really return a round-trip value?
+// TODO: (behavior, testing) Does exact representation really return a round-trip value?
 /// Returns a full, exact representation of a number. Similar to toAbstract,
 /// but it provides a valid string that can be converted back into a number.
 public string toExact(T)(const T num) {
