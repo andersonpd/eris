@@ -168,7 +168,7 @@ public T reciprocal(T)(in T x, in int precision) {
 	return reciprocal!T(x, context);
 }
 // NOTE: faster (is it?) but requires more precision
-public T reciprocal(T)(in T x, in Context context = T.context) {
+public T reciprocal(T)(in T x, in Context inContext = T.context) {
 
 	// special values
 	if (x.isZero) {
@@ -182,6 +182,9 @@ public T reciprocal(T)(in T x, in Context context = T.context) {
 		return T.nan;
 	}
 
+	// extend precision slightly
+	Context context = Context(inContext.precision + 2, inContext.rounding);
+
 	// initial estimate
 	T x0 = x.reduce;
 	T x1 = T.zero;
@@ -194,7 +197,7 @@ public T reciprocal(T)(in T x, in Context context = T.context) {
 		x2 = mul(x1, sub(T.two, mul(x0, x1, context), context), context);
 		if (equals(x1, x2 ,context)) break;
 	}
-	return roundToPrecision(x2,context);
+	return roundToPrecision(x2,inContext);
 }
 
 unittest {	// reciprocal
@@ -211,12 +214,12 @@ unittest {	// reciprocal
 	writeln("passed");
 }
 
-/+public T invSqrt(T)(in T x, in int precision) {
+public T invSqrt(T)(in T x, in int precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
 	return invSqrt!T(x, context);
 }
 
-public T invSqrt(T)(in T x, in Context context = T.context) {
+public T invSqrt(T)(in T x, in Context inContext = T.context) {
 	// special values
 	if (x.isNaN) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -229,9 +232,13 @@ public T invSqrt(T)(in T x, in Context context = T.context) {
 	if (x.isOne) return x.dup;
 	if (x.isInfinite) return T.zero(x.sign);
 
+	// extend precision slightly
+	Context context = Context(inContext.precision + 3, inContext.rounding);
+
 	// operands
 	T x0 = x.dup;
-	T x1, x2, x3;
+	T x1, x2;
+//writefln("\n--- x0 = %s", x0);
 
 	// initial estimate
 	int k = ilogb(x0);
@@ -242,53 +249,47 @@ public T invSqrt(T)(in T x, in Context context = T.context) {
 		x2 = T(5, -1);
 		k++;
 	}
-	x3 = T(3);
+	const x3 = T(3);
+
 	// reduce the exponent
 	x0.exponent = x0.exponent - k - 1;
 
 	// Newton's method
-	int count = 0;
-	while (count < 25) {
-//	while (true) {
+	auto count = 0;
+//	while (count < 40) {
+	while (true) {
 		x1 = x2;
 //		x2 = x1 * T.half * (x3 - x0 * sqr(x1));
-//		x2 = x1 * T.half * (x3 - x0 * sqr(x1));
-//writefln("\nx = %s", x2);
-		T a = sqr(x2,context);
-//writefln("a = %s", a);
-		T b = mul(x0,a,context);
-//writefln("b = %s", b);
-		T c = sub(x3, b, context);
-//writefln("c = %s", c);
-		T d = mul(T.half, c, context);
-//writefln("d = %s", d);
-		T e = mul(x1, d, context);
-//writefln("e = %s", e);
-		x2 = e;
-//		x2 = x1 * T.HALF * (sub(x3, mul(x0, sqr(x1, context), context),context));
-
+		x2 = mul(x1, mul(T.half, sub(x3, mul(x0, sqr(x1, context), context), context), context), context);
+//writefln("\nx1 = %s", x1);
+//writefln("x2 = %s", x2);
+//writefln("equals(x1, x2, context) = %s", equals(x1, x2, context));
 		if (equals(x1, x2, context)) break;
+		count++;
 	}
 	// restore the exponent
 	x2.exponent = x2.exponent - k/2 - 1;
 	// round the result
-	return roundToPrecision(x2, context);
+	return roundToPrecision(x2, inContext);
 }
 
 unittest {
 	write("-- inverse sqrt.....");
-	assertEqual(invSqrt(dec9.TWO, 11), dec9("0.707106781"));
+//	assertEqual(invSqrt(dec9.two, 11), dec9("0.707106781"));
+	assertEqual(invSqrt(dec9(2))/*),11)*/, dec9("0.707106781"));
+//writefln("invSqrt(dec9(2), 14) = %s", invSqrt(dec9(2), 14));
+	assertEqual(invSqrt(dec9(2), 14)/*),11)*/, dec9("0.70710678118655"));
 	assertEqual(invSqrt(dec9(20))/*),11)*/, dec9("0.223606798"));
-	assertEqual(invSqrt(dec9(20))/*,11)*/, dec9("2.23606798E-8"));
-	assertEqual(invSqrt(dec9(300))/*,11)*/, dec9("1.82574186E-13"));
-	assertEqual(invSqrt(dec9(4000),11), dec9("5E-25"));
-	assertEqual(invSqrt(dec9(50000),7), dec9("0.00000141421356"));
-	assertEqual(invSqrt(dec9(600000),29), dec9("4.08248290E-18"));
-/*	assertEqual(invSqrt(dec9(98763)), dec9("0.5"));
-	assertEqual(invSqrt(dec9(98763098)), dec9("0.5"));
-	assertEqual(invSqrt(dec9(9876387982347)), dec9("0.5"));*/
+//	assertEqual(invSqrt(dec9(20))/*,11)*/, dec9("2.23606798E-8"));
+	assertEqual(invSqrt(dec9(300))/*,11)*/, dec9("0.0577350269"));
+	assertEqual(invSqrt(dec9(4000),11), dec9("0.0158113883"));
+//	assertEqual(invSqrt(dec9(50000),7), dec9("0.00000141421356"));
+//	assertEqual(invSqrt(dec9(600000),29), dec9("4.08248290E-18"));
+	assertEqual(invSqrt(dec9(98763)), dec9("0.00318201969"));
+	assertEqual(invSqrt(dec9(98763098)), dec9("0.000100624248"));
+	assertEqual(invSqrt(dec9(9876387982347)), dec9("3.18200552E-7"));
 	writeln("passed");
-}+/
+}
 
 public T sqrt(T)(in T x, int precision) { //, bool guarded = false) {
 //	if (guarded) precision += T.guardDigits;
@@ -347,18 +348,18 @@ public T sqrt(T)(in T x, in Context context = T.context) {
 
 unittest {
 	write("-- square root......");
-writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9.two, 11));
-writefln("sqrt(t.TWO, 30) = %s", sqrt(dec9.two, 30));
-writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9.two, 25));
+//writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9.two, 11));
+//writefln("sqrt(t.TWO, 30) = %s", sqrt(dec9.two, 30));
+//writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9.two, 25));
 
-auto r1 = sqrt(dec9(2));
-auto r2 = reciprocal(r1);
-auto r3 = sqrt(r2);
-writefln("r1 = %s", r1);
-writefln("r2 = %s", r2);
-writefln("r3 = %s", r3);
+//auto r1 = sqrt(dec9(2));
+//auto r2 = reciprocal(r1);
+//auto r3 = sqrt(r2);
+//writefln("r1 = %s", r1);
+//writefln("r2 = %s", r2);
+//writefln("r3 = %s", r3);
 
-writeln;
+//writeln;
 /*for (int i = 0; i < 10; i++) {
 	dec9 val = dec9(3, i);
 //	writefln("val = %s", val);
@@ -486,44 +487,28 @@ public T pi(T)(in int precision = T.precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
 	static T value;
 	static int lastPrecision = 0;
-	if (precision != lastPrecision) {
+	if (precision > lastPrecision) {
 		value = pi!T(context);
 		lastPrecision = precision;
 	}
-	return value;
+	if (precision == lastPrecision) return value;
+	else return roundToPrecision(value, precision);
 }
 
-/*/// Returns the value of pi to the current precision.
-public T pi(T)() {
-	static T value;
-	static int lastPrecision = 0;
-//	int precision = T.precision;
-//	if (precision != lastPrecision) {
-//		if (precision > 99) {
-			value = pi!T();
-//		}
-//		else {
-//			value = roundToPrecision(PI, decimalContext);
-//		}
-//		lastPrecision = precision;
-//	}
-	return value;
-}*/
-
-
-/// Calculates the value of pi to the current precision.
+/// Calculates the value of pi in the specified context.
 private T pi(T)(in Context inContext) {
 	Context context = Context(inContext.precision + 3, inContext.rounding);
 	int k = 1;
 	T a1 = T.one;
-	T b1 = T("0.7071067811865475244008443621048490392848"); //invSqrt(T.TWO); // TODO: (efficiency) use sqrt2 constant
+	T b1 = invSqrt(T(2), context); // TODO: (efficiency) use sqrt2 constant
 	T s1 = T.half;
 	T a2, b2, s2;
-
+	int count = 0;
+//	while (count < 25) {// (!equals(a1, b1, context)) {
 	while (!equals(a1, b1, context)) {
-//		a2 = (a1 + b1) * T.half;
-		a2 = mul(T.half, add(a1, b1, context),context);	// arithmetic mean
-//		b2 = sqrt(a1*b1);		// geometric mean
+//		a2 = (a1 + b1) * T.half;	// arithmetic mean
+		a2 = mul(T.half, add(a1, b1, context),context);
+//		b2 = sqrt(a1*b1);			// geometric mean
 		b2 = sqrt(mul(a1, b1, context), context);
 		k *= 2;
 //		s2 = s1 - k*(sqr(a2)-sqr(b2));  // weighted sum of the difference of the means
@@ -531,23 +516,22 @@ private T pi(T)(in Context inContext) {
 		a1 = a2;
 		b1 = b2;
 		s1 = s2;
+		count++;
 	}
-writeln("     3.141592653589793238462643");
 //	T pi = T.two * sqr(a2)/s2;
 	T pi = mul(div(sqr(a2, context), s2, context), 2, context);
-	// round the result
+	// round the result in the original
 	return roundToPrecision(pi, inContext);
 }
 
 unittest {
 	write("pi.............");
-writeln;
-writefln("PI      = %s", dec9.PI);
-writefln("pi = %s", pi!dec9());
-//writefln("pi( 5)  = %s", pi!dec9(05));
-writefln("pi = %s", pi!dec9(15));
-writefln("pi = %s", pi!dec9(25));
-	writeln("test missing");
+//writeln;
+	assertStringEqual(dec9("3.14159265358979"), pi!dec9(15));
+	assertStringEqual(dec9("3.14159265"), pi!dec9);
+	assertStringEqual(dec9("3.141592653589793238462643"), pi!dec9(25));
+//writefln("pi!dec9(5) = %s", pi!dec9(5)); // TODO: (behavior) fails with small precision
+	writeln("passed");
 }
 // 3.141592653589793238462643
 //	immutable decimal PI = roundString("3.141592653589793238462643 3832795028841"
