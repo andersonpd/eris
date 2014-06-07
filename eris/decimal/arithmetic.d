@@ -168,8 +168,8 @@ unittest {	// copy
 /// limiting the resulting exponent)".
 /// May set the INVALID_OPERATION and DIVISION_BY_ZERO flags.
 /// Implements the 'logb' function in the specification. (p. 47)
-public int ilogb(T)(in T x) {
-
+public int ilogb(T)(in T x)
+{
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
 		return 0;
@@ -192,8 +192,8 @@ public int ilogb(T)(in T x) {
 /// limiting the resulting exponent)".
 /// May set the INVALID_OPERATION and DIVISION_BY_ZERO flags.
 /// Implements the 'logb' function in the specification. (p. 47)
-public T logb(T)(in T x) {
-
+public T logb(T)(in T x)
+{
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
 		return nan;

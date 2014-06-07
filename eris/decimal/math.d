@@ -147,7 +147,155 @@ unittest {	// rounding
 }
 
 //--------------------------------
-//
+//	CONSTANTS
+//--------------------------------
+
+template GenConstant(string name)
+{
+const char[] GenConstant =
+	"/// Returns the value of the constant at its built-in precision.\n" ~
+	"public T " ~ name ~ "(T)() {
+		static T value;
+		if (value.isNaN) value = " ~ name ~ "!T(T.precision);
+		return value;
+	}" ~
+
+	"/// Returns the value of the constant at the specified precision.\n" ~
+   	"public T " ~ name ~ "(T)(int precision) {
+		Context context = Context(precision, Rounding.HALF_EVEN);
+		static T value;
+		static int lastPrecision = 0;
+		if (precision == lastPrecision) return value;
+		if (precision > lastPrecision) {
+			value = " ~ name ~ "!T(context);
+			lastPrecision = precision;
+		}
+		return roundToPrecision(value, precision);
+	}";
+}
+
+mixin (GenConstant!("pi"));
+mixin (GenConstant!("invPi"));
+mixin (GenConstant!("e"));
+mixin (GenConstant!("ln10"));
+mixin (GenConstant!("ln2"));
+mixin (GenConstant!("sqrt2"));
+mixin (GenConstant!("sqrt1_2"));
+
+/// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
+private Context guard(Context context, int guardDigits = 2) {
+	return Context(context.precision + guardDigits, context.rounding);
+}
+
+/// Calculates the value of pi in the specified context.
+private T pi(T)(in Context inContext) {
+	auto context = guard(inContext, 3);
+	int k = 1;
+	T a1 = T.one;
+	T b1 = sqrt1_2!T(context);
+	T s1 = T.half;
+	T a2, b2, s2;
+	while (!equals(a1, b1, context)) {
+//		a2 = (a1 + b1) * T.half;		// arithmetic mean
+//		b2 = sqrt(a1*b1);				// geometric mean
+//		s2 = s1 - k*(sqr(a2)-sqr(b2));  // weighted sum of the difference of the means
+//		pi = T.two * sqr(a2)/s2;
+		a2 = mul(T.half, add(a1, b1, context),context);
+		b2 = sqrt(mul(a1, b1, context), context);
+		k *= 2;
+		s2 = sub(s1, mul(sub(sqr(a2, context), sqr(b2, context), context), k, context), context);
+		a1 = a2;
+		b1 = b2;
+		s1 = s2;
+	}
+	T pi = mul(div(sqr(a2, context), s2, context), 2, context);
+	// round the result in the original context
+	return roundToPrecision(pi, inContext);
+}
+
+unittest {
+	write("-- pi...............");
+	assertStringEqual(dec9("3.14159265358979"), pi!dec9(15));
+	assertStringEqual(dec9("3.14159265"), pi!dec9);
+	assertStringEqual(dec9("3.141592653589793238462643"), pi!dec9(25));
+//writefln("pi!dec9(5) = %s", pi!dec9(5)); // TODO: (behavior) fails with small precision
+	writeln("passed");
+}
+//	immutable decimal PI = roundString("3.141592653589793238462643 3832795028841"
+//		"9716939937510582097494459230781640628620899862803482534211707");
+
+// TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
+// TODO: (behavior) Reciprocal is way worse than one over division.
+/// Calculates the value of pi in the specified context.
+private T invPi(T)(in Context inContext) {
+	auto context = guard(inContext, 4);
+	T alpha =  div(T.one, pi!T(context), context);
+	return roundToPrecision(alpha, inContext);
+}
+
+unittest {
+	write("-- invPi............");
+	assertStringEqual(invPi!dec9, dec9("0.318309886"));
+	assertStringEqual(invPi!dec9(25), dec9("0.3183098861837906715377675"));
+	writeln("passed");
+}
+
+/// Returns the value of e in the specified context.
+private T e(T)(in Context inContext) {
+	auto context = guard(inContext);
+	long n = 2;
+	T term = T.one;
+	T sum  = T.one;
+	while (term > T.epsilon(context)) { // && n < 20) {
+		sum  = add(sum, term, context); //+= term;
+		term = div!T(term, T(n), context);
+		n++;
+	}
+	return roundToPrecision(sum, inContext);
+}
+
+/// Returns e to the type precision.
+//public enum E(T) = e!T(T.precision);
+
+unittest {
+	write("-- e................");
+	assertStringEqual(dec9("2.71828183"), e!dec9);
+	assertStringEqual(dec9("2.7182818284590452353602874713526625"), e!dec9(35));
+	writeln("passed");
+}
+
+/*
+// TODO: why does this compile at the same time as the enum
+public T E(T)() {
+	static T value;
+writefln("value = %s", value);
+	return value? value : e(T.precision);
+}
+*/
+
+private T ln10(T)(Context context) {
+	return log(T.TEN, context);
+}
+
+private T ln2(T)(Context context) {
+	return log(T.TWO, context);
+}
+
+private T sqrt2(T)(Context context) {
+	return sqrt(T.TWO, context);
+}
+
+private enum T sqrt1_2(T)(Context context) {
+	return sqrt(T.HALF, context);
+}
+
+unittest {
+	write("constants...");
+writefln("dec9.sqrt1_2 = %s", sqrt1_2!dec9);
+	writeln("test missing");
+}
+//--------------------------------
+//	ALGEBRAIC FUNCTIONS
 //--------------------------------
 
 /// Returns true if n is odd, false otherwise.
@@ -163,12 +311,12 @@ unittest {	// isOdd
 
 // TODO: (behavior) add bitshift function?
 
-public T reciprocal(T)(in T x, in int precision) {
+public T reciprocal(T)(in T x, int precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
 	return reciprocal!T(x, context);
 }
 // NOTE: faster (is it?) but requires more precision
-public T reciprocal(T)(in T x, in Context inContext = T.context) {
+private T reciprocal(T)(in T x, in Context inContext) {
 
 	// special values
 	if (x.isZero) {
@@ -182,8 +330,8 @@ public T reciprocal(T)(in T x, in Context inContext = T.context) {
 		return T.nan;
 	}
 
-	// extend precision slightly
-	Context context = Context(inContext.precision + 2, inContext.rounding);
+	// extend precision
+	auto context = guard(inContext);
 
 	// initial estimate
 	T x0 = x.reduce;
@@ -197,6 +345,7 @@ public T reciprocal(T)(in T x, in Context inContext = T.context) {
 		x2 = mul(x1, sub(T.two, mul(x0, x1, context), context), context);
 		if (equals(x1, x2 ,context)) break;
 	}
+	// round to input precision
 	return roundToPrecision(x2,inContext);
 }
 
@@ -214,11 +363,16 @@ unittest {	// reciprocal
 	writeln("passed");
 }
 
-public T invSqrt(T)(in T x, in int precision) {
+public T invSqrt(T)(in T x) {
+	return invSqrt!T(x, T.precision);
+}
+
+public T invSqrt(T)(in T x, int precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
 	return invSqrt!T(x, context);
 }
 
+// TODO: (behavior) sometimes fails to break out of loop (e.g. reduce guard digits to +2)
 public T invSqrt(T)(in T x, in Context inContext = T.context) {
 	// special values
 	if (x.isNaN) {
@@ -255,17 +409,14 @@ public T invSqrt(T)(in T x, in Context inContext = T.context) {
 	x0.exponent = x0.exponent - k - 1;
 
 	// Newton's method
-	auto count = 0;
+//	auto count = 0;
 //	while (count < 40) {
 	while (true) {
 		x1 = x2;
 //		x2 = x1 * T.half * (x3 - x0 * sqr(x1));
 		x2 = mul(x1, mul(T.half, sub(x3, mul(x0, sqr(x1, context), context), context), context), context);
-//writefln("\nx1 = %s", x1);
-//writefln("x2 = %s", x2);
-//writefln("equals(x1, x2, context) = %s", equals(x1, x2, context));
 		if (equals(x1, x2, context)) break;
-		count++;
+//		count++;
 	}
 	// restore the exponent
 	x2.exponent = x2.exponent - k/2 - 1;
@@ -291,16 +442,19 @@ unittest {
 	writeln("passed");
 }
 
-public T sqrt(T)(in T x, int precision) { //, bool guarded = false) {
-//	if (guarded) precision += T.guardDigits;
+
+public T sqrt(T)(in T x) {
+	return sqrt!T(x, T.precision);
+}
+
+public T sqrt(T)(in T x, int precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
-	return sqrt!T(x, context); //, guarded);
+	return sqrt!T(x, context);
 }
 
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
-// TODO: (efficiency) the precision can be adjusted as the computation proceeds, but is it worth it?
-public T sqrt(T)(in T x, in Context context = T.context) {
+public T sqrt(T)(in T x, in Context context) {
 	// special values
 	if (x.isNaN || x.isNegative) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -397,7 +551,7 @@ public T hypot(T)(in T x, in T y) {
 
 /// Returns the square root of the sum of the squares to the specified precision.
 /// Decimal version of std.math function.
-public T hypot(T)(in T x, in T y, in int precision) {
+public T hypot(T)(in T x, in T y, int precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
 	return hypot!T(x, y, T.context);
 }
@@ -427,7 +581,7 @@ public T hypot(T)(const T x, const T y, Context context)
     return mul(a, sqrt(add(T.one, sqr(b, context),context),context));
 }
 
-// TODO: (testing) Need to test operation near precision limits.
+// TODO: (testing) Need to test operation near precisions where this operation is really useful.
 unittest {
 	write("-- hypot............");
 	dec9 x = 3;
@@ -439,151 +593,47 @@ unittest {
 	writeln("passed");
 }
 
-/// Returns the value of e at the specified precision.
-public T e(T)(int precision = T.precision) {
-	static int lastPrecision = 0;
-	static T value;
-	if (precision != lastPrecision) {
-		value = calcE!T();
-		lastPrecision = precision;
-	}
-	return value;
-}
-
-/// Calculates and returns the value of e at the current precision.
-private T calcE(T)(in int precision = T.precision) {
-	long n = 2;
-	T term = T.one; //T.guard(T.one);
-	T sum  = T.one; // T.guard(T.one);
-	// T.epsilon varies as precision varies...
-	while (term > T.epsilon) {
-		sum += term;
-		term /= n++;
-	}
-	return roundToPrecision(sum);
-}
-
-unittest {
-	write("e.............");
-	dec9 E = e!dec9();
-writeln;
-writefln("E      = %s", E);
-/*writefln("e      = %s", e(35));
-	pushContext(199);
-	decimalContext.maxExpo = 250;
-writefln("calcE()  = %s", calcE());
-	popContext;
-writefln("e(5)  = %s", e(5));*/
-	writeln("test missing");
-}
-
-unittest {	// PI
-	assertEqual(dec9.PI.digits, 9);
-	assertEqual(numDigits(dec9.PI.coefficient),99);
-}
-
-/// Returns the value of pi to the specified precision.
-public T pi(T)(in int precision = T.precision) {
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	static T value;
-	static int lastPrecision = 0;
-	if (precision > lastPrecision) {
-		value = pi!T(context);
-		lastPrecision = precision;
-	}
-	if (precision == lastPrecision) return value;
-	else return roundToPrecision(value, precision);
-}
-
-/// Calculates the value of pi in the specified context.
-private T pi(T)(in Context inContext) {
-	Context context = Context(inContext.precision + 3, inContext.rounding);
-	int k = 1;
-	T a1 = T.one;
-	T b1 = invSqrt(T(2), context); // TODO: (efficiency) use sqrt2 constant
-	T s1 = T.half;
-	T a2, b2, s2;
-	int count = 0;
-//	while (count < 25) {// (!equals(a1, b1, context)) {
-	while (!equals(a1, b1, context)) {
-//		a2 = (a1 + b1) * T.half;	// arithmetic mean
-		a2 = mul(T.half, add(a1, b1, context),context);
-//		b2 = sqrt(a1*b1);			// geometric mean
-		b2 = sqrt(mul(a1, b1, context), context);
-		k *= 2;
-//		s2 = s1 - k*(sqr(a2)-sqr(b2));  // weighted sum of the difference of the means
-		s2 = sub(s1, mul(sub(sqr(a2, context), sqr(b2, context), context), k, context), context);
-		a1 = a2;
-		b1 = b2;
-		s1 = s2;
-		count++;
-	}
-//	T pi = T.two * sqr(a2)/s2;
-	T pi = mul(div(sqr(a2, context), s2, context), 2, context);
-	// round the result in the original
-	return roundToPrecision(pi, inContext);
-}
-
-unittest {
-	write("pi.............");
-//writeln;
-	assertStringEqual(dec9("3.14159265358979"), pi!dec9(15));
-	assertStringEqual(dec9("3.14159265"), pi!dec9);
-	assertStringEqual(dec9("3.141592653589793238462643"), pi!dec9(25));
-//writefln("pi!dec9(5) = %s", pi!dec9(5)); // TODO: (behavior) fails with small precision
-	writeln("passed");
-}
-// 3.141592653589793238462643
-//	immutable decimal PI = roundString("3.141592653589793238462643 3832795028841"
-//		"9716939937510582097494459230781640628620899862803482534211707");
-
 //--------------------------------
 // EXPONENTIAL AND LOGARITHMIC FUNCTIONS
 //--------------------------------
 
-public T exp(T)(const T x, const uint precision) {
-	T value = exp(x);
-	return value;
+/// Decimal version of a std.math function.
+/// Required by General Decimal Arithmetic Specification
+public T exp(T)(in T x, int precision = T.precision) {
+	Context context = Context(precision, Rounding.HALF_EVEN);
+	return exp(x, context);
 }
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-public T exp(T)(const T x) {
+private T exp(T)(in T x, Context inContext)
+{
 	if (x.isNaN || x.isNegative) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
 	}
-//	if (x.isOne) return e();
-	return exp0(x);
-}
-
-/// Decimal version of std.math function.
-/// Required by General Decimal Arithmetic Specification
-private T exp0(T)(const T x) {
-	// guard the operands
-	T x0   = T(x); //T.guard(x);
-	T sqrx = sqr(x);
+	auto context = guard(inContext);
+	T x0   = x.dup;
+	T sqrx = sqr(x, context);
 	long n = 1;
-	T fact = T.one; // T.guard(T.one);
-	T t1   = T.one; // T.guard(T.one);
+	T fact = T.one;
+	T t1   = T.one;
 	T t2   = x0;
-	T term = t1 + t2;
+	T term = add(t1, t2, context);
 	T sum  = term;
-
-	while (term > T.epsilon) {
+	while (term > T.epsilon(context)) {
 		n   += 2;
-		t1   = t2 * x0 * n;
-		t2   = t2 * sqrx;
-		fact = fact * (n * (n-1));
-		term = (t1 + t2)/fact;
-		sum += term;
+		t1   = mul(t2, mul(x0, n, context), context);
+		t2   = mul(t2, sqrx, context);
+		fact = mul(fact, (n * (n-1)), context);
+		term = div(add(t1, t2, context), fact, context);;
+		sum  = add(sum, term, context);
 	}
-//	sum.isGuarded = false;
-	return roundToPrecision(sum);
+	return roundToPrecision(sum, inContext);
 }
 
 unittest {
-	write("exp............");
+	write("-- exp..............");
 	assertEqual(exp(dec9.one), dec9("2.71828183"));
 	assertEqual(exp(dec9.one, 11), dec9("2.7182818285"));
 	assertEqual(exp(dec9.one, 15), dec9("2.71828182845905"));
@@ -637,13 +687,30 @@ unittest {
 }
 +/
 
-public T log(T)(const T x, const uint precision) {
-	T value = log(x);
-	return value;
-}
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-public T log(T)(const T x) {
+public T log(T)(in T x, int precision = T.precision) {
+	Context context = Context(precision, Rounding.HALF_EVEN);
+	if (x.isNaN) return T.nan;
+	int k = ilogb(x) + 1;
+	T a = T(x.sign, x.coefficient, x.exponent - k);
+	return log(a, context) + ln10!T(precision) * k;
+}
+
+// TODO: (language) this seems to compile but not used...?
+/// Returns pi to the type precision.
+//public enum PI(T) = pi!T(T.precision);
+
+//unittest {
+//	write("ln10...");
+//writefln("ln10!dec9(10) = %s", PI!dec9(10));
+//	writeln("test missing");
+//}
+
+/// Decimal version of std.math function.
+/// Required by General Decimal Arithmetic Specification
+private T log(T)(in T x, Context inContext) {
+	auto context = guard(inContext);
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return T.infinity;
@@ -651,14 +718,26 @@ public T log(T)(const T x) {
 	if (x.isNegative) {
 		return T.nan;
 	}
-	int k = ilogb(x) + 1;
-	T a = T(x.sign, x.coefficient, x.exponent - k);
-	return calcLog(a) + T.LN10 * k;
+	T xc = x.dup;
+	T y = div(sub(xc, 1, context), add(xc, 1, context), context);
+	T ysqr = sqr(y, context);
+	T term = y;
+	T sum  = y;
+	long n = 3;
+	while (true) {
+		term = mul(term, ysqr, context);
+		T nsum = add(sum, div(term, T(n), context), context);
+		if (equals(sum, nsum, context)) {
+			return roundToPrecision(mul(sum, 2, context), inContext);
+		}
+		sum = nsum;
+		n += 2;
+	}
 }
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-private T calcLog(T)(const T x) {
+/*private T calcLog(T)(const T x) {
 	T xc = x.dup;
 //	xc.isGuarded = true;
 	T y = (xc - 1)/(xc + 1);
@@ -676,18 +755,17 @@ private T calcLog(T)(const T x) {
 		sum = nsum;
 		n += 2;
 	}
-/*	// unreachable??
-	return roundToPrecision(sum);*/
-}
+}*/
 
 unittest {
 	write("log............");
 writeln;
 	dec9 one = dec9.one;
 writefln("log(exp(one)) = %s", log(exp(one)));
+writefln("log(dec9(10)) = %s", log(dec9(10)));
+writefln("log(dec9(\"99.999e+8\")) = %s", log(dec9("99.999e+88")));
 	writeln("test missing");
 }
-
 
 /**
  * log1p (== log(1 + x)).
@@ -708,7 +786,7 @@ public T log1p(T)(const T x) {
 			break;
 		}
 	}
-	return sum/T.LN10;
+	return sum/ln10!T;
 }
 
 unittest {
@@ -730,7 +808,7 @@ public T log10(T)(const T x) {
 	}
 	int k = ilogb(x) + 1;
 	T a = T(x.sign, x.coefficient, x.exponent - k);
-	return calcLog(a)/T.LN10 + k;
+	return log(a)/ln10!T + k;
 }
 
 unittest {
@@ -795,68 +873,55 @@ unittest {
 // TRIGONOMETRIC FUNCTIONS
 //--------------------------------
 
-
-// Returns the argument reduced to 0 <= pi/4 and sets the octant.
-private T reducedAngle(T)(const T x, out int octant) {
-//if (T.verbose) writefln("x = %s", x);
-	T x2 = 4*x/T.PI;
-//if (T.verbose) writefln("x2 = %s", x2);
-	T ki = trunc(x2);
-//if (T.verbose) writefln("ki = %s", ki);
-//	int k2 = trunc(x2).coefficient.toInt;
-//	int k2 = trunc(x2).coefficient.toInt;
-	int k2 = trunc(x2).toInt;
-//if (T.verbose) writefln("k2 = %s", k2);
-	if (k2 < 0) k2 = 1 - k2;
-	T red = T.PI/4 * (x2 - k2);
-	octant = k2 % 8;
-//if (T.verbose) writefln("red = %s", red);
+// Returns the reduced argument and the quadrant.
+//o 0 <= pi/4 and sets the quadrant.
+private T reducedAngle(T)(in T xIn, out int quadrant, in Context inContext) {
+	auto context = guard(inContext);
+	T c = mul(invPi!T(context), 2, context);
+	T x = mul(xIn, c, context);
+	int k = trunc(x).toInt;
+	if (k < 0) k = 1 - k;
+	quadrant = k % 4;
+	T red = div(sub(x, k, context), c, context);
 	return red;
 }
 
-unittest {
-	writeln("range reduction...");
-	dec9 deg = dec9("180")/dec9.PI;
-	int octant;
-//	for (int x = 0; x <= 720; x += 35) {
-//		dec9 xr = x/deg;
-//		dec9 y = reducedAngle(xr, octant);
-//		dec9 yd = y*deg;
-//		writefln("   x = %s, y = %s, octant = %s", x, rint(yd), octant);
-///*		y = reducedAngleOld(xr, octant);
-//		yd = y*deg;*/
-//		writefln("-- x = %s, y = %s, octant = %s", x, rint(yd), octant);
-//	}
-	writeln("passed");
-}
-
 /// Decimal version of std.math function.
-public T sin(T)(const T x) {
-	int octant;
-	T rx = reducedAngle(x, octant);
-	switch(octant) {
-		case 0: return( calcSin( rx));
-		case 1: return( calcCos(-rx));
-		case 2: return( calcCos( rx));
-		case 3: return( calcSin(-rx));
-		case 4: return(-calcSin( rx));
-		case 5: return(-calcCos(-rx));
-		case 6: return(-calcCos( rx));
-		case 7: return(-calcSin(-rx));
+public T sin(T)(in T x, int precision = T.precision) {
+	// TODO: (language) check validity of x
+	auto context = Context(precision, Rounding.HALF_EVEN);
+	int quadrant;
+	T red = reducedAngle(x, quadrant, dec9.context);
+	switch(quadrant) {
+		case 0: return( sin( red, context));
+		case 1: return( cos( red, context));
+		case 2: return(-sin( red, context));
+		case 3: return(-cos( red, context));
 		default: return T.nan;
 	}
 }
 
-/*/// Decimal version of std.math function.
-public Decimal sin(const Decimal arg, uint precision) {
-	pushContext(precision);
-	Decimal value = sin(arg);
-	popContext();
-	return value;
-}*/
+// Decimal version of std.math function.
+private T sin(T)(in T x, Context inContext) {
+	auto context = guard(inContext);
+	T sum = 0;
+	int n = 1;
+	T powx = x.dup;
+	T sqrx = sqr(x, context);
+	T fact = 1;
+	T term = powx;
+	while (term.copyAbs > T.epsilon(context)) {
+		sum = add(sum, term, context);
+		n += 2;
+		powx = mul(-powx, sqrx, context);
+		fact = mul(fact, n*(n-1), context);
+		term = div(powx, fact, context);
+	}
+	return roundToPrecision(sum, inContext);
+}
 
-/// Decimal version of std.math function.
-public T calcSin(T)(const T x) {
+/*/// Decimal version of std.math function.
+public T calcSin(T)(in T x) {
 	T sum = 0;
 	int n = 1;
 	T powx = x.dup;
@@ -875,14 +940,15 @@ writefln("fact = %s", fact);
 writefln("term = %s", term);
 	}
 	return sum;
-}
+}*/
 
 unittest {
 	write("sin..........");
 	writeln;
 	writeln("sin(1) = 0.84147098480789650665250232163029899962256306079837");
+writefln("sin(1, dec9.context) = %s", sin(dec9.one, dec9.context));
 //	pushContext(50);
-	writefln("calcSin(1) = %s", calcSin(dec9(1)));
+	writefln("sin(1) = %s", sin(dec9.one));
 writefln("...");
 writeln;
 	dec9 test = dec9(2); //10,22);
@@ -897,7 +963,7 @@ writefln("test = %s", test);
 dec9.verbose = true;
 writefln("test = %s", test);
 	writefln("sin(test) = %s", sin(dec9(2)));
-	writefln("calcSin(2) = %s", calcSin(dec9(2)));
+	writefln("sin(2) = %s", sin(dec9(2), 12));
 dec9.verbose = false;
 /*
 //	popContext();
@@ -908,44 +974,51 @@ dec9.verbose = false;
 }
 
 /// Decimal version of std.math function.
-public T cos(T)(const T x) {
-	int octant;
-	T y = reducedAngle(x, octant);
-	switch(octant) {
-		case 0: return(calcCos(y));
-		case 1: return(calcSin(-y));
-		case 2: return(-calcSin(y));
-		case 3: return(-calcCos(-y));
-		case 4: return(-calcCos(y));
-		case 5: return(-calcSin(-y));
-		case 6: return(calcSin(y));
-		case 7: return(calcCos(-y));
+/*public T cos(T)(const T x) {
+	int quadrant;
+	T red = reducedAngle(x, quadrant);
+	switch(quadrant) {
+		case 0: return(calcCos(red));
+		case 1: return(calcSin(-red));
+		case 2: return(-calcSin(red));
+		case 3: return(-calcCos(-red));
+		case 4: return(-calcCos(red));
+		case 5: return(-calcSin(-red));
+		case 6: return(calcSin(red));
+		case 7: return(calcCos(-red));
+		default: return T.nan;
+	}
+}*/
+
+/// Decimal version of std.math function.
+public T cos(T)(in T x, int precision = T.precision) {
+	// TODO: (language) check validity of x
+	auto context = Context(precision, Rounding.HALF_EVEN);
+	int quadrant;
+	T red = reducedAngle(x, quadrant, context);
+	switch(quadrant) {
+		case 0: return( cos(red, context));
+		case 1: return(-sin(red, context));
+		case 2: return(-cos(red, context));
+		case 3: return( sin(red, context));
 		default: return T.nan;
 	}
 }
 
-/*/// Decimal version of std.math function.
-public T cos(T)(const T x, uint precision) {
-	pushContext(precision);
-	T value = cos(x);
-	popContext();
-	return value;
-}*/
-
 /// Decimal version of std.math function.
-public T calcCos(T)(const T x) {
+public T cos(T)(in T x, Context context) {
 	T sum = 0;
 	int n = 0;
 	T powx = 1;
-	T sqrx = x * x;
+	T sqrx = sqr(x, context);
 	T fact = 1;
 	T term = powx;
-	while (term.abs > T.epsilon) {
-		sum += term;
+	while (term.copyAbs > T.epsilon(context)) {
+		sum = add(sum, term, context);
 		n += 2;
-		powx = -powx * sqrx;
-		fact = fact * (n*(n-1));
-		term = powx/fact;
+		powx = mul(-powx, sqrx, context);
+		fact = mul(fact, n*(n-1), context);
+		term = div(powx, fact, context);
 	}
 	return sum;
 }
@@ -954,9 +1027,8 @@ unittest {
 	write("cos..........");
 	writeln;
 	writeln("cos(1) = 0.54030230586813971740093660744297660373231042061792");
-//	pushContext(50);
-	writefln("cos(1) = %s", calcCos(dec9(1)));
-//	popContext();
+writefln("cos(dec9.one, dec9.context) = %s", cos(dec9.one, dec9.context));
+	writefln("cos(1) = %s", cos(dec9(1)));
 	writeln("..failed");
 }
 
@@ -964,8 +1036,8 @@ unittest {
  * Replaces std.math function expi
  *
  */
+// TODO: (behavior) context, angle reduction
 public void sincos(T)(T x, out T sine, out T cosine) {
-	T[2] result;
 
 	T csum, cterm, cx;
 	T ssum, sterm, sx;
@@ -1003,7 +1075,7 @@ writefln("cosine = %s", cosine);
  * Decimal version of std.math function.
  *
  */
- // Newton's method .. is it faster
+ // Newton's method .. is it faster?
 public T tan(T)(T x) {
 	T sine;
 	T cosine;
@@ -1113,9 +1185,7 @@ unittest {
 }
 
 //--------------------------------
-//
 // HYPERBOLIC TRIGONOMETRIC FUNCTIONS
-//
 //--------------------------------
 
 /// Decimal version of std.math function.
@@ -1239,10 +1309,9 @@ unittest {
 /**
  * part of spec
  *
- * TODO: (behavior? efficiency?) implement
  */
 public Decimal ln(Decimal x) {
-	return calcLog(x);
+	return log(x);
 }
 
 unittest {

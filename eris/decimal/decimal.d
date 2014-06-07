@@ -35,7 +35,7 @@ unittest {
 
 alias xint = ExtendedInt;
 //alias dec99 = Decimal!(99,999);
-alias dec9 = Decimal!(9,99, 5);
+alias dec9 = Decimal!(9,99);
 
 // special values for NaN, Inf, etc.
 private enum SV { NONE, INF, QNAN, SNAN };
@@ -48,9 +48,9 @@ private enum SV { NONE, INF, QNAN, SNAN };
 /// http://www.speleotrove.com/decimal.
 /// This specification conforms with IEEE standard 754-2008.
 struct Decimal(int PRECISION = 99, int MAX_EXPO = 9999,
-		int GUARD_DIGITS = 2, Rounding ROUNDING_MODE = Rounding.HALF_EVEN) {
+		Rounding ROUNDING_MODE = Rounding.HALF_EVEN) {
 // TODO (language) the mode and guard digit parameters should be swapped.
-alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
+alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 
 	private SV sval = SV.QNAN;		// special value: default is quiet NaN
 	private bool signed = false;	// true if the value is negative, false otherwise.
@@ -58,7 +58,6 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 	private xint mant;				// the coefficient of the decimal value
 	package int digits; 			// the number of decimal digits in this number.
 									// (unless the number is a special value)
-//	private bool guarded = false;	// true if guard digits are in use, false otherwise.
 
 	// static fields
 //	package static Rounding rounding = Rounding.HALF_EVEN;
@@ -74,14 +73,14 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, GUARD_DIGITS, ROUNDING_MODE);
 	enum int minExpo = 1 - maxExpo;
 	/// Smallest non-normalized exponent.
 	enum int tinyExpo = 2 - maxExpo - precision;
-	/// Number of additional (decimal) digits added to prevent rounding errors.
-	enum int guardDigits = GUARD_DIGITS;
+/*	/// Number of additional (decimal) digits added to prevent rounding errors.
+	enum int guardDigits = GUARD_DIGITS;*/
 	/// Rounding mode.
 	enum Rounding rounding = ROUNDING_MODE;
 	/// Struct containing the precision and rounding mode.
 	enum Context context = Context(precision, rounding);
-	/// Struct containing the precision and rounding mode.
-	enum Context guardedContext = Context(precision + guardDigits, rounding);
+//	/// Struct containing the precision and rounding mode.
+//	enum Context guardedContext = Context(precision + guardDigits, rounding);
 
 	/// Marker used to identify this type irrespective of size.
 	private enum bool IS_DECIMAL = true;
@@ -477,7 +476,7 @@ writefln("T.precision = %s", T.precision);
 	/// Returns the exponent of this number
 	@property
 	@safe
-	const int exponent() {
+	int exponent() const {
 		return this.expo;
 	}
 
@@ -485,14 +484,14 @@ writefln("T.precision = %s", T.precision);
 	// TODO: (language) What does it take to make this an l-value?
 	@property
 	@safe
-	int exponent(const int expo) {
+	int exponent(int expo) {
 		this.expo = expo;
 		return this.expo;
 	}
 
 	@property
 	@safe
-	const xint coefficient() {
+	xint coefficient() const {
 		return this.mant.dup;
 	}
 
@@ -505,7 +504,7 @@ writefln("T.precision = %s", T.precision);
 
 	@property
 	@safe
-	const ushort payload() {
+	ushort payload() const {
 		if (this.isNaN) {
 			return cast(ushort)(this.mant.toLong);
 		}
@@ -525,19 +524,20 @@ writefln("T.precision = %s", T.precision);
 	/// Returns the adjusted exponent of this number
 	@property
 	@safe
-	const int adjustedExponent() {
+	int adjustedExponent() const {
 		return expo + digits - 1;
 	}
 
 	/// Returns the number of decimal digits in the coefficient of this number
+	@property
 	@safe
-	const int getDigits() {
+	int getDigits() const {
 		return this.digits;
 	}
 
 	@property
 	@safe
-	const bool sign() {
+	bool sign() const {
 		return signed;
 	}
 
@@ -617,21 +617,27 @@ writefln("T.precision = %s", T.precision);
 	alias max_10_exp = maxExpo;
 
 	/// Returns the maximum representable normal value in the current context.
+	@safe
 	enum xint maxCoefficient =	pow10(precision) - 1;
 
 	/// Returns the maximum representable normal value in the current context.
+	@safe
 	enum decimal max = decimal(maxCoefficient, maxExpo);
 
 	/// Returns the minimum representable normal value in this context.
+	@safe
 	enum decimal min_normal = decimal(1, minExpo);
 
 	/// Returns the minimum representable subnormal value in this context.
+	@safe
 	enum decimal min = decimal(1, tinyExpo);
 
 	/// Returns the smallest available increment to 1.0 in this context
-	static decimal epsilon() {return decimal(1, -precision);}
+	immutable static decimal epsilon(in Context context = decimal.context) {
+		return decimal(1, -context.precision);}
 
 	/// Returns the radix, which is always ten for decimal numbers.
+	@safe
 	enum int radix = 10;
 
 	/// Returns zero.
@@ -1360,7 +1366,8 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	enum decimal E = roundString("2.71828182845904523536028747135266249775"
 		"724709369995957496696762772407663035354759457138217852516643");
 
-/*	/// base 2 logarithm of 10 = 3.32192809...
+/*
+	/// base 2 logarithm of 10 = 3.32192809...
 	enum decimal LG_10 = roundString("3.3219280948873623478703194294893901"
 		"7586483139302458061205475639581593477660862521585013974335937016");
 
@@ -1378,17 +1385,17 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	/// natural logarithm of 2 = 0.693147806...
 	enum decimal LN2 = roundString("0.693147180559945309417232121458176568"
-		"075500134360255254120680009493393621969694715605863326996418688");*/
+		"075500134360255254120680009493393621969694715605863326996418688");
 
 	/// natural logarithm of 10 = 2.30258509...
 	enum decimal LN10 = roundString("2.30258509299404568401799145468436420"
 		"760110148862877297603332790096757260967735248023599720508959820");
-
+*/
 	/// pi = 3.14159266...
 	enum decimal PI = roundString("3.1415926535897932384626433832795028841"
 		"9716939937510582097494459230781640628620899862803482534211707");
-
-/*	/// pi/2
+/*
+	/// pi/2
 	enum decimal PI_2 = roundString("1.57079632679489661923132169163975144"
 		"209858469968755291048747229615390820314310449931401741267105853");
 
@@ -1402,16 +1409,16 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	/// 1/2*pi
 	enum decimal INV_2PI = roundString("0.15915494309189533576888376337251"
-		"4362034459645740456448747667344058896797634226535090113802766253086");*/
+		"4362034459645740456448747667344058896797634226535090113802766253086");
 
 	/// square root of two = 1.41421357
 	enum decimal SQRT2 = roundString("1.4142135623730950488016887242096980"
 		"7856967187537694807317667973799073247846210703885038753432764157");
 
-/*	/// square root of one half = 0.707106781...
-	immutable decimal SQRT1_2 = roundString("0.70710678118654752440084436210484"
-		"9039284835937688474036588339868995366239231053519425193767163820786");*/
-
+	/// square root of one half = 0.707106781...
+	enum decimal SQRT1_2 = roundString("0.70710678118654752440084436210484"
+		"9039284835937688474036588339868995366239231053519425193767163820786");
+*/
 	/// Rounds a string representation of a number to specified precision.
 	/// Does not convert the string to a number. A decimal point may be
 	/// included, but no exponent is allowed.
@@ -1470,23 +1477,12 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	unittest {
 		write("-- constants........");
-		assertStringEqual(dec9.E, "2.71828183");
-		assertStringEqual(dec9.PI, "3.14159265");
+/*		assertStringEqual(dec9.E, "2.71828183");
+		assertStringEqual(dec9.PI, "3.14159265");*/
 		writeln("passed");
 	}
 
 }	 // end struct Decimal
-
-/*unittest {
-	write("cast...");
-	Decimal!(7,99) input;
-	Decimal!(8,99) output;
-	input = "12.34";
-	output = cast(Decimal!(7,99))input;
-writefln("output = %s", output);
-
-	writeln("test missing");
-}*/
 
 unittest {
 	writeln("==========================");
