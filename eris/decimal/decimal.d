@@ -15,6 +15,7 @@
 module eris.decimal.decimal;
 
 import std.conv;
+import std.bigint;
 import std.string;
 
 import eris.integer.extended;
@@ -40,6 +41,17 @@ alias dec9 = Decimal!(9,99);
 // special values for NaN, Inf, etc.
 private enum SV { NONE, INF, QNAN, SNAN };
 
+public BigInt x2b(in xint x = 0) {
+	return BigInt(x.toString);
+}
+
+unittest {
+	write("x2b...");
+writefln("x2b = %s", x2b());
+writefln("x2b = %s", x2b(xint(3)));
+writefln("x2b = %s", x2b(xint("909239874203948")));
+	writeln("test missing");
+}
 
 /// A struct representing an arbitrary-precision decimal floating-point number.
 ///
@@ -73,14 +85,10 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	enum int minExpo = 1 - maxExpo;
 	/// Smallest non-normalized exponent.
 	enum int tinyExpo = 2 - maxExpo - precision;
-/*	/// Number of additional (decimal) digits added to prevent rounding errors.
-	enum int guardDigits = GUARD_DIGITS;*/
 	/// Rounding mode.
 	enum Rounding rounding = ROUNDING_MODE;
 	/// Struct containing the precision and rounding mode.
 	enum Context context = Context(precision, rounding);
-//	/// Struct containing the precision and rounding mode.
-//	enum Context guardedContext = Context(precision + guardDigits, rounding);
 
 	/// Marker used to identify this type irrespective of size.
 	private enum bool IS_DECIMAL = true;

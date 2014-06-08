@@ -15,6 +15,7 @@
 module eris.decimal.math;
 
 import eris.integer.extended;
+import std.bigint;
 
 import eris.decimal.context;
 import eris.decimal.decimal;
@@ -95,8 +96,8 @@ public long toLong(T)(const T arg,
 /// mode is half-even.
 public xint toBigInt(T)(const T arg,
 		const Rounding mode = Rounding.HALF_EVEN) {
-	if (arg.isNaN) return xint(0);
-	if (arg.isInfinite) {
+	if (arg.isNaN) return xint(0);	// TODO: (behavior) should throw
+	if (arg.isInfinite) {			// TODO: (behavior) should throw
 		return arg.isNegative ? T.min.coefficient : T.max.coefficient;
 	}
 	if (arg.exponent != 0) {
@@ -105,10 +106,26 @@ public xint toBigInt(T)(const T arg,
 	return arg.coefficient;
 }
 
+/// Returns the nearest extended integer value.
+/// The value is rounded based on the specified rounding mode. The default
+/// mode is half-even.
+public BigInt btoBigInt(T)(const T arg,
+		const Rounding mode = Rounding.HALF_EVEN) {
+	if (arg.isNaN) return BigInt(0);	// TODO: (behavior) should throw
+	if (arg.isInfinite) {			// TODO: (behavior) should throw
+		return arg.isNegative ? x2b(T.min.coefficient) : x2b(T.max.coefficient);
+	}
+	if (arg.exponent != 0) {
+		return x2b(round(arg, mode).coefficient);
+	}
+	return x2b(arg.coefficient);
+}
+
 unittest {	// rounding
 	write("-- rounding.........");
 	dec9 num;
 	num = dec9("2.1");
+writefln("btoBigInt(num) = %s", btoBigInt(num));
 	assertEqual(rint(num) , dec9("2"));
 	assertEqual(floor(num), dec9("2"));
 	assertEqual(ceil(num) , dec9("3"));

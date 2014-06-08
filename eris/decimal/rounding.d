@@ -14,6 +14,8 @@
 
 module eris.decimal.rounding;
 
+import std.bigint;
+
 import eris.decimal.context;
 import eris.decimal.decimal;
 import eris.decimal.arithmetic: copyNegate;
@@ -378,7 +380,7 @@ unittest {	// increment
 /// or exactly half the least significant digit of the shortened coefficient.
 /// Exactly half is a five followed by zero or more zero digits.
 // TODO: (efficiency) calls firstDigit and then numDigits: combine these calls.
-public int testFive(const xint arg) {
+public int testFive(in xint arg) {
 	int first = firstDigit(arg);
 	if (first < 5) return -1;
 	if (first > 5) return +1;
@@ -412,12 +414,19 @@ private void increment(T)(ref T num, ref uint digits) {
 // useful constants
 //-----------------------------
 
-private immutable xint BIG_ZERO = xint(0);
-private immutable xint BIG_ONE  = xint(1);
-private immutable xint BIG_FIVE = xint(5);
-private immutable xint BIG_TEN  = xint(10);
-private immutable xint BILLION  = xint(1_000_000_000);
-private immutable xint QUINTILLION  = xint(1_000_000_000_000_000_000);
+private enum BigInt BBIG_ZERO = BigInt(0);
+private enum BigInt BBIG_ONE  = BigInt(1);
+private enum BigInt BBIG_FIVE = BigInt(5);
+private enum BigInt BBIG_TEN  = BigInt(10);
+private enum BigInt BBILLION  = BigInt(1_000_000_000);
+private enum BigInt BQUINTILLION  = BigInt(1_000_000_000_000_000_000);
+
+private enum xint BIG_ZERO = xint(0);
+private enum xint BIG_ONE  = xint(1);
+private enum xint BIG_FIVE = xint(5);
+private enum xint BIG_TEN  = xint(10);
+private enum xint BILLION  = xint(1_000_000_000);
+private enum xint QUINTILLION  = xint(1_000_000_000_000_000_000);
 
 /// An array of unsigned long integers with values of
 /// powers of ten from 10^^0 to 10^^18
@@ -449,8 +458,16 @@ public const ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
 //-----------------------------
 
 /// Returns the number of digits in the argument.
-//@safe
-public int numDigits(const xint arg) {
+// @safe
+public int bnumDigits(in BigInt arg) {
+    // special cases
+	if (arg == 0) return 0;
+	int count = 0;
+	long n = bcountDigits(arg, count);
+	return count + numDigits(n);
+}
+
+public int numDigits(in xint arg) {
     // special cases
 	if (arg == 0) return 0;
 	int count = 0;
@@ -465,9 +482,16 @@ unittest {	// numDigits(xint)
 	writeln("passed");
 }
 
+unittest {	// numDigits(xint)
+	write("-- bnumDigits(big)..");
+	BigInt big = BigInt("12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905");
+	assertEqual(bnumDigits(big), 101);
+	writeln("passed");
+}
+
 /// Returns the number of digits in the argument,
 /// where the argument is an unsigned long integer.
-public int numDigits(const ulong n) {
+public int numDigits(const long n) {
     // special cases:
 	if (n == 0) return 0;
 	if (n < 10) return 1;
@@ -565,8 +589,36 @@ unittest {	// numDigits
 }
 
 // FIXTHIS: if this function is named "countDigits" the compiler gets confused.
+
+public ulong bbigToLong(in BigInt arg) {
+	BigInt big = arg;
+	while (big > BQUINTILLION) {
+		big /= BQUINTILLION;
+	}
+	return big.toLong;
+}
+
+//@safe
+public long bcountDigits(in BigInt arg, out int count) {
+	count = 0;
+	BigInt big = arg;
+	while (big > BQUINTILLION) {
+		big /= BQUINTILLION;
+		count += 18;
+	}
+	return big.toLong;
+}
+//@safe
+public long bcountDigits(in BigInt arg) {
+	BigInt big = arg;
+	while (big > BQUINTILLION) {
+		big /= BQUINTILLION;
+	}
+	return big.toLong;
+}
+
 @safe
-public ulong bigToLong(const xint arg) {
+public long countDigits(in xint arg) {
 	xint big = arg.dup;
 	while (big > QUINTILLION) {
 		big /= QUINTILLION;
@@ -575,7 +627,7 @@ public ulong bigToLong(const xint arg) {
 }
 
 @safe
-public ulong countDigits(const xint arg, out int count) {
+public long countDigits(in xint arg, out int count) {
 	count = 0;
 	xint big = arg.dup;
 	while (big > QUINTILLION) {
@@ -586,12 +638,20 @@ public ulong countDigits(const xint arg, out int count) {
 }
 
 /// Returns the first digit of the argument.
-public int firstDigit(const xint arg) {
-	return firstDigit(bigToLong(arg));
+public int bfirstDigit(const BigInt arg) {
+	return firstDigit(bcountDigits(arg));
+}
+
+/// Returns the first digit of the argument.
+public int firstDigit(in xint arg) {
+	return firstDigit(countDigits(arg));
 }
 
 unittest {	// firstDigit(xint)
 	write("-- 1stDigit(xint)...");
+/*writefln("\nlong.max    = %s", long.max);
+writefln("ulong.max   = %s", ulong.max);
+writefln("QUINTILLION = %s", QUINTILLION);*/
 	xint x;
 	x = "5000000000000000000000";
 	assertEqual(firstDigit(x), 5);
@@ -602,7 +662,7 @@ unittest {	// firstDigit(xint)
 
 
 /// Returns the first digit of the argument.
-public int firstDigit(const ulong n) { //, int maxValue = 19) {
+public int firstDigit(long n) { //, int maxValue = 19) {
 	if (n == 0) return 0;
 	if (n < 10) return cast(int) n;
 	int d = numDigits(n); //, maxValue);
@@ -610,7 +670,7 @@ public int firstDigit(const ulong n) { //, int maxValue = 19) {
 }
 
 unittest {	// firstDigit
-	write("-- 1stDigit(ulong)..");
+	write("-- 1stDigit(long)..");
 	long n;
 	n = 7;
 	int expect, actual;
@@ -841,12 +901,21 @@ writeln("rot = ", rot);
 
 
 /// Returns the last digit of the argument.
+//@safe
+public int blastDigit(in BigInt arg) {
+	BigInt big = arg;
+	BigInt digit = big % BigInt(10);
+	if (digit < 0) digit = -digit;
+	return cast(int)digit.toInt;
+}
+
+/// Returns the last digit of the argument.
 @safe
-public uint lastDigit(const xint arg) {
+public int lastDigit(in xint arg) {
 	xint big = arg.dup;
 	xint digit = big % xint(10);
 	if (digit < 0) digit = -digit;
-	return cast(uint)digit.toInt;
+	return cast(int)digit.toInt;
 }
 
 unittest {	// lastDigit(xint)
@@ -881,7 +950,7 @@ unittest {	// lastDigit(xint)
 
 /// Returns the number of trailing zeros in the argument.
 // TODO: (language) move to arithmetic
-public int trailingZeros(const xint arg, const int digits) {
+public int trailingZeros(in xint arg, const int digits) {
 	xint n = arg.dup;
 	// shortcuts for frequent values
 	if (n ==  0) return 0;
@@ -902,6 +971,29 @@ public int trailingZeros(const xint arg, const int digits) {
 	return max;
 }
 
+/// Returns the number of trailing zeros in the argument.
+// TODO: (language) move to arithmetic
+public int btrailingZeros(in BigInt arg, const int digits) {
+	BigInt n = arg;
+	// shortcuts for frequent values
+	if (n ==  0) return 0;
+	if (n %  10) return 0;
+	if (n % 100) return 1;
+	// find by binary search
+	int min = 3;
+	int max =  digits - 1;
+	while (min <= max) {
+		int mid = (min + max)/2;
+		if (n % btens(mid) != 0) {
+			max = mid - 1;
+		}
+		else {
+			min = mid + 1;
+		}
+	}
+	return max;
+}
+
 /// Trims any trailing zeros and returns the number of zeros trimmed.
 // TODO: (language) move this to arithmetic?
 public int trimZeros(ref xint n, const int digits) {
@@ -911,11 +1003,27 @@ public int trimZeros(ref xint n, const int digits) {
 	return zeros;
 }
 
+/// Trims any trailing zeros and returns the number of zeros trimmed.
+// TODO: (language) move this to arithmetic?
+public int btrimZeros(ref BigInt n, const int digits) {
+	int zeros = btrailingZeros(n, digits);
+	if (zeros == 0) return 0;
+	n /= btens(zeros);
+	return zeros;
+}
+
 /// Returns a xint value of ten raised to the specified power.
 public xint tens(const int n) {
 	if (n < 19) return xint(TENS[n]);
 	xint num = 1;
 	return shiftLeft(num, n);
+}
+
+/// Returns a BigInt value of ten raised to the specified power.
+public BigInt btens(int n) {
+	if (n < 19) return BigInt(TENS[n]);
+	BigInt num = 1;
+	return num << n; //shiftLeft(num, n);
 }
 
 unittest {
