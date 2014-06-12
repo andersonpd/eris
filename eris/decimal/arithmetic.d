@@ -59,7 +59,7 @@ alias xcompare = eris.integer.extended.xint.compare;
 	/// The sign of any NaN values is ignored in the classification.
 	/// The argument is not rounded and no flags are changed.
 	/// Implements the 'class' function in the specification. (p. 42)
-	public string classify(T)(in T x)  {
+	public string classify(T)(T x)  {
 		if (x.isFinite) {
 			if (x.isZero) 	 { return x.sign ? "-Zero" : "+Zero"; }
 			if (x.isNormal)	 { return x.sign ? "-Normal" : "+Normal"; }
@@ -124,9 +124,9 @@ public T copyNegate(T)(in T x)  {
 /// The copy is unaffected by context and is quiet -- no flags are changed.
 /// Implements the 'copy-sign' function in the specification. (p. 44)
 //@safe
-public T copySign(T)(const T arg1, const T arg2)  {
-	T copy = arg1.dup;
-	copy.sign = arg2.sign;
+public T copySign(T)(in T x1, in T x2)  {
+	T copy = x1.dup;
+	copy.sign = x2.sign;
 	return copy;
 }
 
@@ -192,7 +192,7 @@ public int ilogb(T)(in T x)
 /// limiting the resulting exponent)".
 /// May set the INVALID_OPERATION and DIVISION_BY_ZERO flags.
 /// Implements the 'logb' function in the specification. (p. 47)
-public T logb(T)(in T x)
+public T logb(T)(T x)
 {
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
@@ -231,7 +231,7 @@ unittest {
 /// The result may overflow or underflow.
 /// Flags: INVALID_OPERATION, UNDERFLOW, OVERFLOW.
 /// Implements the 'scaleb' function in the specification. (p. 48)
-public T scaleb(T)(in T x, in T y)  {
+public T scaleb(T)(T x, in T y)  {
 
 	T nan;
 	if (operationIsInvalid(x, y, nan)) return nan;
@@ -288,7 +288,7 @@ public T reduce(T)(in T x,
 
 	if (!x.isFinite) return x.dup;
 
-	T reduced = plus(x.dup, context);
+	T reduced = plus(x, context);
 
 	// have to check again -- rounding may have made it infinite
 	if (!reduced.isFinite) return reduced;
@@ -582,7 +582,6 @@ public int compare(T)(in T x, in T y, in Context context = T.context) {
 	if (x.isNaN || y.isNaN) {
 		return x.isNaN ? 1 : -1;
 	}
-
 	// if signs differ, just compare the signs
 	if (x.sign != y.sign) {
 		// check for zeros: +0 and -0 are equal
@@ -607,6 +606,8 @@ public int compare(T)(in T x, in T y, in Context context = T.context) {
 	}
 */
 	// compare the magnitudes of the numbers
+	T xr = x.reduce;
+	T yr = y.reduce;
 	int diff = (x.exponent + x.digits) - (y.exponent + y.digits);
 	if (diff != 0)
 		if (!x.sign) {
@@ -618,8 +619,14 @@ public int compare(T)(in T x, in T y, in Context context = T.context) {
 			if (diff < 0) return 1;
 		}
 
-	// numbers have the same magnitude -- compare coefficients
-    int comp = xcompare(x.reduce.coefficient, y.reduce.coefficient);
+	// align the operands
+ 	T xx = x.dup;
+	T yy = y.dup;
+	alignOps!T(xx, yy);
+
+	// They have the same exponent after alignment.
+	// The only difference is in the coefficients.
+    int comp = xcompare(xx.coefficient, yy.coefficient);
 	return x.sign ? -comp : comp;
 }
 
@@ -628,10 +635,18 @@ unittest {	// compare
 	dec9 x, y;
 	x = dec9(2.1);
 	y = dec9(3);
+	assertEqual(compare(x, y), -1);
+	assertEqual(compare(y, x), 1);
+	y = -y;
 	assertEqual(compare(x, y), 1);
+	assertEqual(compare(y, x), -1);
 	x = dec9(2.1);
 	y = dec9(2.1);
 	assertEqual(compare(x, y), 0);
+	y = dec9(2.10);
+	assertEqual(compare(x, y), 0);
+	x = dec9(2.1);
+	y = dec9(3);
 	writeln("passed");
 }
 
@@ -827,16 +842,22 @@ public int compareTotal(T)(in T x, in T y)  {
 	if (diff > 0) return ret1;
 	if (diff < 0) return ret2;
 
-	// we know the numbers have the same magnitude --
-	// compare coefficients
-	auto result = xcompare(x.reduce.coefficient, y.reduce.coefficient);
+	// we know the numbers have the same magnitude
+	// and that the exponents are not equal -- align the operands
+ 	T xx = x.dup;
+	T yy = y.dup;
+	alignOps!T(xx, yy);
+
+	// They have the same exponent after alignment.
+	// The only difference is in the coefficients.
+    int comp = xcompare(xx.coefficient, yy.coefficient);
 
 	// if equal after alignment, compare the original exponents
-	if (result == 0) {
+	if (comp == 0) {
 		return (x.exponent > y.exponent) ? ret1 : ret2;
 	}
 	// otherwise return the numerically larger
-	return (result > 0) ? ret2 : ret1;
+	return (comp > 0) ? ret2 : ret1;
 }
 
 /// compare-total-magnitude takes two numbers and compares them
@@ -1698,7 +1719,47 @@ public T div(T)(in T x, in T y, in Context context = T.context)  {
 	q.exponent = xx.exponent - yy.exponent;
 	q.sign = xx.sign ^ yy.sign;
 	q.digits = numDigits(q.coefficient);
-//	q.isGuarded = x.isGuarded || y.isGuarded;	// TODO: (behavior) how does this affect reduction?
+	q = roundToPrecision(q, context);
+	q = reduceToIdeal(q, diff);
+	return q;
+}
+
+/// Divides the first operand by the second operand and returns their quotient.
+/// Division by zero sets a flag and returns infinity.
+/// The result may be rounded and context flags may be set.
+/// Implements the 'divide' function in the specification. (p. 27-29)
+public T div(T)(T x, long n, Context context = T.context)  {
+
+	// check for NaN and division by zero
+	T nan;
+	if (divisionIsInvalid(x, T(n), nan)) {
+		return nan;
+	}
+
+	auto q = T.zero;
+
+	int diff = x.exponent;
+	if (diff > 0) {
+		x.coefficient = shiftLeft(x.coefficient, diff);
+		x.exponent = x.exponent - diff;
+		x.digits = x.digits + diff;
+	}
+	int shift = 4 + context.precision + numDigits(n)- x.digits;
+	if (shift > 0) {
+		x.coefficient = shiftLeft(x.coefficient, shift);
+		x.exponent = x.exponent - shift;
+		x.digits = x.digits + shift;
+	}
+//	// divisor may have become zero. Check again.
+//	if (divisionIsInvalid!T(x, n, q)) {
+//		return nan;
+//	}
+//writefln("x.coefficient = %s", x.coefficient);
+//writefln("n.coefficient = %s", n.coefficient);
+	q.coefficient = x.coefficient / n;
+	q.exponent = x.exponent; // - n.exponent;
+	q.sign = x.sign ^ (n < 0);
+	q.digits = numDigits(q.coefficient);
 	q = roundToPrecision(q, context);
 	q = reduceToIdeal(q, diff);
 	return q;
@@ -2115,10 +2176,7 @@ public T roundToIntegralExact(T)(in T x, in Rounding rounding = Rounding.HALF_EV
 
 	// TODO: (behavior) need to prevent precision overrides
 	int precision = result.digits + result.exponent;
-if (T.verbose) writefln("result = %s", result.toExact);
-if (T.verbose) writefln("precision = %s", precision);
 	result = roundToPrecision(result, precision, rounding);
-if (T.verbose) writefln("result = %s", result);
 	return result;
 }
 
@@ -2530,6 +2588,28 @@ private bool operationIsInvalid(T)(in T x, in T y, out T nan)
 	return false;
 }
 
+private bool operationIsInvalid(T)(T x, long y, out T nan)
+		 {
+	// if either operand is a quiet NaN...
+	if (x.isQuiet) {
+		// flag the invalid operation
+		contextFlags.setFlags(INVALID_OPERATION);
+		// set the nan to the first qNaN operand
+		nan = x;
+		return true;
+	}
+	// ...if either operand is a signaling NaN...
+	if (x.isSignaling) {
+		// flag the invalid operation
+		contextFlags.setFlags(INVALID_OPERATION);
+		// set the nan to the first sNaN operand
+		nan = T.nan(x.payload);
+		return true;
+	}
+	// ...otherwise, no flags are set and nan is unchanged
+	return false;
+}
+
 unittest {
 	write("operationIsInvalid...");
 	writeln("test missing");
@@ -2555,6 +2635,38 @@ private bool divisionIsInvalid(T)(const T dividend, const T divisor,
 			contextFlags.setFlags(DIVISION_BY_ZERO);
 			quotient = T.infinity;
 			quotient.sign = dividend.sign ^ divisor.sign;
+		}
+		return true;
+	}
+	// TODO: (behavior) what purpose does this check serve?
+	// The dividend can be zero without any difficulties, right?
+/*	if (dividend.isZero()) {
+		quotient = T.zero;
+		return true;
+	}*/
+	return false;
+}
+
+/// Checks for invalid operands and division by zero.
+/// If found, the function sets the quotient to NaN or infinity, respectively,
+/// and returns true after setting the context flags.
+/// Also checks for zero dividend and calculates the result as needed.
+/// This is a helper function implementing checks for division by zero
+/// and invalid operation in the specification. (p. 51-52)
+private bool divisionIsInvalid(T)(T dividend, long divisor,
+		ref T quotient)  {
+
+	if (operationIsInvalid(dividend, divisor, quotient)) {
+		return true;
+	}
+	if (divisor == 0) {
+		if (dividend.isZero()) {
+			quotient = setInvalidFlag!T;
+		}
+		else {
+			contextFlags.setFlags(DIVISION_BY_ZERO);
+			quotient = T.infinity;
+			quotient.sign = dividend.sign ^ (divisor < 0);
 		}
 		return true;
 	}

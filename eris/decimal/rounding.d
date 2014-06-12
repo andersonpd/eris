@@ -14,8 +14,6 @@
 
 module eris.decimal.rounding;
 
-import std.bigint;
-
 import eris.decimal.context;
 import eris.decimal.decimal;
 import eris.decimal.arithmetic: copyNegate;
@@ -414,13 +412,6 @@ private void increment(T)(ref T num, ref uint digits) {
 // useful constants
 //-----------------------------
 
-private enum BigInt BBIG_ZERO = BigInt(0);
-private enum BigInt BBIG_ONE  = BigInt(1);
-private enum BigInt BBIG_FIVE = BigInt(5);
-private enum BigInt BBIG_TEN  = BigInt(10);
-private enum BigInt BBILLION  = BigInt(1_000_000_000);
-private enum BigInt BQUINTILLION  = BigInt(1_000_000_000_000_000_000);
-
 private enum xint BIG_ZERO = xint(0);
 private enum xint BIG_ONE  = xint(1);
 private enum xint BIG_FIVE = xint(5);
@@ -457,16 +448,6 @@ public const ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
 // decimal digit functions
 //-----------------------------
 
-/// Returns the number of digits in the argument.
-// @safe
-public int bnumDigits(in BigInt arg) {
-    // special cases
-	if (arg == 0) return 0;
-	int count = 0;
-	long n = bcountDigits(arg, count);
-	return count + numDigits(n);
-}
-
 public int numDigits(in xint arg) {
     // special cases
 	if (arg == 0) return 0;
@@ -479,13 +460,6 @@ unittest {	// numDigits(xint)
 	write("-- numDigits(xint)..");
 	xint big = xint("12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905");
 	assertEqual(numDigits(big), 101);
-	writeln("passed");
-}
-
-unittest {	// numDigits(xint)
-	write("-- bnumDigits(big)..");
-	BigInt big = BigInt("12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905");
-	assertEqual(bnumDigits(big), 101);
 	writeln("passed");
 }
 
@@ -590,33 +564,6 @@ unittest {	// numDigits
 
 // FIXTHIS: if this function is named "countDigits" the compiler gets confused.
 
-public ulong bbigToLong(in BigInt arg) {
-	BigInt big = arg;
-	while (big > BQUINTILLION) {
-		big /= BQUINTILLION;
-	}
-	return big.toLong;
-}
-
-//@safe
-public long bcountDigits(in BigInt arg, out int count) {
-	count = 0;
-	BigInt big = arg;
-	while (big > BQUINTILLION) {
-		big /= BQUINTILLION;
-		count += 18;
-	}
-	return big.toLong;
-}
-//@safe
-public long bcountDigits(in BigInt arg) {
-	BigInt big = arg;
-	while (big > BQUINTILLION) {
-		big /= BQUINTILLION;
-	}
-	return big.toLong;
-}
-
 @safe
 public long countDigits(in xint arg) {
 	xint big = arg.dup;
@@ -635,11 +582,6 @@ public long countDigits(in xint arg, out int count) {
 		count += 18;
 	}
 	return big.toLong;
-}
-
-/// Returns the first digit of the argument.
-public int bfirstDigit(const BigInt arg) {
-	return firstDigit(bcountDigits(arg));
 }
 
 /// Returns the first digit of the argument.
@@ -901,15 +843,6 @@ writeln("rot = ", rot);
 
 
 /// Returns the last digit of the argument.
-//@safe
-public int blastDigit(in BigInt arg) {
-	BigInt big = arg;
-	BigInt digit = big % BigInt(10);
-	if (digit < 0) digit = -digit;
-	return cast(int)digit.toInt;
-}
-
-/// Returns the last digit of the argument.
 @safe
 public int lastDigit(in xint arg) {
 	xint big = arg.dup;
@@ -971,29 +904,6 @@ public int trailingZeros(in xint arg, const int digits) {
 	return max;
 }
 
-/// Returns the number of trailing zeros in the argument.
-// TODO: (language) move to arithmetic
-public int btrailingZeros(in BigInt arg, const int digits) {
-	BigInt n = arg;
-	// shortcuts for frequent values
-	if (n ==  0) return 0;
-	if (n %  10) return 0;
-	if (n % 100) return 1;
-	// find by binary search
-	int min = 3;
-	int max =  digits - 1;
-	while (min <= max) {
-		int mid = (min + max)/2;
-		if (n % btens(mid) != 0) {
-			max = mid - 1;
-		}
-		else {
-			min = mid + 1;
-		}
-	}
-	return max;
-}
-
 /// Trims any trailing zeros and returns the number of zeros trimmed.
 // TODO: (language) move this to arithmetic?
 public int trimZeros(ref xint n, const int digits) {
@@ -1003,27 +913,11 @@ public int trimZeros(ref xint n, const int digits) {
 	return zeros;
 }
 
-/// Trims any trailing zeros and returns the number of zeros trimmed.
-// TODO: (language) move this to arithmetic?
-public int btrimZeros(ref BigInt n, const int digits) {
-	int zeros = btrailingZeros(n, digits);
-	if (zeros == 0) return 0;
-	n /= btens(zeros);
-	return zeros;
-}
-
 /// Returns a xint value of ten raised to the specified power.
 public xint tens(const int n) {
 	if (n < 19) return xint(TENS[n]);
 	xint num = 1;
 	return shiftLeft(num, n);
-}
-
-/// Returns a BigInt value of ten raised to the specified power.
-public BigInt btens(int n) {
-	if (n < 19) return BigInt(TENS[n]);
-	BigInt num = 1;
-	return num << n; //shiftLeft(num, n);
 }
 
 unittest {

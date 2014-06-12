@@ -15,7 +15,7 @@
 module eris.decimal.decimal;
 
 import std.conv;
-import std.bigint;
+//import std.bigint;
 import std.string;
 
 import eris.integer.extended;
@@ -41,7 +41,7 @@ alias dec9 = Decimal!(9,99);
 // special values for NaN, Inf, etc.
 private enum SV { NONE, INF, QNAN, SNAN };
 
-public BigInt x2b(in xint x = 0) {
+/*public BigInt x2b(in xint x = 0) {
 	return BigInt(x.toString);
 }
 
@@ -51,7 +51,7 @@ writefln("x2b = %s", x2b());
 writefln("x2b = %s", x2b(xint(3)));
 writefln("x2b = %s", x2b(xint("909239874203948")));
 	writeln("test missing");
-}
+}*/
 
 /// A struct representing an arbitrary-precision decimal floating-point number.
 ///
@@ -319,7 +319,6 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		this.digits = that.digits;
 		this.expo	= that.expo;
 		this.mant	= that.mant.dup;
-//		this.guarded = that.guarded;
 	};
 
 	/// dup property
@@ -339,13 +338,6 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertEqual(num, copy);
 		writeln("passed");
 	}
-
-//	public static T guard(T)(const T x = T.init)  {
-//		T copy = x.dup;
-//		copy.guarded = true;
-//		return copy;
-//	}
-
 
 //--------------------------------
 // casts
@@ -1485,8 +1477,8 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	unittest {
 		write("-- constants........");
-/*		assertStringEqual(dec9.E, "2.71828183");
-		assertStringEqual(dec9.PI, "3.14159265");*/
+		assertStringEqual(dec9.E, "2.71828183");
+		assertStringEqual(dec9.PI, "3.14159265");
 		writeln("passed");
 	}
 
