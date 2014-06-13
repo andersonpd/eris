@@ -33,6 +33,17 @@ version(unittest) {
 	import eris.assertions;
 }
 
+/*mixin template Foo() {
+  int x = 5;
+}*/
+
+/*mixin template checkNaN() {
+	if (x.isNaN) {
+		contextFlags.setFlags(INVALID_OPERATION);
+		return T.nan;
+	}
+}*/
+
 //--------------------------------
 // ROUNDING
 //--------------------------------
@@ -40,7 +51,10 @@ version(unittest) {
 /// Rounds the argument to an integer using the specified rounding mode.
 /// The default rounding mode is the current context mode.
 public T round(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
-	// TODO: check for nan.
+	if (x.isNaN) {
+		contextFlags.setFlags(INVALID_OPERATION);
+		return T.nan;
+	}
 	T value = roundToIntegralExact(x, mode);
 	return value;
 }
@@ -93,7 +107,7 @@ public long toLong(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
 public xint toBigInt(T)(T x,
-		const Rounding mode = Rounding.HALF_EVEN) {
+		Rounding mode = Rounding.HALF_EVEN) {
 	if (x.isNaN) return xint(0);	// TODO: (behavior) should throw
 	if (x.isInfinite) {			// TODO: (behavior) should throw
 		return x.isNegative ? T.min.coefficient : T.max.coefficient;
@@ -146,7 +160,7 @@ unittest {	// rounding
 }
 
 //--------------------------------
-//	CONSTANTS
+//	string mixins
 //--------------------------------
 
 template GenConstant(string name)
@@ -180,15 +194,9 @@ const char[] GenUnaryFunction =
 	}";
 }
 
-/*public T reciprocal(T)(T x, int precision = T.precision) {
-	// check for invalid operand
-	if (x.isNaN) {
-		contextFlags.setFlags(INVALID_OPERATION);
-		return T.nan;
-	}
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	return reciprocal!T(x, context);
-}*/
+//--------------------------------
+//	CONSTANTS
+//--------------------------------
 
 mixin (GenConstant!("pi"));
 mixin (GenConstant!("invPi"));
@@ -205,7 +213,7 @@ private Context guard(Context context, int guardDigits = 2) {
 
 /// Calculates the value of pi in the specified context.
 private T pi(T)(Context inContext) {
-	// increase the input precision
+	// increase the working precision
 	auto context = guard(inContext, 3);
 	// initialize AGM algorithm
 	long k = 1;
@@ -262,7 +270,7 @@ private T e(T)(Context inContext) {
 	long n = 2;
 	T term = T.one;
 	T sum  = T.one;
-	// loop until term is too small to affect the sum.
+	// loop until the term is too small to affect the sum.
 	while (term > T.epsilon(context)) {
 		sum  = add(sum, term, context);
 		term = div!T(term, n, context);
@@ -362,11 +370,6 @@ unittest {	// reciprocal
 	writeln("passed");
 }
 
-/*public T invSqrt(T)(T x, int precision = T.precision) {
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	return invSqrt!T(x, context);
-}*/
-
 // TODO: (behavior) sometimes fails to break out of loop (e.g. reduce guard digits to +2)
 public T invSqrt(T)(T x, Context inContext) {
 	// special values
@@ -422,15 +425,6 @@ unittest {
 	writeln("passed");
 }
 
-
-/*public T sqrt(T)(T x) {
-	return sqrt!T(x, T.precision);
-}
-
-public T sqrt(T)(T x, int precision) {
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	return sqrt!T(x, context);
-}*/
 
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
@@ -521,75 +515,25 @@ assertEqual(sqrt(dec9(1E-16)), dec9("1.00000000E-8"));
 	writeln("passed");
 }
 
-/// Returns the square root of the sum of the squares to the current precision.
-/// Decimal version of std.math function.
-public T hypot(T)(T x, T y) {
-	return hypot!T(x, y, T.context);
-}
-
-/// Returns the square root of the sum of the squares to the specified precision.
-/// Decimal version of std.math function.
-public T hypot(T)(T x, T y, int precision) {
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	return hypot!T(x, y, T.context);
-}
-
-/// Returns the square root of the sum of the squares in the specified context.
-/// Decimal version of std.math function.
-public T hypot(T)(T x, T y, Context context)
-{
-	// special values
-	if (x.isInfinite || y.isInfinite) return T.infinity();
-    if (x.isZero) return y; //.copy;
-	if (y.isZero) return x; //.copy;
-	if (x.isNaN || y.isNaN) {
-		contextFlags.setFlags(INVALID_OPERATION);
-		return T.nan;
-	}
-
-	T a = x.copyAbs;
-    T b = y.copyAbs;
-	if (a < b) {
-		//swap operands
-		T t = a;
-		a = b;
-		b = t;
-	}
-    b = div(b ,a, context);
-    return mul(a, sqrt(add(T.one, sqr(b, context),context),context));
-}
-
-// TODO: (testing) Need to test operation near precisions where this operation is really useful.
-unittest {
-	write("-- hypot............");
-	dec9 x = 3;
-	dec9 y = 4;
-	dec9 expect = 5;
-	dec9 actual = hypot(x,y);
-	assertTrue(actual == expect);
-	assertEqual(actual, expect);
-	writeln("passed");
-}
-
 //--------------------------------
 // EXPONENTIAL AND LOGARITHMIC FUNCTIONS
 //--------------------------------
 
 mixin (GenUnaryFunction!("exp"));
+mixin (GenUnaryFunction!("expm1"));
 
+// FIXTHIS: incorrect results for negative numbers.
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-private T exp(T)(T x, Context inContext)
-{
-	if (x.isNegative) {
-		contextFlags.setFlags(INVALID_OPERATION);
-		return T.nan;
+private T exp(T)(T x, Context inContext) {
+	if (x.isInfinite) {
+		return x.isNegative ? T.zero : x;
 	}
 	auto context = guard(inContext);
 	T x0   = x;
 	T sqrx = sqr(x, context);
 	long n = 1;
-	T fact = 1;	// TODO: this should be bigint
+	T fact = 1;	// TODO: this could be bigint
 	T t1   = T.one;
 	T t2   = x0;
 	T term = add(t1, t2, context);
@@ -598,7 +542,7 @@ private T exp(T)(T x, Context inContext)
 		n   += 2;
 		t1   = mul(t2, mul(x0, n, context), context);
 		t2   = mul(t2, sqrx, context);
-		fact = mul(fact, (n * (n-1)), context);
+		fact = mul(fact, n*(n-1), context);
 		term = div(add(t1, t2, context), fact, context);;
 		sum  = add(sum, term, context);
 	}
@@ -630,39 +574,50 @@ unittest {
 	writeln("test missing");
 }
 +/
-/// Returns exp(x) - 1.
+
 /// expm1(x) will be more accurate than exp(x) - 1 for x near 1.
 /// Decimal version of std.math function.
 /// Reference: Beebe, Nelson H. F., "Computation of expm1(x) = exp(x) - 1".
-// TODO: (language) convert to context math function.
-public T expm1(T)(T x) {
+public T expm1(T)(T x, Context inContext) {
 	// special values
 	if (x.isZero) return x;
-	if (x.isInfinite) return x.isNegative ? T.nan : x;
-	if (x.isNaN) {
-		contextFlags.setFlags(INVALID_OPERATION);
-		return T.nan;
-     }
+	if (x.isInfinite) return x.isNegative ? -T.one : T.infinity;
+
+	auto context = guard(inContext);
+	T sum = T.zero;
 	// this function is only useful near zero
 	const T lower = T("-0.7");
 	const T upper = T("0.5");
-	if (x < lower || x > upper) return exp(x) - T.one;
-
-	T term = x;
-	T sum = T.zero;
-	long n = 1;
-	// TODO: (efficiency) make this test more efficient
-	while (term.copyAbs > T.epsilon) {
-		sum += term;
-		term *= (x / ++n);
+	if (x < lower || x > upper) {
+		sum = sub(exp(x, context), 1, context);
+//writefln("sum = %s", sum);
+		return roundToPrecision(sum, inContext);
 	}
-	return sum;
+
+//	auto context = guard(inContext);
+	T term = x;
+//	T sum = T.zero;
+	long n = 1;
+	while (term.copyAbs > T.epsilon(context)) {
+		sum = add(sum, term, context);
+		n++;
+		term = mul(term, div(x, n, context), context);
+	}
+	return roundToPrecision(sum, inContext);
 }
 
 // TODO: (testing) unittest this
 unittest {
-	write("expm1..........");
-	writeln("test missing");
+	write("-- expm1............");
+	dec9 num;
+	num = "0.1";
+	assertEqual(expm1(num), dec9("0.105170918"));
+	num = "-0.4";
+	assertEqual(expm1(num), dec9("-0.329679954"));
+	// FIXTHIS: incorrect result for negative numbers.
+//	num = "-2";
+//	assertEqual(expm1(num), dec9("-0.864664717"));
+	writeln("passed");
 }
 
 /// Decimal version of std.math function.
@@ -690,6 +645,9 @@ private T log(T)(T x, Context inContext) {
 	if (x.isInfinite) {
 		return T.infinity;
 	}
+//	int k = ilogb(x) + 1;
+//	T a = T(x.sign, x.coefficient, x.exponent - k);
+//	return log(a, context) + ln10!T(precision) * k;
 	auto context = guard(inContext);
 	T y = div(sub(x, 1, context), add(x, 1, context), context);
 	T ysqr = sqr(y, context);
@@ -780,13 +738,12 @@ writefln("log(x) = %s", log(x));
 	writeln("test missing");
 }
 
-/+
 /**
  * Decimal version of std.math.log2.
  * Required by General Decimal Arithmetic Specification
  */
-public Decimal log2T)(in T arg) {
-	Decimal result;
+public Decimal log2(T)(T x) {
+	T result = T.nan;
 	return result;
 }
 
@@ -795,11 +752,12 @@ unittest {
 	writeln("test missing");
 }
 
+
 /**
  * Decimal version of std.math.pow.
  * Required by General Decimal Arithmetic Specification
  */
-public Decimal powT)(T x, Decimal y) {
+public Decimal pow(T)(T x, Decimal y) {
 	return power(x,y);
 }
 
@@ -808,11 +766,12 @@ unittest {
 	writeln("test missing");
 }
 
+
 /**
  * power.
  * Required by General Decimal Arithmetic Specification
  */
-public Decimal powerT)(T x, Decimal y) {
+public Decimal power(T)(T x, T y) {
 	return exp(x*ln(y));
 }
 
@@ -820,7 +779,51 @@ unittest {
 	write("power..........");
 	writeln("test missing");
 }
-+/
+
+/// Returns the square root of the sum of the squares to the specified precision.
+/// Decimal version of std.math function.
+public T hypot(T)(T x, T y, int precision = T.precision) {
+	Context context = Context(precision, Rounding.HALF_EVEN);
+	return hypot!T(x, y, T.context);
+}
+
+/// Returns the square root of the sum of the squares in the specified context.
+/// Decimal version of std.math function.
+public T hypot(T)(T x, T y, Context context)
+{
+	// special values
+	if (x.isInfinite || y.isInfinite) return T.infinity();
+    if (x.isZero) return y; //.copy;
+	if (y.isZero) return x; //.copy;
+	if (x.isNaN || y.isNaN) {
+		contextFlags.setFlags(INVALID_OPERATION);
+		return T.nan;
+	}
+
+	T a = x.copyAbs;
+    T b = y.copyAbs;
+	if (a < b) {
+		//swap operands
+		T t = a;
+		a = b;
+		b = t;
+	}
+    b = div(b ,a, context);
+    return mul(a, sqrt(add(T.one, sqr(b, context),context),context));
+}
+
+// TODO: (testing) Need to test operation near precisions where this operation is really useful.
+unittest {
+	write("-- hypot............");
+	dec9 x = 3;
+	dec9 y = 4;
+	dec9 expect = 5;
+	dec9 actual = hypot(x,y);
+	assertTrue(actual == expect);
+	assertEqual(actual, expect);
+	writeln("passed");
+}
+
 //--------------------------------
 // TRIGONOMETRIC FUNCTIONS
 //--------------------------------
