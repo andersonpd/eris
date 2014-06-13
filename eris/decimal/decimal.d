@@ -1203,7 +1203,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 			return mul(this, arg, decimal.context);
 		}
 		else static if (op == "/") {
-			return div(this, decimal(arg), decimal.context);
+			return div(this, arg, decimal.context);
 		}
 		else static if (op == "%") {
 			return remainder(this, decimal(arg), decimal.context);

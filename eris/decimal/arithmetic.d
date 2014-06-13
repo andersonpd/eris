@@ -2532,7 +2532,7 @@ unittest {	// setInvalidFlag
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-private bool operandIsInvalid(T)(const T arg, ref T result)  {
+package bool operandIsInvalid(T)(const T arg, ref T result)  {
 	// if the operand is a signaling NaN...
 	if (arg.isSignaling) {
 		// flag the invalid operation

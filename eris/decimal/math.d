@@ -37,73 +37,71 @@ version(unittest) {
 // ROUNDING
 //--------------------------------
 
-// FIXTHIS: need to be able to use guarded numbers..
 /// Rounds the argument to an integer using the specified rounding mode.
 /// The default rounding mode is the current context mode.
-public T round(T)(const T arg, const Rounding mode = Rounding.HALF_EVEN) {
-	T value = roundToIntegralExact(arg, mode);
+public T round(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
+	// TODO: check for nan.
+	T value = roundToIntegralExact(x, mode);
 	return value;
 }
 
 /// Rounds the argument to the nearest integer. If the argument is exactly
 /// half-way between two integers the even integer is returned.
-public T rint(T)(const T arg) {
-	return round(arg, Rounding.HALF_EVEN);
+public T rint(T)(T x) {
+	return round(x, Rounding.HALF_EVEN);
 }
 
 /// Returns the nearest integer less than or equal to the argument.
 /// Rounds toward negative infinity.
-public T floor(T)(const T arg) {
-	return round(arg, Rounding.FLOOR);
+public T floor(T)(T x) {
+	return round(x, Rounding.FLOOR);
 }
 
 /// Returns the nearest integer greater than or equal to the argument.
 /// Rounds toward positive infinity.
-public T ceil(T)(const T arg) {
-	return round(arg, Rounding.CEILING);
+public T ceil(T)(T x) {
+	return round(x, Rounding.CEILING);
 }
 
 /// Returns the truncated argument.
 /// Rounds toward zero.
-public T trunc(T)(const T arg) {
-	return round(arg, Rounding.DOWN);
+public T trunc(T)(T x) {
+	return round(x, Rounding.DOWN);
 }
 
 /// Returns the nearest integer value. If the value is greater (less) than
 /// the maximum (minimum) int value the maximum (minimum) value is returned.
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
-public int toInt(T)(const T arg,
-		const Rounding mode = Rounding.HALF_EVEN) {
-	if (arg.isNaN) return 0;
-	if (arg.isInfinite) return arg.isNegative ? int.min : int.max;
-	return toBigInt(arg, mode).toInt;
+public int toInt(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
+	if (x.isNaN) return 0;	// TODO: (behavior) should throw.
+	if (x.isInfinite) return x.isNegative ? int.min : int.max;
+	return toBigInt(x, mode).toInt;
 }
 
 /// Returns the nearest long value. If the value is greater (less) than
 /// the maximum (minimum) long value the maximum (minimum) value is returned.
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
-public long toLong(T)(const T arg,
-		const Rounding mode = Rounding.HALF_EVEN) {
-	if (arg.isNaN) return 0;
-	if (arg.isInfinite) return arg.isNegative ? long.min : long.max;
-	return toBigInt(arg, mode).toLong;
+public long toLong(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
+	if (x.isNaN) return 0;	// TODO: (behavior) should throw.
+	if (x.isInfinite) return x.isNegative ? long.min : long.max;
+	return toBigInt(x, mode).toLong;
 }
 
 /// Returns the nearest extended integer value.
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
-public xint toBigInt(T)(const T arg,
+public xint toBigInt(T)(T x,
 		const Rounding mode = Rounding.HALF_EVEN) {
-	if (arg.isNaN) return xint(0);	// TODO: (behavior) should throw
-	if (arg.isInfinite) {			// TODO: (behavior) should throw
-		return arg.isNegative ? T.min.coefficient : T.max.coefficient;
+	if (x.isNaN) return xint(0);	// TODO: (behavior) should throw
+	if (x.isInfinite) {			// TODO: (behavior) should throw
+		return x.isNegative ? T.min.coefficient : T.max.coefficient;
 	}
-	if (arg.exponent != 0) {
-		return round(arg, mode).coefficient;
+	if (x.exponent != 0) {
+		return round(x, mode).coefficient;
 	}
-	return arg.coefficient;
+	return x.coefficient;
 }
 
 unittest {	// rounding
@@ -154,15 +152,8 @@ unittest {	// rounding
 template GenConstant(string name)
 {
 const char[] GenConstant =
-	"/// Returns the value of the constant at its built-in precision.\n" ~
-	"public T " ~ name ~ "(T)() {
-		static T value;
-		if (value.isNaN) value = " ~ name ~ "!T(T.precision);
-		return value;
-	}" ~
-
 	"/// Returns the value of the constant at the specified precision.\n" ~
-   	"public T " ~ name ~ "(T)(int precision) {
+   	"public T " ~ name ~ "(T)(int precision = T.precision) {
 		Context context = Context(precision, Rounding.HALF_EVEN);
 		static T value;
 		static int lastPrecision = 0;
@@ -174,6 +165,30 @@ const char[] GenConstant =
 		return roundToPrecision(value, precision);
 	}";
 }
+
+template GenUnaryFunction(string name)
+{
+const char[] GenUnaryFunction =
+	"/// Returns the value of the function at the specified precision.\n" ~
+   	"public T " ~ name ~ "(T)(T x, int precision = T.precision) {
+		if (x.isNaN) {
+			contextFlags.setFlags(INVALID_OPERATION);
+			return T.nan;
+		}
+		Context context = Context(precision, Rounding.HALF_EVEN);
+		return " ~ name ~ "!T(x, context);
+	}";
+}
+
+/*public T reciprocal(T)(T x, int precision = T.precision) {
+	// check for invalid operand
+	if (x.isNaN) {
+		contextFlags.setFlags(INVALID_OPERATION);
+		return T.nan;
+	}
+	Context context = Context(precision, Rounding.HALF_EVEN);
+	return reciprocal!T(x, context);
+}*/
 
 mixin (GenConstant!("pi"));
 mixin (GenConstant!("invPi"));
@@ -190,26 +205,25 @@ private Context guard(Context context, int guardDigits = 2) {
 
 /// Calculates the value of pi in the specified context.
 private T pi(T)(Context inContext) {
+	// increase the input precision
 	auto context = guard(inContext, 3);
-	int k = 1;
-	T a1 = T.one;
-	T b1 = sqrt1_2!T(context);
-	T s1 = T.half;
-	T a2, b2, s2;
-	while (!equals(a1, b1, context)) {
-//		a2 = (a1 + b1) * T.half;		// arithmetic mean
-//		b2 = sqrt(a1*b1);				// geometric mean
-//		s2 = s1 - k*(sqr(a2)-sqr(b2));  // weighted sum of the difference of the means
-//		pi = T.two * sqr(a2)/s2;
-		a2 = mul(T.half, add(a1, b1, context),context);
-		b2 = sqrt(mul(a1, b1, context), context);
+	// initialize AGM algorithm
+	long k = 1;
+	T a0 = T.one;
+	T b0 = sqrt1_2!T(context);
+	T s0 = T.half;
+	T a1, b1, s1;
+	// loop until the arithmetic mean equals the geometric mean
+	while (!equals(a0, b0, context)) {
+		a1 = mul(T.half, add(a0, b0, context),context);
+		b1 = sqrt(mul(a0, b0, context), context);
 		k *= 2;
-		s2 = sub(s1, mul(sub(sqr(a2, context), sqr(b2, context), context), k, context), context);
-		a1 = a2;
-		b1 = b2;
-		s1 = s2;
+		s1 = sub(s0, mul(sub(sqr(a1, context), sqr(b1, context), context), k, context), context);
+		a0 = a1;
+		b0 = b1;
+		s0 = s1;
 	}
-	T pi = mul(div(sqr(a2, context), s2, context), 2, context);
+	T pi = mul(div(sqr(a1, context), s1, context), 2, context);
 	// round the result in the original context
 	return roundToPrecision(pi, inContext);
 }
@@ -219,7 +233,7 @@ unittest {
 	assertStringEqual(dec9("3.14159265358979"), pi!dec9(15));
 	assertStringEqual(dec9("3.14159265"), pi!dec9);
 	assertStringEqual(dec9("3.141592653589793238462643"), pi!dec9(25));
-//writefln("pi!dec9(5) = %s", pi!dec9(5)); // TODO: (behavior) fails with small precision
+	assertStringEqual(dec9("3.1416"), pi!dec9(5));
 	writeln("passed");
 }
 //	immutable decimal PI = roundString("3.141592653589793238462643 3832795028841"
@@ -244,19 +258,18 @@ unittest {
 /// Returns the value of e in the specified context.
 private T e(T)(Context inContext) {
 	auto context = guard(inContext);
+	// initialize Taylor series.
 	long n = 2;
 	T term = T.one;
 	T sum  = T.one;
-	while (term > T.epsilon(context)) { // && n < 20) {
-		sum  = add(sum, term, context); //+= term;
-		term = div!T(term, T(n), context);
+	// loop until term is too small to affect the sum.
+	while (term > T.epsilon(context)) {
+		sum  = add(sum, term, context);
+		term = div!T(term, n, context);
 		n++;
 	}
 	return roundToPrecision(sum, inContext);
 }
-
-/// Returns e to the type precision.
-//public enum E(T) = e!T(T.precision);
 
 unittest {
 	write("-- e................");
@@ -265,15 +278,7 @@ unittest {
 	writeln("passed");
 }
 
-/*
-// TODO: why does this compile at the same time as the enum
-public T E(T)() {
-	static T value;
-writefln("value = %s", value);
-	return value? value : e(T.precision);
-}
-*/
-
+// TODO: (testing) unittest these.
 private T ln10(T)(Context context) {
 	return log(T.TEN, context);
 }
@@ -312,13 +317,12 @@ unittest {	// isOdd
 
 // TODO: (behavior) add bitshift function?
 
-public T reciprocal(T)(T x, int precision) {
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	return reciprocal!T(x, context);
-}
+mixin (GenUnaryFunction!("reciprocal"));
+mixin (GenUnaryFunction!("invSqrt"));
+mixin (GenUnaryFunction!("sqrt"));
+
 // NOTE: faster (is it?) but requires more precision
 private T reciprocal(T)(T x, Context inContext) {
-
 	// special values
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
@@ -326,12 +330,7 @@ private T reciprocal(T)(T x, Context inContext) {
 	}
 	if (x.copyAbs.isOne) return x;
 	if (x.isInfinite) return T.zero(x.sign);
-	if (x.isNaN) {
-		contextFlags.setFlags(INVALID_OPERATION);
-		return T.nan;
-	}
-
-	// extend precision
+	// extend working precision
 	auto context = guard(inContext);
 
 	// initial estimate
@@ -342,7 +341,6 @@ private T reciprocal(T)(T x, Context inContext) {
 	// Newton's method
 	while (true) {
 		x1 = x2;
-//		x2 = x1 * (2 - x0 * x1);
 		x2 = mul(x1, sub(T.two, mul(x0, x1, context), context), context);
 		if (equals(x1, x2 ,context)) break;
 	}
@@ -359,44 +357,31 @@ unittest {	// reciprocal
 	assertEqual(b, a);
 	num = dec9("12345678906789");
 	a = one/num;
-	b = reciprocal(num,10);
+	b = reciprocal(num);
 	assertEqual(b, a);
 	writeln("passed");
 }
 
-public T invSqrt(T)(T x) {
-	return invSqrt!T(x, T.precision);
-}
-
-public T invSqrt(T)(T x, int precision) {
+/*public T invSqrt(T)(T x, int precision = T.precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
 	return invSqrt!T(x, context);
-}
+}*/
 
 // TODO: (behavior) sometimes fails to break out of loop (e.g. reduce guard digits to +2)
-public T invSqrt(T)(T x, Context inContext = T.context) {
+public T invSqrt(T)(T x, Context inContext) {
 	// special values
-	if (x.isNaN) {
-		contextFlags.setFlags(INVALID_OPERATION);
-		return T.nan;
-	}
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return T.infinity(x.sign);
 	}
 	if (x.isOne) return x;
 	if (x.isInfinite) return T.zero(x.sign);
-
-	// extend precision slightly
-	Context context = Context(inContext.precision + 3, inContext.rounding);
-
+	// extend working precision
+	auto context = guard(inContext);
 	// operands
-	T x0 = x;
 	T x1, x2;
-//writefln("\n--- x0 = %s", x0);
-
 	// initial estimate
-	int k = ilogb(x0);
+	int k = ilogb(x);
 	if (isOdd(k)) {
 		x2 = T(2, -1);
 	}
@@ -405,23 +390,17 @@ public T invSqrt(T)(T x, Context inContext = T.context) {
 		k++;
 	}
 	const x3 = T(3);
-
 	// reduce the exponent
-	x0.exponent = x0.exponent - k - 1;
-
+	x.exponent = x.exponent - k - 1;
 	// Newton's method
-//	auto count = 0;
-//	while (count < 40) {
 	while (true) {
 		x1 = x2;
-//		x2 = x1 * T.half * (x3 - x0 * sqr(x1));
-		x2 = mul(x1, mul(T.half, sub(x3, mul(x0, sqr(x1, context), context), context), context), context);
+		x2 = mul(x1, mul(T.half, sub(x3, mul(x, sqr(x1, context), context), context), context), context);
 		if (equals(x1, x2, context)) break;
-//		count++;
 	}
 	// restore the exponent
 	x2.exponent = x2.exponent - k/2 - 1;
-	// round the result
+	// round the result in the input context
 	return roundToPrecision(x2, inContext);
 }
 
@@ -444,42 +423,40 @@ unittest {
 }
 
 
-public T sqrt(T)(T x) {
+/*public T sqrt(T)(T x) {
 	return sqrt!T(x, T.precision);
 }
 
 public T sqrt(T)(T x, int precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
 	return sqrt!T(x, context);
-}
+}*/
 
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
 public T sqrt(T)(T x, Context context) {
 	// special values
-	if (x.isNaN || x.isNegative) {
+	if (x.isNegative) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
 	}
 	if (x.isOne) return T.one;
 	if (x.isZero) return T.zero;
 	if (x.isInfinite) return T.infinity;
-
-	// guard the operands
-	T arg = T(x); //T.guard!T(x);
-	T old = T.zero; //T.guard!T.zero;
-	T est = T.zero; //T.guard!T.zero;
+	// initialize the operands
+	T x0 = T.zero;
+	T x1 = T.zero;
 
 	// reduce the exponent and estimate the result
-	int k = ilogb(arg);
+	int k = ilogb(x);
 	if (isOdd(k)) {
-		est = T(6, -1);
+		x1 = T(6, -1);
 	}
 	else {
-		est = T(2, -1);
+		x1 = T(2, -1);
 		k++;
 	}
-	arg.exponent = arg.exponent - k - 1;
+	x.exponent = x.exponent - k - 1;
 
 	// Newton's method
 	int count = 0;
@@ -487,18 +464,18 @@ public T sqrt(T)(T x, Context context) {
 	// possibly we are not using all the guard digits somewhere?
 	while(count < 200) { //(true) {
 		// save the previous value
-		old = est;
+		x0 = x1;
 		// calculate the new value
-		est = mul(T.half, add(old, div(arg, old, context), context), context);
+		x1 = mul(T.half, add(x0, div(x, x0, context), context), context);
 
-		// if new == old, we're done
-		if (equals(est, old, context)) break;
+		// if new == x0, we're done
+		if (equals(x1, x0, context)) break;
 		count++;
 	}
 	// restore the exponent
-	est.exponent = est.exponent + (k+1)/2;
+	x1.exponent = x1.exponent + (k+1)/2;
 	// round the result
-	return roundToPrecision(est, context);
+	return roundToPrecision(x1, context);
 }
 
 unittest {
@@ -598,18 +575,13 @@ unittest {
 // EXPONENTIAL AND LOGARITHMIC FUNCTIONS
 //--------------------------------
 
-/// Decimal version of a std.math function.
-/// Required by General Decimal Arithmetic Specification
-public T exp(T)(T x, int precision = T.precision) {
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	return exp(x, context);
-}
+mixin (GenUnaryFunction!("exp"));
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 private T exp(T)(T x, Context inContext)
 {
-	if (x.isNaN || x.isNegative) {
+	if (x.isNegative) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
 	}
@@ -617,7 +589,7 @@ private T exp(T)(T x, Context inContext)
 	T x0   = x;
 	T sqrx = sqr(x, context);
 	long n = 1;
-	T fact = T.one;
+	T fact = 1;	// TODO: this should be bigint
 	T t1   = T.one;
 	T t2   = x0;
 	T term = add(t1, t2, context);
@@ -662,10 +634,15 @@ unittest {
 /// expm1(x) will be more accurate than exp(x) - 1 for x near 1.
 /// Decimal version of std.math function.
 /// Reference: Beebe, Nelson H. F., "Computation of expm1(x) = exp(x) - 1".
+// TODO: (language) convert to context math function.
 public T expm1(T)(T x) {
-//	if (invalidOperand!T(arg, arg)) {
-	if (x.isNaN) return T.nan;
+	// special values
 	if (x.isZero) return x;
+	if (x.isInfinite) return x.isNegative ? T.nan : x;
+	if (x.isNaN) {
+		contextFlags.setFlags(INVALID_OPERATION);
+		return T.nan;
+     }
 	// this function is only useful near zero
 	const T lower = T("-0.7");
 	const T upper = T("0.5");
@@ -682,6 +659,7 @@ public T expm1(T)(T x) {
 	return sum;
 }
 
+// TODO: (testing) unittest this
 unittest {
 	write("expm1..........");
 	writeln("test missing");
@@ -689,44 +667,38 @@ unittest {
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
+// TODO: (efficiency) Move ilogb to context version.
 public T log(T)(T x, int precision = T.precision) {
 	Context context = Context(precision, Rounding.HALF_EVEN);
-	if (x.isNaN) return T.nan;
+	T nan;
+	if (operandIsInvalid!T(x, nan)) return nan;
 	int k = ilogb(x) + 1;
 	T a = T(x.sign, x.coefficient, x.exponent - k);
 	return log(a, context) + ln10!T(precision) * k;
 }
 
-// TODO: (language) this seems to compile but not used...?
-/// Returns pi to the type precision.
-//public enum PI(T) = pi!T(T.precision);
-
-//unittest {
-//	write("ln10...");
-//writefln("ln10!dec9(10) = %s", PI!dec9(10));
-//	writeln("test missing");
-//}
-
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 private T log(T)(T x, Context inContext) {
-	auto context = guard(inContext);
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
-		return T.infinity;
+		return -T.infinity;
 	}
 	if (x.isNegative) {
 		return T.nan;
 	}
-	T xc = x;
-	T y = div(sub(xc, 1, context), add(xc, 1, context), context);
+	if (x.isInfinite) {
+		return T.infinity;
+	}
+	auto context = guard(inContext);
+	T y = div(sub(x, 1, context), add(x, 1, context), context);
 	T ysqr = sqr(y, context);
 	T term = y;
 	T sum  = y;
 	long n = 3;
 	while (true) {
 		term = mul(term, ysqr, context);
-		T nsum = add(sum, div(term, T(n), context), context);
+		T nsum = add(sum, div(term, n, context), context);
 		if (equals(sum, nsum, context)) {
 			return roundToPrecision(mul(sum, 2, context), inContext);
 		}
@@ -734,28 +706,6 @@ private T log(T)(T x, Context inContext) {
 		n += 2;
 	}
 }
-
-/// Decimal version of std.math function.
-/// Required by General Decimal Arithmetic Specification
-/*private T calcLog(T)(const T x) {
-	T xc = x;
-//	xc.isGuarded = true;
-	T y = (xc - 1)/(xc + 1);
-	T yy = sqr(y);
-	T term = y;
-	T sum  = y;
-	long n = 3;
-	while (true) {
-		term *= yy;
-		auto nsum = sum + (term/n);
-		if (sum == nsum) {
-//			sum.isGuarded = false;
-			return roundToPrecision(sum * 2);
-		}
-		sum = nsum;
-		n += 2;
-	}
-}*/
 
 unittest {
 	write("log............");
@@ -771,6 +721,7 @@ writefln("log(dec9(\"99.999e+8\")) = %s", log(dec9("99.999e+88")));
  * log1p (== log(1 + x)).
  * Decimal version of std.math function.
  */
+// TODO: (language) convert to context math function.
 public T log1p(T)(T x) {
 	auto term = x;
 	auto pwr  = x;
@@ -789,6 +740,7 @@ public T log1p(T)(T x) {
 	return sum/ln10!T;
 }
 
+// TODO: (testing) unittest this.
 unittest {
 	write("log1p..........");
 	dec9 x = "0.1";
@@ -908,7 +860,7 @@ private T sin(T)(T x, Context inContext) {
 	int n = 1;
 	T powx = x;
 	T sqrx = sqr(x, context);
-	T fact = 1;
+	T fact = 1;	// TODO: this should be bigint
 	T term = powx;
 	while (term.copyAbs > T.epsilon(context)) {
 		sum = add(sum, term, context);
@@ -1011,7 +963,7 @@ public T cos(T)(T x, Context context) {
 	int n = 0;
 	T powx = 1;
 	T sqrx = sqr(x, context);
-	T fact = 1;
+	T fact = 1;	// TODO: this should be bigint
 	T term = powx;
 	while (term.copyAbs > T.epsilon(context)) {
 		sum = add(sum, term, context);
