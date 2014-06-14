@@ -201,10 +201,6 @@ const char[] GenUnaryFunction =
 mixin (GenConstant!("pi"));
 mixin (GenConstant!("invPi"));
 mixin (GenConstant!("e"));
-mixin (GenConstant!("ln10"));
-mixin (GenConstant!("ln2"));
-mixin (GenConstant!("sqrt2"));
-mixin (GenConstant!("sqrt1_2"));
 
 /// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
 private Context guard(Context context, int guardDigits = 2) {
@@ -286,13 +282,17 @@ unittest {
 	writeln("passed");
 }
 
-// TODO: (testing) unittest these.
+mixin (GenConstant!("ln10"));
+mixin (GenConstant!("ln2"));
+mixin (GenConstant!("sqrt2"));
+mixin (GenConstant!("sqrt1_2"));
+
 private T ln10(T)(Context context) {
-	return log(T.TEN, context);
+	return log(T.TEN, context, false);
 }
 
 private T ln2(T)(Context context) {
-	return log(T.TWO, context);
+	return log(T.TWO, context, false);
 }
 
 private T sqrt2(T)(Context context) {
@@ -303,10 +303,14 @@ private enum T sqrt1_2(T)(Context context) {
 	return sqrt(T.HALF, context);
 }
 
+// TODO: (testing) Test these at higher precisions
 unittest {
-	write("constants...");
-writefln("dec9.sqrt1_2 = %s", sqrt1_2!dec9);
-	writeln("test missing");
+	write("-- constants........");
+	assertEqual("2.30258509", ln10!dec9);
+	assertEqual("0.693147181", ln2!dec9);
+	assertEqual("1.41421356", sqrt2!dec9);
+	assertEqual("0.707106780", sqrt1_2!dec9);
+	writeln("passed");
 }
 //--------------------------------
 //	ALGEBRAIC FUNCTIONS
@@ -329,8 +333,8 @@ mixin (GenUnaryFunction!("reciprocal"));
 mixin (GenUnaryFunction!("invSqrt"));
 mixin (GenUnaryFunction!("sqrt"));
 
-// NOTE: faster (is it?) but requires more precision
 private T reciprocal(T)(T x, Context inContext) {
+
 	// special values
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
@@ -338,22 +342,22 @@ private T reciprocal(T)(T x, Context inContext) {
 	}
 	if (x.copyAbs.isOne) return x;
 	if (x.isInfinite) return T.zero(x.sign);
+
 	// extend working precision
 	auto context = guard(inContext);
 
 	// initial estimate
-	T x0 = x.reduce;
-	T x1 = T.zero;
-	T x2 = T(2, -ilogb(x0)-1);
+	x = x.reduce;
+	T a = T(2, -ilogb(x)-1);
 
 	// Newton's method
 	while (true) {
-		x1 = x2;
-		x2 = mul(x1, sub(T.two, mul(x0, x1, context), context), context);
-		if (equals(x1, x2 ,context)) break;
+		T b = a;
+		a = mul(b, sub(T.two, mul(x, b, context), context), context);
+		if (equals(b, a ,context)) break;
 	}
-	// round to input precision
-	return roundToPrecision(x2,inContext);
+	// round to the original precision
+	return roundToPrecision(a, inContext);
 }
 
 unittest {	// reciprocal
@@ -379,46 +383,42 @@ public T invSqrt(T)(T x, Context inContext) {
 	}
 	if (x.isOne) return x;
 	if (x.isInfinite) return T.zero(x.sign);
-	// extend working precision
+
+	// increase the working precision
 	auto context = guard(inContext);
-	// operands
-	T x1, x2;
+
 	// initial estimate
+	T a;
 	int k = ilogb(x);
 	if (isOdd(k)) {
-		x2 = T(2, -1);
+		a = T(2, -1);
 	}
 	else {
-		x2 = T(5, -1);
+		a = T(5, -1);
 		k++;
 	}
-	const x3 = T(3);
+	const t = T(3);
 	// reduce the exponent
 	x.exponent = x.exponent - k - 1;
 	// Newton's method
 	while (true) {
-		x1 = x2;
-		x2 = mul(x1, mul(T.half, sub(x3, mul(x, sqr(x1, context), context), context), context), context);
-		if (equals(x1, x2, context)) break;
+		T b = a;
+		a = mul(b, mul(T.half, sub(t, mul(x, sqr(b, context), context), context), context), context);
+		if (equals(b, a, context)) break;
 	}
 	// restore the exponent
-	x2.exponent = x2.exponent - k/2 - 1;
-	// round the result in the input context
-	return roundToPrecision(x2, inContext);
+	a.exponent = a.exponent - k/2 - 1;
+	// round to the original precision
+	return roundToPrecision(a, inContext);
 }
 
 unittest {
 	write("-- inverse sqrt.....");
-//	assertEqual(invSqrt(dec9.two, 11), dec9("0.707106781"));
 	assertEqual(invSqrt(dec9(2))/*),11)*/, dec9("0.707106781"));
-//writefln("invSqrt(dec9(2), 14) = %s", invSqrt(dec9(2), 14));
 	assertEqual(invSqrt(dec9(2), 14)/*),11)*/, dec9("0.70710678118655"));
 	assertEqual(invSqrt(dec9(20))/*),11)*/, dec9("0.223606798"));
-//	assertEqual(invSqrt(dec9(20))/*,11)*/, dec9("2.23606798E-8"));
 	assertEqual(invSqrt(dec9(300))/*,11)*/, dec9("0.0577350269"));
 	assertEqual(invSqrt(dec9(4000),11), dec9("0.0158113883"));
-//	assertEqual(invSqrt(dec9(50000),7), dec9("0.00000141421356"));
-//	assertEqual(invSqrt(dec9(600000),29), dec9("4.08248290E-18"));
 	assertEqual(invSqrt(dec9(98763)), dec9("0.00318201969"));
 	assertEqual(invSqrt(dec9(98763098)), dec9("0.000100624248"));
 	assertEqual(invSqrt(dec9(9876387982347)), dec9("3.18200552E-7"));
@@ -437,81 +437,40 @@ public T sqrt(T)(T x, Context context) {
 	if (x.isOne) return T.one;
 	if (x.isZero) return T.zero;
 	if (x.isInfinite) return T.infinity;
-	// initialize the operands
-	T x0 = T.zero;
-	T x1 = T.zero;
 
 	// reduce the exponent and estimate the result
+	T a;
 	int k = ilogb(x);
 	if (isOdd(k)) {
-		x1 = T(6, -1);
+		a = T(6, -1);
 	}
 	else {
-		x1 = T(2, -1);
+		a = T(2, -1);
 		k++;
 	}
 	x.exponent = x.exponent - k - 1;
 
 	// Newton's method
-	int count = 0;
-	// TODO: estimated value may cycle with lots of guard digits.
-	// possibly we are not using all the guard digits somewhere?
-	while(count < 200) { //(true) {
-		// save the previous value
-		x0 = x1;
-		// calculate the new value
-		x1 = mul(T.half, add(x0, div(x, x0, context), context), context);
-
-		// if new == x0, we're done
-		if (equals(x1, x0, context)) break;
-		count++;
+	while(true) {
+		T b = a;
+		a = mul(T.half, add(b, div(x, b, context), context), context);
+		if (equals(a, b, context)) break;
 	}
 	// restore the exponent
-	x1.exponent = x1.exponent + (k+1)/2;
+	a.exponent = a.exponent + (k+1)/2;
 	// round the result
-	return roundToPrecision(x1, context);
+	return roundToPrecision(a, context);
 }
 
 unittest {
 	write("-- square root......");
-//writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9.two, 11));
-//writefln("sqrt(t.TWO, 30) = %s", sqrt(dec9.two, 30));
-//writefln("sqrt(t.TWO, 25) = %s", sqrt(dec9.two, 25));
-
-//auto r1 = sqrt(dec9(2));
-//auto r2 = reciprocal(r1);
-//auto r3 = sqrt(r2);
-//writefln("r1 = %s", r1);
-//writefln("r2 = %s", r2);
-//writefln("r3 = %s", r3);
-
-//writeln;
-/*for (int i = 0; i < 10; i++) {
-	dec9 val = dec9(3, i);
-//	writefln("val = %s", val);
-	writefln("sqrt(val) = %s", sqrt(val));
-}*/
-/*sqrt(val) = 1.73205081
-sqrt(val) = 5.47722560
-sqrt(val) = 17.3205081
-sqrt(val) = 54.7722560
-sqrt(val) = 173.205081
-sqrt(val) = 547.722560
-sqrt(val) = 1732.05081
-sqrt(val) = 5477.22560
-sqrt(val) = 17320.5081
-sqrt(val) = 54772.2560*/
-
-assertEqual(sqrt(dec9(2)), dec9("1.41421356"));
-// 1.41421356237310
-// 0.707106781186548
-// 0.840896415253715
-assertEqual(sqrt(dec9(dec9.one/sqrt(dec9(2)))), dec9("0.840896415"));
-assertEqual(sqrt(dec9(200)), dec9("14.1421356"));
-assertEqual(sqrt(dec9(25)), dec9("5.00000000"));
-assertEqual(sqrt(dec9(2E-5)), dec9("0.00447213596"));
-assertEqual(sqrt(dec9(1E-15)), dec9("3.16227766E-8"));
-assertEqual(sqrt(dec9(1E-16)), dec9("1.00000000E-8"));
+	assertEqual(sqrt(dec9(2)), dec9("1.41421356"));
+	assertEqual(sqrt(dec9(dec9.one/sqrt(dec9(2)))), dec9("0.840896415"));
+	assertEqual(sqrt(dec9(200)), dec9("14.1421356"));
+	assertEqual(sqrt(dec9(25)), dec9("5.00000000"));
+	assertEqual(sqrt(dec9(2E-5)), dec9("0.00447213596"));
+	assertEqual(sqrt(dec9(1E-15)), dec9("3.16227766E-8"));
+	assertEqual(sqrt(dec9(1E-16)), dec9("1.00000000E-8"));
 	writeln("passed");
 }
 
@@ -530,17 +489,16 @@ private T exp(T)(T x, Context inContext) {
 		return x.isNegative ? T.zero : x;
 	}
 	auto context = guard(inContext);
-	T x0   = x;
 	T sqrx = sqr(x, context);
 	long n = 1;
-	T fact = 1;	// TODO: this could be bigint
+	T fact = 1;
 	T t1   = T.one;
-	T t2   = x0;
+	T t2   = x;
 	T term = add(t1, t2, context);
 	T sum  = term;
 	while (term > T.epsilon(context)) {
 		n   += 2;
-		t1   = mul(t2, mul(x0, n, context), context);
+		t1   = mul(t2, mul(x, n, context), context);
 		t2   = mul(t2, sqrx, context);
 		fact = mul(fact, n*(n-1), context);
 		term = div(add(t1, t2, context), fact, context);;
@@ -620,21 +578,15 @@ unittest {
 	writeln("passed");
 }
 
-/// Decimal version of std.math function.
-/// Required by General Decimal Arithmetic Specification
-// TODO: (efficiency) Move ilogb to context version.
-public T log(T)(T x, int precision = T.precision) {
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	T nan;
-	if (operandIsInvalid!T(x, nan)) return nan;
-	int k = ilogb(x) + 1;
-	T a = T(x.sign, x.coefficient, x.exponent - k);
-	return log(a, context) + ln10!T(precision) * k;
-}
+mixin (GenUnaryFunction!("log"));
+mixin (GenUnaryFunction!("log1p"));
+mixin (GenUnaryFunction!("log10"));
+mixin (GenUnaryFunction!("log2"));
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-private T log(T)(T x, Context inContext) {
+// TODO: efficiency) see Natural Logarithm, Wikipedia.
+private T log(T)(T x, Context inContext, bool reduceArg = true) {
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return -T.infinity;
@@ -645,70 +597,74 @@ private T log(T)(T x, Context inContext) {
 	if (x.isInfinite) {
 		return T.infinity;
 	}
-//	int k = ilogb(x) + 1;
-//	T a = T(x.sign, x.coefficient, x.exponent - k);
-//	return log(a, context) + ln10!T(precision) * k;
 	auto context = guard(inContext);
-	T y = div(sub(x, 1, context), add(x, 1, context), context);
-	T ysqr = sqr(y, context);
-	T term = y;
-	T sum  = y;
+	int k;
+	if (reduceArg) {
+		k = ilogb(x) + 1;
+		x.exponent = x.exponent - k;
+	}
+	T a = div(sub(x, 1, context), add(x, 1, context), context);
+	T b = sqr(a, context);
+	T c = a;
 	long n = 3;
 	while (true) {
-		term = mul(term, ysqr, context);
-		T nsum = add(sum, div(term, n, context), context);
-		if (equals(sum, nsum, context)) {
-			return roundToPrecision(mul(sum, 2, context), inContext);
+		c = mul(c, b, context);
+		T d = add(a, div(c, n, context), context);
+		if (equals(a, d, context)) {
+			T ln = mul(a, 2, context);
+			if (reduceArg) {
+				ln = add(ln, mul(ln10!T(context), k, context));
+			}
+			return roundToPrecision(ln, inContext);
 		}
-		sum = nsum;
+		a = d;
 		n += 2;
 	}
 }
 
 unittest {
-	write("log............");
-writeln;
+	write("-- log..............");
 	dec9 one = dec9.one;
-writefln("log(exp(one)) = %s", log(exp(one)));
-writefln("log(dec9(10)) = %s", log(dec9(10)));
-writefln("log(dec9(\"99.999e+8\")) = %s", log(dec9("99.999e+88")));
-	writeln("test missing");
+	assertEqual(log(exp(one)), one);
+	assertEqual(log(dec9(10)), "2.30258509");
+	assertEqual(log(dec9(123.45)), "4.81583622");
+	assertEqual(log(dec9("99.999E+8")), "23.0258409");
+	writeln("passed");
 }
 
 /**
  * log1p (== log(1 + x)).
  * Decimal version of std.math function.
  */
-// TODO: (language) convert to context math function.
-public T log1p(T)(T x) {
-	auto term = x;
-	auto pwr  = x;
-	auto sum  = T.zero;
-	auto n    = T.one;
-	while (true) {
-		sum += term;
-		pwr = -pwr * x;
+// TODO: (behavior) use bounds like expm1?
+public T log1p(T)(T x, Context inContext) {
+	T term = x;
+	T pwr  = x;
+	T sum  = T.zero;
+	T n    = T.one;
+	auto context = guard(inContext);
+	while (term.copyAbs >= T.epsilon(context)) {
+		sum = add(term, sum, context);
+		pwr = mul(-pwr, x, context);// * x;
 		n++;
-		term = pwr/n;
-		if (term.copyAbs < T.epsilon) {
-			sum += term;
-			break;
-		}
+		term = div(pwr, n, context);
 	}
-	return sum/ln10!T;
+	sum = add(term, sum, context);
+	return roundToPrecision(sum, inContext);
 }
 
 // TODO: (testing) unittest this.
 unittest {
-	write("log1p..........");
+	write("-- log1p............");
 	dec9 x = "0.1";
-writefln("log1p(x) = %s", log1p(x));
-	writeln("test missing");
+	assertEqual(log1p(x), "0.095310179804");
+	assertStringEqual(log1p(x, 14), "0.095310179814325");
+	writeln("passed");
 }
 
 /// Decimal version of std.math.log10.
 /// Required by General Decimal Arithmetic Specification
-public T log10(T)(const T x) {
+public T log10(T)(T x, Context inContext) {
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return T.infinity;
@@ -716,42 +672,40 @@ public T log10(T)(const T x) {
 	if (x.isNegative) {
 		return T.nan;
 	}
+	auto context = guard(inContext);
 	int k = ilogb(x) + 1;
-	T a = T(x.sign, x.coefficient, x.exponent - k);
-	return log(a)/ln10!T + k;
+	x.exponent = x.exponent - k;
+	T lg = add(div(log(x, context), ln10!T(context)), k);
+	return roundToPrecision(lg, inContext);
 }
 
 unittest {
-	writeln("log10..........");
+	write("-- log10............");
 	dec9 x = dec9("2.55");
-writefln("x = %s", x);
-writefln("log(x) = %s", log10(x));
-writeln("std.math.log10(2.55) = ", std.math.log10(2.55));
+	assertEqual(log10(x), dec9("0.40654018"));
 	x = 123.456;
-writefln("x = %s", x);
-writefln("log(x) = %s", log10(x));
-writeln("std.math.log(123.456) = ", std.math.log10(123.456));
+	assertEqual(log10(x), dec9("2.09151220"));
 	x = 10.0;
-writefln("x = %s", x);
-writefln("log(x) = %s", log(x));
-
-	writeln("test missing");
+	assertEqual(log10(x), 1);
+	writeln("passed");
 }
 
 /**
  * Decimal version of std.math.log2.
  * Required by General Decimal Arithmetic Specification
  */
-public Decimal log2(T)(T x) {
-	T result = T.nan;
-	return result;
+public T log2(T)(T x, Context inContext) {
+	auto context = guard(inContext);
+	T lb = div(log(x, context), ln2!T(context), context);
+	return roundToPrecision(lb, inContext);
 }
 
 unittest {
-	write("log2...........");
-	writeln("test missing");
+	write("-- log2.............");
+	assertEqual(log2(dec9(10)), dec9("3.32192809"));
+	assertEqual(log2(e!dec9), dec9("1.44269504"));
+	writeln("passed");
 }
-
 
 /**
  * Decimal version of std.math.pow.

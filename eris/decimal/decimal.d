@@ -1028,7 +1028,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// A NaN is not equal to any number, not even to another NaN.
 	/// A number is not even equal to itself (this != this) if it is a NaN.
 	const bool opEquals(T:decimal)(const T that) {
-		return equals!T(this, that/*, rounding*/);
+		return equals!T(this, that);
 	}
 
 /*	/// Returns true if this extended integer is equal to the argument.

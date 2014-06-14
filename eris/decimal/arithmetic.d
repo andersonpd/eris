@@ -608,8 +608,8 @@ public int compare(T)(in T x, in T y, in Context context = T.context) {
 	// compare the magnitudes of the numbers
 	T xr = x.reduce;
 	T yr = y.reduce;
-	int diff = (x.exponent + x.digits) - (y.exponent + y.digits);
-	if (diff != 0)
+	int diff = (xr.exponent + xr.digits) - (yr.exponent + yr.digits);
+	if (diff != 0) {
 		if (!x.sign) {
 			if (diff > 0) return 1;
 			if (diff < 0) return -1;
@@ -618,7 +618,7 @@ public int compare(T)(in T x, in T y, in Context context = T.context) {
 			if (diff > 0) return -1;
 			if (diff < 0) return 1;
 		}
-
+	}
 	// align the operands
  	T xx = x.dup;
 	T yy = y.dup;
@@ -659,54 +659,61 @@ unittest {	// compare
 /// A decimal NaN is not equal to itself (this != this).
 /// This function is not included in the specification.
 /// Flags: INVALID_OPERATION
-public bool equals(T)(in T x, in T y, in Context context = T.context) {
+public bool equals(T)(in T x, in T y, Context context = T.context) {
 
+// if (T.verbose) writeln("step 1");
 	// any operation with a signaling NaN is invalid.
 	if (x.isSignaling || y.isSignaling) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return false;
 	}
+// if (T.verbose) writeln("step 2");
 	// if either is NaN...
 	// NaN is never equal to any number, not even another NaN
 	if (x.isNaN || y.isNaN) return false;
 
+// if (T.verbose) writeln("step 3");
 	// if they are identical...
 	if (x is y) return true;
 
+// if (T.verbose) writeln("step 4");
 	// if either is infinite...
 	if (x.isInfinite || y.isInfinite) {
 		return (x.isInfinite && y.isInfinite && x.isSigned == y.isSigned);
 	}
 
+// if (T.verbose) writeln("step 5");
 	// if either is zero...
 	if (x.isZero || y.isZero) {
 		return (x.isZero && y.isZero);
 	}
 
+// if (T.verbose) writeln("step 6");
 	// if their signs differ...
 	if (x.sign != y.sign) return false;
 
+// if (T.verbose) writeln("step 7");
 	// if they have the same representation, they are equal
 	if (x.exponent == y.exponent && x.coefficient == y.coefficient) {
 		return true;
 	}
+// if (T.verbose) writeln("step 8");
 
 	// restrict operands to current precision
-	// NOTE: they will be rounded to the guarded precision
 	T rx, ry;
-//	if (x.isGuarded || y.isGuarded) {
-//		rx.isGuarded = true;
-//		ry.isGuarded = true;
-//	}
 	rx = roundToPrecision(x, context);
 	ry = roundToPrecision(y, context);
 
+// if (T.verbose) writeln("step 9");
+// if (T.verbose) writefln("rx = %s", rx.toExact);
+// if (T.verbose) writefln("ry = %s", ry.toExact);
 	// if they have different magnitudes, they are not equal
-	int diff = (rx.exponent + rx.digits) - (ry.exponent + ry.digits);
-//writefln("diff = %s", diff);
+/*	int diff = (rx.exponent + rx.digits) - (ry.exponent + ry.digits);
+// if (T.verbose) writefln("diff = %s", diff);
 	if (diff != 0) {
 		return false;
-	}
+	}*/
+// if (T.verbose) writeln("step 10");
 //	else {
 //
 //writefln("diff = %s", diff);
@@ -719,10 +726,24 @@ public bool equals(T)(in T x, in T y, in Context context = T.context) {
 //
 //}
 
+	// align the operands
+// 	T xx = x.dup;
+//	T yy = y.dup;
+// if (T.verbose) writefln("rx = %s", rx);
+// if (T.verbose) writefln("ry = %s", ry);
+	alignOps!T(rx, ry);
+// if (T.verbose) writefln("rx = %s", rx);
+// if (T.verbose) writefln("ry = %s", ry);
+	return rx.coefficient == ry.coefficient;
+
+/*	// They have the same exponent after alignment.
+	// The only difference is in the coefficients.
+    int comp = xcompare(xx.coefficient, yy.coefficient);
+	return x.sign ? -comp : comp;
     rx = reduce(rx, context);
     ry = reduce(ry, context);
 	// otherwise they are equal if they represent the same value
-	return rx.coefficient == ry.coefficient;
+	return rx.coefficient == ry.coefficient;*/
 }
 
 unittest {	// equals
