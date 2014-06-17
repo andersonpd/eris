@@ -650,6 +650,7 @@ public T log1p(T)(T x, Context inContext) {
 		term = div(pwr, n, context);
 	}
 	sum = add(term, sum, context);
+//writefln("sum = %s", sum);
 	return roundToPrecision(sum, inContext);
 }
 
@@ -658,7 +659,6 @@ unittest {
 	write("-- log1p............");
 	dec9 x = "0.1";
 	assertEqual(log1p(x), "0.095310179804");
-	assertStringEqual(log1p(x, 14), "0.095310179814325");
 	writeln("passed");
 }
 
@@ -869,11 +869,11 @@ writefln("test = %s", test);
 //	/*dec9*/ test = dec9("1");
 //	/*dec9*/ test = dec9("0.5");
 //	writeln("sin(22) = -0.008851309290403875921690256815772332463289203951");
-dec9.verbose = true;
+//dec9.verbose = true;
 writefln("test = %s", test);
 	writefln("sin(test) = %s", sin(dec9(2)));
 	writefln("sin(2) = %s", sin(dec9(2), 12));
-dec9.verbose = false;
+//dec9.verbose = false;
 /*
 //	popContext();
 	writefln("sin(101.23456789) = %s", sin(dec9("101.23456789"), 25));

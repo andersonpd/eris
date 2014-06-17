@@ -882,6 +882,14 @@ version(unittest) {
 		return mulDigit(x, nx, k);
 	}
 
+unittest {
+	write("mulDigit...");
+		digit[] x = [0x0,0x1];
+		int nx = 2;
+		digit k = 2147483648;
+		x = mulDigit(x, nx, k);
+	writeln("test missing");
+}
 	/// Returns the product of a digit array of specified length
 	/// and a single digit
 	@safe
@@ -983,6 +991,9 @@ version(unittest) {
 
 	unittest {
 		write("-- exponentiation...");
+		digit[] x = [0xA];
+		int y = 12;
+		digit[] z = powDigits(x,y);
 		digit[] b = [0xC2BA7913U];
 		digit e = 4;
 		digit[] p = powDigits(b, e);
@@ -1041,6 +1052,18 @@ version(unittest) {
 	public digit[] divmodDigits(
 		ref digit[] x, int nx, ref digit[] y, int ny, out digit[] mod) {
 
+
+		if (ny == 1) {
+			digit m;
+			digit[] q = divmodDigit(x, nx, y[0], m);
+			mod = [m];
+			return q;
+		}
+		// TODO: why does the algorithm fail if x == y?
+		if (x == y) {
+			mod = [0];
+			return [1];
+		}
 		// normalize the operands
 		digit k = divDigit([0u, 1u], y[ny-1]+1)[0];
 		if (k != 1) {
@@ -1052,12 +1075,11 @@ version(unittest) {
 
 		digit[] q = new digit[nx-ny+1];
 		digit[] ys = shlDigits(y, nx-ny);
-		while (compareDigits(x,ys) >= 0) {
+		while (compareDigits(x,ys) > 0) {
 			x = subDigits(x, ys);
+			q = addDigit(q,1);
 		}
 
-//		nx = numDigits(x); // NEW
-//		ny = numDigits(y); // NEW
 		for (int i = nx-1; i >= ny; i--) {
 			int ix = i-ny;
 			if (x[i] == y[ny-1]) {
@@ -1076,8 +1098,10 @@ version(unittest) {
 			if (compareDigits(x, xs) < 0) {
 				q[ix]--;
 				xs = subDigits(xs, yb);
+//			q = addDigit(q,1);
 			}
 			x = subDigits(x, xs);
+//			q = addDigit(q,1);
 		}
 		mod = k == 1 ? x : divDigit(x, k);
 		return q;
@@ -1228,9 +1252,11 @@ version(unittest) {
 		assertEqual(output, [720498403, 2603564298, 3500933789, 3]);
 		value = modDigit(input, k);
 		assertEqual(value, 515229601);
-		input = [10];
-		divisor = [10];
+		input = [2,1];
+		divisor = [1,1];
 		output = modDigits(input, divisor);
+		reduce(output);
+		assertEqual(output, [1]);
 		writeln("passed");
 	}
 
@@ -1380,6 +1406,11 @@ version(unittest) {
 		}
 		return shifted;
 	}
+
+unittest {
+	write("shiftRight...");
+	writeln("test missing");
+}
 
 	// shifts by whole digits (not bits)
 	@safe

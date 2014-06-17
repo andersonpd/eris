@@ -1280,10 +1280,9 @@ public struct ExtendedInt {
 		x = xint("1234567890");
 		y = xint("123456789");
 		assertEqual(x/y, 10);
-y = "10000000000";
-x = "22345678901234"; //89012345";
-//x = "25891234567890"; //89012345";
-assertEqual(x/y, 2234);
+		y = "10000000000";
+		x = "22345678901234"; //89012345";
+		assertEqual(x/y, 2234);
 		x = xint("145678901234567890");
 		y = xint("14567890123456789");
 		assertEqual(x/y, 10);
@@ -1337,14 +1336,12 @@ assertEqual(x/y, 2234);
 	}
 
 	/// Raises an extended integer to an integer power.
-//writefln("ny = %s", ny);
 	@safe
 	private static xint pow(const xint x, const xint y) {
 		return xint(pow(x, y.toUint));
 	}
 
 	/// Raises an extended integer to an integer power.
-//writefln("ny = %s", ny);
 	@safe
 	private static xint pow(const xint x, const int n) {
 		if (n < 0) throw new InvalidOperationException();
@@ -1360,6 +1357,10 @@ assertEqual(x/y, 2234);
 		x = 3;
 		y = 2;
 		assertEqual(x^^y, 9);
+		x = 10;
+		y = 12;
+		xint z = x^^y;
+		assertEqual(z, xint(1000000000000));
 		writeln("passed");
 	}
 
@@ -1406,6 +1407,14 @@ assertEqual(x/y, 2234);
 		return xint(array);
 	}
 
+unittest {
+	write("shr...");
+	xint a = "1_000_000_000_000_000";
+	uint b = 15;
+	xint c = shr(a,b);
+	assertEqual(c, xint(0x00000007_1AFD498D));
+	writeln("passed");
+}
 	// FIXTHIS: no logical shift??
 
 //--------------------------------

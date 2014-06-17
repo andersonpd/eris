@@ -46,13 +46,17 @@ public T roundToPrecision(T)(in T num,
 /// Rounds the referenced number using the precision and rounding mode of
 /// the context parameter.
 /// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
+	int step = 1;
+if (T.verbose) writefln("step = %s", step++);
 	//@safe
 	T result = num.dup;	// copy the input
 
 	if (rounding == Rounding.NONE) return result;
+if (T.verbose) writefln("step = %s", step++);
 
 	// special values aren't rounded
 	if (!num.isFinite) return result;
+if (T.verbose) writefln("step = %s", step++);
 
 	// zero values aren't rounded, but they are checked for
 	// subnormal and out of range exponents.
@@ -66,6 +70,7 @@ public T roundToPrecision(T)(in T num,
 		}
 		return result;
 	}
+if (T.verbose) writefln("step = %s", step++);
 
 	// handle subnormal numbers
 	if (num.isSubnormal()) {
@@ -84,17 +89,21 @@ public T roundToPrecision(T)(in T num,
 		}
 		return result;
 	}
+if (T.verbose) writefln("step = %s (overflow 1)", step++);
 
 	// Don't round the number if it is too large to represent
 	if (overflow(result, rounding)) return result;
+if (T.verbose) writefln("step = %s", step++);
 	// round the number
 //	if (result.isGuarded) {
 //		roundByMode(result, precision + T.guardDigits, rounding);
 //	}
 //	else {
+if (T.verbose) writefln("step = %s (mode)", step++);
 		roundByMode(result, precision, rounding);
 //	}
 	// check again for an overflow
+if (T.verbose) writefln("step = %s (overflow 2)", step++);
 	overflow(result, rounding);
 	return result;
 
@@ -750,20 +759,46 @@ unittest {	// shiftLeft(xint)
 	return num;
 }*/
 
+bool verbose = false;
 /// Shifts the number right the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted left.
 public xint shiftRight(xint num, const int n) {
 //		const int precision) { // = Decimal.context.precision) {
+
 	if (n > 0) {
+//if (verbose) writefln("num in = %s", num);
 		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
+if (verbose) writefln("fives  = %s", fives);
 		num = num >> n;
+if (verbose) writefln("shift  = %s", n);
+if (verbose) writefln("shiftd = %s", num);
 		num /= fives;
+if (verbose) writefln("num/5  = %s", num);
 	}
 	if (n < 0) {
 		num = shiftLeft(num, -n/*, precision*/);
 	}
 	return num;
+}
+
+unittest {
+	write("shiftRight...");
+	xint num = "1000000000000000";
+verbose = true;
+	for (int i = 1; i < 25; i++) {
+	num = xint(10)^^i;
+	writefln("\ni = %s", i);
+	writefln("num = %s", num);
+	xint res = shiftRight(num, i);
+	writefln("res = %s", res);
+}
+//	num = 10;
+//	writefln("num = %s", num);
+//	res = shiftRight(num, 1);
+//	writefln("res = %s", res);
+verbose = false;
+	writeln("test missing");
 }
 
 /*/// Shifts the number right the specified number of decimal digits.

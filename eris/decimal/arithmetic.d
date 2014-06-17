@@ -449,8 +449,9 @@ unittest {	// plus
 /// the argument.
 /// Implements the 'next-plus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
-public T nextPlus(T)(in T x, in Context context = T.context) {
+public T nextPlus(T)(in T x, Context context = T.context) {
 	T nan;
+	// TODO: (efficiency) check the spec. can return payload??
 	if (operandIsInvalid!T(x, nan)) return nan;
 
 	if (x.isInfinite) {
@@ -468,11 +469,11 @@ public T nextPlus(T)(in T x, in Context context = T.context) {
 	}
 	// (A)TODO: (behavior) must add the increment w/o setting flags
 	T y = T(1L, adjustedExpo);
-	T next = add(x, y, context);
-	if (next > T.max) {
-		next = T.infinity;
+	T z = add(x, y, context);
+		if (z > T.max) {
+		z = T.infinity;
 	}
-	return next;
+	return z;
 }
 
 /// Returns the largest representable number that is smaller than
@@ -480,7 +481,6 @@ public T nextPlus(T)(in T x, in Context context = T.context) {
 /// Implements the 'next-minus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
 public T nextMinus(T)(in T x, in Context context = T.context) {
-
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
 		return nan;
@@ -494,18 +494,18 @@ public T nextMinus(T)(in T x, in Context context = T.context) {
 		}
 	}
 	// This is necessary to catch the special case where the coefficient == 1
-	T reduced = reduce!T(x, context);
-	int adjustedExpo = reduced.exponent + reduced.digits - context.precision;
+	T z = reduce!T(x, context);
+	int adjustedExpo = z.exponent + z.digits - context.precision;
 	if (x.coefficient == 1) adjustedExpo--;
 	if (adjustedExpo < T.tinyExpo) {
 		return T(0L, T.tinyExpo);
 	}
-	T addend = T(1, adjustedExpo);
-	reduced = sub!T(x, addend, context);	// TODO: (behavior) are the flags set/not set correctly?
-		if (reduced < copyNegate(T.max)) {
-		reduced = copyNegate(T.infinity);
+	T y = T(1L, adjustedExpo);
+	z = sub!T(x, y, context);	// TODO: (behavior) are the flags set/not set correctly?
+		if (z < copyNegate(T.max)) {
+		z = copyNegate(T.infinity);
 	}
-	return reduced;
+	return z;
 }
 
 /// Returns the representable number that is closest to the first operand
@@ -524,7 +524,7 @@ public T nextToward(T)(in T x, in T y, in Context context = T.context) {
 	return roundToPrecision(copySign(x,y), context);
 }
 
-unittest {	// nextPlus
+unittest {
 	write("-- next.............");
 	dec9 arg, expect, actual;
 	arg = 1;
@@ -609,7 +609,7 @@ public int compare(T)(in T x, in T y, in Context context = T.context) {
 	T xr = x.reduce;
 	T yr = y.reduce;
 	int diff = (xr.exponent + xr.digits) - (yr.exponent + yr.digits);
-	if (diff != 0) {
+/*	if (diff != 0) {
 		if (!x.sign) {
 			if (diff > 0) return 1;
 			if (diff < 0) return -1;
@@ -618,12 +618,11 @@ public int compare(T)(in T x, in T y, in Context context = T.context) {
 			if (diff > 0) return -1;
 			if (diff < 0) return 1;
 		}
-	}
+	}*/
 	// align the operands
  	T xx = x.dup;
 	T yy = y.dup;
 	alignOps!T(xx, yy);
-
 	// They have the same exponent after alignment.
 	// The only difference is in the coefficients.
     int comp = xcompare(xx.coefficient, yy.coefficient);
@@ -635,7 +634,9 @@ unittest {	// compare
 	dec9 x, y;
 	x = dec9(2.1);
 	y = dec9(3);
-	assertEqual(compare(x, y), -1);
+/*writeln(" --- ");
+writefln("x = %s", x);
+writefln("y = %s", y);*/
 	assertEqual(compare(y, x), 1);
 	y = -y;
 	assertEqual(compare(x, y), 1);
@@ -661,59 +662,46 @@ unittest {	// compare
 /// Flags: INVALID_OPERATION
 public bool equals(T)(in T x, in T y, Context context = T.context) {
 
-// if (T.verbose) writeln("step 1");
 	// any operation with a signaling NaN is invalid.
 	if (x.isSignaling || y.isSignaling) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return false;
 	}
-// if (T.verbose) writeln("step 2");
 	// if either is NaN...
 	// NaN is never equal to any number, not even another NaN
 	if (x.isNaN || y.isNaN) return false;
 
-// if (T.verbose) writeln("step 3");
 	// if they are identical...
 	if (x is y) return true;
 
-// if (T.verbose) writeln("step 4");
 	// if either is infinite...
 	if (x.isInfinite || y.isInfinite) {
 		return (x.isInfinite && y.isInfinite && x.isSigned == y.isSigned);
 	}
 
-// if (T.verbose) writeln("step 5");
 	// if either is zero...
 	if (x.isZero || y.isZero) {
 		return (x.isZero && y.isZero);
 	}
 
-// if (T.verbose) writeln("step 6");
 	// if their signs differ...
 	if (x.sign != y.sign) return false;
 
-// if (T.verbose) writeln("step 7");
 	// if they have the same representation, they are equal
 	if (x.exponent == y.exponent && x.coefficient == y.coefficient) {
 		return true;
 	}
-// if (T.verbose) writeln("step 8");
 
 	// restrict operands to current precision
 	T rx, ry;
 	rx = roundToPrecision(x, context);
 	ry = roundToPrecision(y, context);
 
-// if (T.verbose) writeln("step 9");
-// if (T.verbose) writefln("rx = %s", rx.toExact);
-// if (T.verbose) writefln("ry = %s", ry.toExact);
 	// if they have different magnitudes, they are not equal
 /*	int diff = (rx.exponent + rx.digits) - (ry.exponent + ry.digits);
-// if (T.verbose) writefln("diff = %s", diff);
 	if (diff != 0) {
 		return false;
 	}*/
-// if (T.verbose) writeln("step 10");
 //	else {
 //
 //writefln("diff = %s", diff);
@@ -729,11 +717,7 @@ public bool equals(T)(in T x, in T y, Context context = T.context) {
 	// align the operands
 // 	T xx = x.dup;
 //	T yy = y.dup;
-// if (T.verbose) writefln("rx = %s", rx);
-// if (T.verbose) writefln("ry = %s", ry);
 	alignOps!T(rx, ry);
-// if (T.verbose) writefln("rx = %s", rx);
-// if (T.verbose) writefln("ry = %s", ry);
 	return rx.coefficient == ry.coefficient;
 
 /*	// They have the same exponent after alignment.
@@ -1480,17 +1464,9 @@ unittest {	// add, addLOng
 	assertStringEqual(sum, "1.01E+4");
 	dec9 arg12, arg22, sum2;
 	arg12 = dec9("12345678901");
-//	arg12.isGuarded = true;
-writefln("arg12 = %s", arg12);
 	arg22 = dec9("54321098765");
-//	arg22.isGuarded = true;
-writefln("arg22 = %s", arg22);
 	sum2 = add(arg12, arg22);
-writefln("sum2 = %s", sum2);
-//	arg12.isGuarded(false);
-//	arg22.isGuarded(false);
-	sum2 = add(arg12, arg22);
-writefln("sum2 = %s", sum2);
+	assertEqual(sum2, dec9("66666777700"));
 	long arg3;
 	arg3 = 12;
 	arg1 = dec9("7.00");
