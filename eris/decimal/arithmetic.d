@@ -168,7 +168,7 @@ unittest {	// copy
 /// limiting the resulting exponent)".
 /// May set the INVALID_OPERATION and DIVISION_BY_ZERO flags.
 /// Implements the 'logb' function in the specification. (p. 47)
-public int ilogb(T)(in T x)
+public int ilogb(T)(T x)
 {
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
@@ -231,7 +231,7 @@ unittest {
 /// The result may overflow or underflow.
 /// Flags: INVALID_OPERATION, UNDERFLOW, OVERFLOW.
 /// Implements the 'scaleb' function in the specification. (p. 48)
-public T scaleb(T)(T x, in T y)  {
+public T scaleb(T)(T x, T y)  {
 
 	T nan;
 	if (operationIsInvalid(x, y, nan)) return nan;
@@ -337,8 +337,7 @@ unittest {	// reduce
 /// use the 'copyAbs' function.
 /// Implements the 'abs' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION
-public T abs(T)(in T x,
-		Context context = T.context)  {
+public T abs(T)(T x, Context context = T.context)  {
   	T nan;
 	if (operandIsInvalid!T(x, nan)) return nan;
 	return roundToPrecision(x.copyAbs, context);
@@ -364,7 +363,7 @@ unittest {	// abs
 /// If the argument is negative, -1 is returned.
 /// Otherwise +1 is returned.
 /// This function is not required by the specification.
-public int sgn(T)(in T x)  {
+public int sgn(T)(T x)  {
 	if (x.isZero) return 0;
 	return x.isNegative ? -1 : 1;
 }
@@ -387,9 +386,9 @@ unittest {	// sgn
 
 /// Returns -1, 0, or 1
 /// if the argument is negative, zero, or positive, respectively.
-public int sgn(T:xint)(const T num) {
-	if (num < 0) return -1;
-	if (num > 0) return 1;
+public int sgn(T:xint)(T x) {
+	if (x < 0) return -1;
+	if (x > 0) return 1;
 	return 0;
 }
 
@@ -399,7 +398,7 @@ public int sgn(T:xint)(const T num) {
 /// To copy without rounding or setting flags use the 'copy' function.
 /// Implements the 'plus' function in the specification. (p. 33)
 /// Flags: INVALID_OPERATION
-public T plus(T)(in T x, in Context context = T.context)  {
+public T plus(T)(in T x, Context context = T.context)  {
 	T nan;
 	if (operandIsInvalid!T(x, nan)) return nan;
 	return roundToPrecision(x, context);
@@ -411,7 +410,7 @@ public T plus(T)(in T x, in Context context = T.context)  {
 /// To copy without rounding or setting flags use the 'copyNegate' function.
 /// Implements the 'minus' function in the specification. (p. 37)
 /// Flags: INVALID_OPERATION
-public T minus(T)(in T x, in Context context = T.context) {
+public T minus(T)(in T x, Context context = T.context) {
 	T nan;
 	if (operandIsInvalid!T(x, nan)) return nan;
 	return roundToPrecision(x.copyNegate, context);
@@ -480,7 +479,7 @@ public T nextPlus(T)(in T x, Context context = T.context) {
 /// the argument.
 /// Implements the 'next-minus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
-public T nextMinus(T)(in T x, in Context context = T.context) {
+public T nextMinus(T)(in T x, Context context = T.context) {
 	T nan;
 	if (operandIsInvalid!T(x, nan)) {
 		return nan;
@@ -512,7 +511,7 @@ public T nextMinus(T)(in T x, in Context context = T.context) {
 /// in the direction of the second operand.
 /// Implements the 'next-toward' function in the specification. (p. 34-35)
 /// Flags: INVALID_OPERATION
-public T nextToward(T)(in T x, in T y, in Context context = T.context) {
+public T nextToward(T)(in T x, in T y, Context context = T.context) {
 
 	T nan;
 	if (operationIsInvalid(x, y, nan)) return nan;
@@ -569,7 +568,7 @@ unittest {
 /// less than, equal to, or greater than the first operand.
 /// Implements the 'compare' function in the specification. (p. 27)
 /// Flags: INVALID_OPERATION
-public int compare(T)(in T x, in T y, in Context context = T.context) {
+public int compare(T)(in T x, in T y, Context context = T.context) {
 
 	// any operation with a signaling NaN is invalid.
 	// if both are signaling, return as if x > y.
@@ -751,7 +750,7 @@ unittest {	// equals
 /// Implements the 'compare-signal' function in the specification. (p. 27)
 /// Flags: INVALID_OPERATION
 public int compareSignal(T) (in T x, in T y,
-		in Context context = T.context) {
+		Context context = T.context) {
 
 	// any operation with NaN is invalid.
 	// if both are NaN, return as if x > y.
@@ -942,7 +941,7 @@ unittest {	// sameQuantum
 /// Implements the 'max' function in the specification. (p. 32)
 /// Flags: INVALID_OPERATION, ROUNDED.
 public T max(T)(in T x, in T y,
-		in Context context = T.context)  {
+		Context context = T.context)  {
 
 	// if both are NaNs or either is an sNan, return NaN.
 	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
@@ -1003,7 +1002,7 @@ unittest {	// max
 /// as the 'max' function if the signs of the operands are ignored.
 /// Implements the 'max-magnitude' function in the specification. (p. 32)
 /// Flags: NONE.
-public T maxMagnitude(T)(in T x, in T y, in Context context = T.context) {
+public T maxMagnitude(T)(T x, T y, Context context = T.context) {
 // FIXTHIS: special values...
 
 	// both positive
@@ -1309,7 +1308,7 @@ unittest {
 /// If either operand is guarded the result is guarded and is rounded
 /// to the guarded precision.
 public T add(T)(in T x, in T y,
-		in Context context = T.context)  {
+		Context context = T.context)  {
 
 	T nan;
 	if (operationIsInvalid(x, y, nan)) {
@@ -1387,7 +1386,7 @@ public T add(T)(in T x, in T y,
 /// If the decimal operand is guarded the result is guarded and is rounded
 /// to the guarded precision.
 public T add(T)(in T x, in long n,
-		in Context context = T.context)  {
+		Context context = T.context)  {
 
 	// check for invalid operand(s)
 	T nan;
@@ -1485,7 +1484,7 @@ unittest {	// add, addLOng
 /// If either operand is guarded the result is guarded and is rounded
 /// to the guarded precision.
 public T sub(T) (in T x, in T y,
-		in Context context = T.context) {
+		Context context = T.context) {
 	return add(x, copyNegate(y), context);
 }	 // end sub(x, y)
 
@@ -1496,7 +1495,7 @@ public T sub(T) (in T x, in T y,
 /// This function is not included in the specification.
 /// If the decimal operand is guarded the result is guarded and is rounded
 /// to the guarded precision.
-public T sub(T,U:long) (in T x, in U n,	in Context context = T.context)  {
+public T sub(T,U:long) (in T x, in U n,	Context context = T.context)  {
 	return add(x, -n, context);
 }	 // end sub(x, n)
 
@@ -1522,7 +1521,7 @@ unittest {
 /// Implements the 'multiply' function in the specification. (p. 33-34)
 /// If either operand is guarded the result is guarded and is rounded
 /// to the guarded precision.
-public T mul(T)(in T x, in T y, in Context context = T.context)  {
+public T mul(T)(in T x, in T y, Context context = T.context)  {
 
 	T product;	// NaN
 	// if invalid, return NaN
@@ -1564,7 +1563,7 @@ public T mul(T)(in T x, in T y, in Context context = T.context)  {
 /// an unnecessary conversion to a decimal when multiplying.
 /// If the decimal operand is guarded the result is guarded and is rounded
 /// to the guarded precision.
-public T mul(T)(in T x, long n, in Context context = T.context) {
+public T mul(T)(in T x, long n, Context context = T.context) {
 
 	T nan;
 	// if invalid, return NaN
@@ -1626,7 +1625,7 @@ writefln("result = %s", result);
 /// The result may be rounded and context flags may be set.
 /// If the operand is guarded the result is guarded and is rounded
 /// to the guarded precision.
-public T sqr(T)(in T x,	in Context context = T.context)  {
+public T sqr(T)(in T x,	Context context = T.context)  {
 
 	// if operand is invalid, return NaN
 	T nan;
@@ -1682,7 +1681,7 @@ unittest {	// fma
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T)(in T x, in T y, in Context context = T.context)  {
+public T div(T)(in T x, in T y, Context context = T.context)  {
 
 	// check for NaN and division by zero
 	T nan;
@@ -2037,7 +2036,7 @@ unittest {
 /// The returned value is rounded to the current precision.
 /// This operation may set the invalid-operation flag.
 /// Implements the 'quantize' function in the specification. (p. 36-37)
-public T quantize(T)(const T arg1, const T arg2, in Context context = T.context) {
+public T quantize(T)(const T arg1, const T arg2, Context context = T.context) {
 
 	T nan;
 	if (operationIsInvalid(arg1, arg2, nan)) return nan;

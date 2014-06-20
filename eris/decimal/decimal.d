@@ -61,7 +61,7 @@ writefln("x2b = %s", x2b(xint("909239874203948")));
 /// This specification conforms with IEEE standard 754-2008.
 struct Decimal(int PRECISION = 99, int MAX_EXPO = 9999,
 		Rounding ROUNDING_MODE = Rounding.HALF_EVEN) {
-// TODO (language) the mode and guard digit parameters should be swapped.
+
 alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 
 	private SV sval = SV.QNAN;		// special value: default is quiet NaN
@@ -387,7 +387,7 @@ writefln("T.precision = %s", T.precision);
 //--------------------------------
 
 	/// Assigns a decimal number (makes a copy)
-	void opAssign(T:decimal)(const T that) {
+	void opAssign(T:decimal)(in T that) {
 		this.signed  = that.signed;
 		this.sval	 = that.sval;
 		this.digits  = that.digits;
@@ -397,23 +397,23 @@ writefln("T.precision = %s", T.precision);
 	}
 
 	///    Assigns an xint value.
-	void opAssign(T:xint)(const T that) {
+	void opAssign(T:xint)(in T that) {
 		this = decimal(that);
 	}
 
 // TODO: (behavior) if a ulong is converted to a long, the sign will be wrong.
 	///    Assigns a long value.
-	void opAssign(T:long)(const T that) {
+	void opAssign(T:long)(in T that) {
 		this = decimal(that);
 	}
 
 	///    Assigns a floating point value.
-	void opAssign(T:real)(const T that) {
+	void opAssign(T:real)(in T that) {
 		this = decimal(that);
 	}
 
 	///    Assigns a string value.
-	void opAssign(T:string)(const T that) {
+	void opAssign(T:string)(in T that) {
 		this = decimal(that);
 	}
 
@@ -1009,14 +1009,14 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
 	/// or greater than the argument, respectively. NOTE: The comparison
 	/// is made to the current precision.
-	const int opCmp(T:decimal)(const T that) {
+	const int opCmp(T:decimal)(in T that) {
 		// TODO: (behavior) this is a place where the context is set from the outside.
 		return compare(this, that, context);
 	}
 
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
 	/// or greater than the argument, respectively.
-	const int opCmp(T)(const T that) {
+	const int opCmp(T)(in T that) {
 		return opCmp(decimal(that));
 	}
 
@@ -1027,17 +1027,17 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// Zeros are equal regardless of sign.
 	/// A NaN is not equal to any number, not even to another NaN.
 	/// A number is not even equal to itself (this != this) if it is a NaN.
-	const bool opEquals(T:decimal)(const T that) {
+	const bool opEquals(T:decimal)(in T that) {
 		return equals!T(this, that);
 	}
 
 /*	/// Returns true if this extended integer is equal to the argument.
-	const bool opEquals(T:long)( const T that) {
+	const bool opEquals(T:long)( in T that) {
 		return opEquals(decimal(that));
 	}*/
 
 	/// Returns true if this extended integer is equal to the argument.
-	const bool opEquals(T)(const T that) {
+	const bool opEquals(T)(in T that) {
 		return opEquals(decimal(that));
 	}
 
@@ -1106,7 +1106,6 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		expect = num;
 		actual = num--;
 		assertEqual(actual, expect);
-		// FIXTHIS: these break the compiler...
 		num = dec9(9999999, 90);
 		expect = num;
 		actual = num++;
@@ -1124,38 +1123,38 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
-	const decimal opBinary(string op, T:decimal)(const T arg)
+	const decimal opBinary(string op, T:decimal)(in T x)
 	{
 		static if (op == "+") {
-			return add(this, arg, T.context);
+			return add(this, x, T.context);
 		}
 		else static if (op == "-") {
-			return sub(this, arg, T.context);
+			return sub(this, x, T.context);
 		}
 		else static if (op == "*") {
-			return mul(this, arg, T.context);
+			return mul(this, x, T.context);
 		}
 		else static if (op == "/") {
-			return div(this, arg, T.context);
+			return div(this, x, T.context);
 		}
 		else static if (op == "%") {
-			return remainder(this, arg);
+			return remainder(this, x);
 		}
 		else static if (op == "&") {
-			return and(this, arg/*, context*/);
+			return and(this, x/*, context*/);
 		}
 		else static if (op == "|") {
-			return or(this, arg/*, context*/);
+			return or(this, x/*, context*/);
 		}
 		else static if (op == "^") {
-			return xor(this, arg/*, context*/);
+			return xor(this, x/*, context*/);
 		}
 	}
 
 /*	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
 	// TODO: (language, behavior) is this needed?
-	const decimal opBinaryRight(string op, T:decimal)(const T arg)
+	const decimal opBinaryRight(string op, T:decimal)(in T arg)
 	{
 		static if (op == "+") {
 			return add!decimal(decimal(arg), this, context);
@@ -1185,67 +1184,67 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 /*	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
-	const decimal opBinary(string op, T)(const T arg) {
+	const decimal opBinary(string op, T)(in T arg) {
 		return opBinary(decimal(arg));
 	}*/
 
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
-	const decimal opBinary(string op, T:long)(const T arg)
+	const decimal opBinary(string op, T:long)(in T x)
 	{
 		static if (op == "+") {
-			return add(this, arg, decimal.context);
+			return add(this, x, decimal.context);
 		}
 		else static if (op == "-") {
-			return sub(this, arg, decimal.context);
+			return sub(this, x, decimal.context);
 		}
 		else static if (op == "*") {
-			return mul(this, arg, decimal.context);
+			return mul(this, x, decimal.context);
 		}
 		else static if (op == "/") {
-			return div(this, arg, decimal.context);
+			return div(this, x, decimal.context);
 		}
 		else static if (op == "%") {
-			return remainder(this, decimal(arg), decimal.context);
+			return remainder(this, decimal(x), decimal.context);
 		}
 		else static if (op == "&") {
-			return and(this, decimal(arg), decimal.context);
+			return and(this, decimal(x), decimal.context);
 		}
 		else static if (op == "|") {
-			return or(this, decimal(arg), decimal.context);
+			return or(this, decimal(x), decimal.context);
 		}
 		else static if (op == "^") {
-			return xor(this, decimal(arg), decimal.context);
+			return xor(this, decimal(x), decimal.context);
 		}
 	}
 
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
-	const decimal opBinaryRight(string op, T:long)(const T arg)
+	const decimal opBinaryRight(string op, T:long)(in T x)
 	{
 		static if (op == "+") {
-			return add(this, arg, decimal.context);
+			return add(this, x, decimal.context);
 		}
 		else static if (op == "-") {
-			return sub(decimal(arg), this, decimal.context);
+			return sub(decimal(x), this, decimal.context);
 		}
 		else static if (op == "*") {
-			return mul(this, arg, decimal.context);
+			return mul(this, x, decimal.context);
 		}
 		else static if (op == "/") {
-			return div(decimal(arg), this, decimal.context);
+			return div(decimal(x), this, decimal.context);
 		}
 		else static if (op == "%") {
-			return remainder(decimal(arg), this, decimal.context);
+			return remainder(decimal(x), this, decimal.context);
 		}
 		else static if (op == "&") {
-			return and(this, decimal(arg), rounding);
+			return and(this, decimal(x), rounding);
 		}
 		else static if (op == "|") {
-			return or(this, decimal(arg), rounding);
+			return or(this, decimal(x), rounding);
 		}
 		else static if (op == "^") {
-			return xor(this, decimal(arg), rounding);
+			return xor(this, decimal(x), rounding);
 		}
 	}
 
@@ -1282,15 +1281,15 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	/// Performs the specified binary operation on this number
 	/// and the argument then assigns the result to this number.
-	ref decimal opOpAssign(string op, T:decimal) (const T arg) {
-		this = opBinary!op(arg);
+	ref decimal opOpAssign(string op, T:decimal) (in T x) {
+		this = opBinary!op(x);
 		return this;
 	}
 
 	/// Performs the specified binary operation on this number
 	/// and the argument then assigns the result to this number.
-	ref decimal opOpAssign(string op, T) (const T arg) {
-		this = opBinary!op(decimal(arg));
+	ref decimal opOpAssign(string op, T) (in T x) {
+		this = opBinary!op(decimal(x));
 		return this;
 	}
 
@@ -1481,6 +1480,9 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		assertStringEqual(dec9.PI, "3.14159265");
 		writeln("passed");
 	}
+
+//	mixin (eris.decimal.math.GenConstant!("invPi"));
+
 
 }	 // end struct Decimal
 

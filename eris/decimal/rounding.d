@@ -47,16 +47,16 @@ public T roundToPrecision(T)(in T num,
 /// the context parameter.
 /// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 	int step = 1;
-if (T.verbose) writefln("step = %s", step++);
+//if (T.verbose) writefln("step = %s", step++);
 	//@safe
 	T result = num.dup;	// copy the input
 
 	if (rounding == Rounding.NONE) return result;
-if (T.verbose) writefln("step = %s", step++);
+//if (T.verbose) writefln("step = %s", step++);
 
 	// special values aren't rounded
 	if (!num.isFinite) return result;
-if (T.verbose) writefln("step = %s", step++);
+//if (T.verbose) writefln("step = %s", step++);
 
 	// zero values aren't rounded, but they are checked for
 	// subnormal and out of range exponents.
@@ -70,7 +70,7 @@ if (T.verbose) writefln("step = %s", step++);
 		}
 		return result;
 	}
-if (T.verbose) writefln("step = %s", step++);
+//if (T.verbose) writefln("step = %s", step++);
 
 	// handle subnormal numbers
 	if (num.isSubnormal()) {
@@ -89,21 +89,21 @@ if (T.verbose) writefln("step = %s", step++);
 		}
 		return result;
 	}
-if (T.verbose) writefln("step = %s (overflow 1)", step++);
+//if (T.verbose) writefln("step = %s (overflow 1)", step++);
 
 	// Don't round the number if it is too large to represent
 	if (overflow(result, rounding)) return result;
-if (T.verbose) writefln("step = %s", step++);
+//if (T.verbose) writefln("step = %s", step++);
 	// round the number
 //	if (result.isGuarded) {
 //		roundByMode(result, precision + T.guardDigits, rounding);
 //	}
 //	else {
-if (T.verbose) writefln("step = %s (mode)", step++);
+//if (T.verbose) writefln("step = %s (mode)", step++);
 		roundByMode(result, precision, rounding);
 //	}
 	// check again for an overflow
-if (T.verbose) writefln("step = %s (overflow 2)", step++);
+//if (T.verbose) writefln("step = %s (overflow 2)", step++);
 	overflow(result, rounding);
 	return result;
 
@@ -785,19 +785,19 @@ if (verbose) writefln("num/5  = %s", num);
 unittest {
 	write("shiftRight...");
 	xint num = "1000000000000000";
-verbose = true;
+/*verbose = true;
 	for (int i = 1; i < 25; i++) {
 	num = xint(10)^^i;
 	writefln("\ni = %s", i);
 	writefln("num = %s", num);
 	xint res = shiftRight(num, i);
 	writefln("res = %s", res);
-}
+}*/
 //	num = 10;
 //	writefln("num = %s", num);
 //	res = shiftRight(num, 1);
 //	writefln("res = %s", res);
-verbose = false;
+//verbose = false;
 	writeln("test missing");
 }
 

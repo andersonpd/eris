@@ -72,7 +72,6 @@ public struct Context {
 		this.precision = precision;
 		this.rounding = Rounding.HALF_EVEN;
 	}
-
 }
 
 /// "The exceptional conditions are grouped into signals,
