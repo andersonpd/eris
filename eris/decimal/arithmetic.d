@@ -170,8 +170,7 @@ unittest {	// copy
 /// Implements the 'logb' function in the specification. (p. 47)
 public int ilogb(T)(T x)
 {
-	T nan;
-	if (operandIsInvalid!T(x, nan)) {
+	if (operandIsInvalid!T(x)) {
 		return 0;
 	}
 	if (x.isInfinite) {
@@ -194,9 +193,8 @@ public int ilogb(T)(T x)
 /// Implements the 'logb' function in the specification. (p. 47)
 public T logb(T)(T x)
 {
-	T nan;
-	if (operandIsInvalid!T(x, nan)) {
-		return nan;
+	if (operandIsInvalid!T(x)) {
+		return x;
 	}
 	if (x.isInfinite) {
 		return T.infinity;
@@ -282,9 +280,9 @@ unittest {	// scaleb
 /// NOTE: if the operand is guarded, the result will be guarded.
 public T reduce(T)(in T x,
 		Context context = T.context)  {
+	// TODO: (language) remove constness from x.
 	// special cases
-	T nan;
-	if (operandIsInvalid(x, nan)) return nan;
+	if (operandIsInvalid(x)) return x.dup;
 
 	if (!x.isFinite) return x.dup;
 
@@ -338,8 +336,7 @@ unittest {	// reduce
 /// Implements the 'abs' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION
 public T abs(T)(T x, Context context = T.context)  {
-  	T nan;
-	if (operandIsInvalid!T(x, nan)) return nan;
+	if (operandIsInvalid!T(x)) return x;
 	return roundToPrecision(x.copyAbs, context);
 }
 
@@ -399,8 +396,7 @@ public int sgn(T:xint)(T x) {
 /// Implements the 'plus' function in the specification. (p. 33)
 /// Flags: INVALID_OPERATION
 public T plus(T)(in T x, Context context = T.context)  {
-	T nan;
-	if (operandIsInvalid!T(x, nan)) return nan;
+	if (operandIsInvalid!T(x)) return x.dup;
 	return roundToPrecision(x, context);
 }
 
@@ -411,8 +407,7 @@ public T plus(T)(in T x, Context context = T.context)  {
 /// Implements the 'minus' function in the specification. (p. 37)
 /// Flags: INVALID_OPERATION
 public T minus(T)(in T x, Context context = T.context) {
-	T nan;
-	if (operandIsInvalid!T(x, nan)) return nan;
+	if (operandIsInvalid!T(x)) return x.dup;
 	return roundToPrecision(x.copyNegate, context);
 }
 
@@ -449,9 +444,8 @@ unittest {	// plus
 /// Implements the 'next-plus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
 public T nextPlus(T)(in T x, Context context = T.context) {
-	T nan;
-	// TODO: (efficiency) check the spec. can return payload??
-	if (operandIsInvalid!T(x, nan)) return nan;
+
+	if (operandIsInvalid!T(x)) return x.dup;
 
 	if (x.isInfinite) {
 		if (x.sign) {
@@ -480,9 +474,8 @@ public T nextPlus(T)(in T x, Context context = T.context) {
 /// Implements the 'next-minus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
 public T nextMinus(T)(in T x, Context context = T.context) {
-	T nan;
-	if (operandIsInvalid!T(x, nan)) {
-		return nan;
+	if (operandIsInvalid!T(x)) {
+		return x.dup;
 	}
 	if (x.isInfinite) {
 		if (!x.sign) {
@@ -1218,12 +1211,11 @@ public bool isOdd(const ExtendedInt big) {
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T)(const T x, const int n //,
-		/*const DecimalContext context = T.context*/)  {
+public T shift(T)(T x, int n)  {
 
 	// check for NaN operand
-	if (operandIsInvalid(x, x)) {
-		return T.nan;
+	if (operandIsInvalid(x)) {
+		return x;
 	}
 	// can't shift more than precision
 	if (n < -precision || n > precision) {
@@ -1389,8 +1381,7 @@ public T add(T)(in T x, in long n,
 		Context context = T.context)  {
 
 	// check for invalid operand(s)
-	T nan;
-	if (operandIsInvalid!T(x, nan)) return nan;
+	if (operandIsInvalid!T(x)) return x.dup;
 
 	// if decimal is infinite,
 	if (x.isInfinite) return x.dup;
@@ -1565,14 +1556,13 @@ public T mul(T)(in T x, in T y, Context context = T.context)  {
 /// to the guarded precision.
 public T mul(T)(in T x, long n, Context context = T.context) {
 
-	T nan;
 	// if invalid, return NaN
-	if (operandIsInvalid(x, nan)) {
-		return nan;
+	if (operandIsInvalid(x)) {
+		return x.dup;
 	}
 	// infinity * zero => invalid operation
 	if (x.isInfinite && n == 0) {
-		return nan;
+		return T.nan;
 	}
 	T product = T.zero;
 	// if decimal operand is infinite, return infinity
@@ -2528,23 +2518,24 @@ unittest {	// setInvalidFlag
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package bool operandIsInvalid(T)(const T arg, ref T result)  {
+package bool operandIsInvalid(T)(in T x)  {
 	// if the operand is a signaling NaN...
-	if (arg.isSignaling) {
+	if (x.isNaN) {
 		// flag the invalid operation
 		contextFlags.setFlags(INVALID_OPERATION);
+		// TODO: should retain payload if signalling, but change to quiet.
 		// retain payload; convert to qNaN
-		result = T.nan(arg.payload);
+//		result = T.nan(x.payload);
 		return true;
 	}
-	// ...else if the operand is a quiet NaN...
-	if (arg.isQuiet) {
+/*	// ...else if the operand is a quiet NaN...
+	if (x.isQuiet) {
 		// flag the invalid operation
 		contextFlags.setFlags(INVALID_OPERATION);
 		// set the result to the qNaN operand
-		result = arg;
+//		result = x;
 		return true;
-	}
+	}*/
 	// ...otherwise, no flags are set and result is unchanged
 	return false;
 }

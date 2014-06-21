@@ -31,11 +31,11 @@ version(unittest) {
 //	alias dectest = Decimal!(9,99);
 }
 
-public T roundToPrecision(T)(in T num, in Context context) {
+public T roundToPrecision(T)(in T num, Context context) {
 	return roundToPrecision(num, context.precision, context.rounding);
 }
 
-public T roundToPrecision(T)(in T num, in Rounding rounding) {
+public T roundToPrecision(T)(in T num, Rounding rounding) {
 	return roundToPrecision(num, T.precision, rounding);
 }
 
@@ -308,28 +308,28 @@ unittest {	// roundByMode
 /// Otherwise the rounded flag is set, and if the remainder is not zero
 /// the inexact flag is also set.
 /// Flags: ROUNDED, INEXACT.
-private T getRemainder(T) (ref T num, int precision)  {
+private T getRemainder(T) (ref T x, int precision)  {
 
 	T remainder = T.zero;
-	int diff = num.digits - precision;
+	int diff = x.digits - precision;
 	if (diff <= 0) {
 		return remainder;
 	}
 	contextFlags.setFlags(ROUNDED);
 	xint divisor = T.pow10(diff);
-	xint dividend = num.coefficient;
+	xint dividend = x.coefficient;
 	xint quotient = dividend/divisor;
 	auto mant = dividend - quotient*divisor;
 	if (mant != 0) {
 		remainder.zero;
 		remainder.digits = diff;
-		remainder.exponent = num.exponent;
+		remainder.exponent = x.exponent;
 		remainder.coefficient = mant;
 		contextFlags.setFlags(INEXACT);
 	}
-	num.coefficient = quotient;
-	num.digits = precision;
-	num.exponent = num.exponent + diff;
+	x.coefficient = quotient;
+	x.digits = precision;
+	x.exponent = x.exponent + diff;
 	return remainder;
 }
 
@@ -348,19 +348,19 @@ unittest {	// getRemainder
 /// Increments the coefficient by one.
 /// If this causes an overflow the coefficient is adjusted by clipping
 /// the last digit (it will be zero) and incrementing the exponent.
-private void incrementAndRound(T)(ref T num)  {
+private void incrementAndRound(T)(ref T x)  {
 
-	num.coefficient = num.coefficient + 1;	// TODO: (language) why not num.co...++?
-	int digits = num.digits;
-	// if num was zero
+	x.coefficient = x.coefficient + 1;	// TODO: (language) why not x.co...++?
+	int digits = x.digits;
+	// if x was zero
 	if (digits == 0) {
-		num.digits = 1;
+		x.digits = 1;
 		return;
 	}
-	if (lastDigit(num.coefficient) == 0) {
-		if (num.coefficient / T.pow10(digits) > 0) {
-			num.coefficient = num.coefficient / 10;
-			num.exponent = num.exponent + 1;
+	if (lastDigit(x.coefficient) == 0) {
+		if (x.coefficient / T.pow10(digits) > 0) {
+			x.coefficient = x.coefficient / 10;
+			x.exponent = x.exponent + 1;
 		}
 	}
 }
@@ -387,12 +387,12 @@ unittest {	// increment
 /// or exactly half the least significant digit of the shortened coefficient.
 /// Exactly half is a five followed by zero or more zero digits.
 // TODO: (efficiency) calls firstDigit and then numDigits: combine these calls.
-public int testFive(in xint arg) {
-	int first = firstDigit(arg);
+public int testFive(in xint x) {
+	int first = firstDigit(x);
 	if (first < 5) return -1;
 	if (first > 5) return +1;
-	xint tens = BIG_TEN^^(numDigits(arg)-1);
-	xint zeros = arg % BIG_TEN^^(numDigits(arg)-1);
+	xint tens = BIG_TEN^^(numDigits(x)-1);
+	xint zeros = x % BIG_TEN^^(numDigits(x)-1);
 	return (zeros != 0) ? 1 : 0;
 }
 
@@ -411,10 +411,10 @@ unittest {	// testFive
 /// Increments the number by 1.
 /// Re-calculates the number of digits -- the increment may have caused
 /// an increase in the number of digits, i.e., input number was all 9s.
-private void increment(T)(ref T num, ref uint digits) {
-	num++;
-	// TODO: (efficiency) there should be a smarter way to do this: num > pow10(digits)?
-	digits = numDigits(num);
+private void increment(T)(ref T x, ref uint digits) {
+	x++;
+	// TODO: (efficiency) there should be a smarter way to do this: x > pow10(digits)?
+	digits = numDigits(x);
 }
 
 //-----------------------------
@@ -445,23 +445,23 @@ public enum ulong[27] FIVES = [5L^^0,
 		5L^^25, 5L^^26];
 
 /// The maximum number of decimal digits that fit in an int value.
-public const int MAX_INT_DIGITS = 9;
+public enum int MAX_INT_DIGITS = 9;
 /// The maximum decimal value that fits in an int.
-public const uint MAX_DECIMAL_INT = 10U^^MAX_INT_DIGITS - 1;
+public enum uint MAX_DECIMAL_INT = 10U^^MAX_INT_DIGITS - 1;
 /// The maximum number of decimal digits that fit in a long value.
-public const int MAX_LONG_DIGITS = 18;
+public enum int MAX_LONG_DIGITS = 18;
 /// The maximum decimal value that fits in a long.
-public const ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
+public enum ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
 
 //-----------------------------
 // decimal digit functions
 //-----------------------------
 
-public int numDigits(in xint arg) {
+public int numDigits(in xint x) {
     // special cases
-	if (arg == 0) return 0;
+	if (x == 0) return 0;
 	int count = 0;
-	long n = countDigits(arg, count);
+	long n = countDigits(x, count);
 	return count + numDigits(n);
 }
 
@@ -474,7 +474,7 @@ unittest {	// numDigits(xint)
 
 /// Returns the number of digits in the argument,
 /// where the argument is an unsigned long integer.
-public int numDigits(const long n) {
+public int numDigits(long n) {
     // special cases:
 	if (n == 0) return 0;
 	if (n < 10) return 1;

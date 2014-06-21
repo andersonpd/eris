@@ -15,16 +15,16 @@
 
 module eris.decimal.context;
 
-//unittest {
-//	writeln("==========================");
-//	writeln("decimal context......begin");
-//	writeln("==========================");
-//}
-//
-//version(unittest) {
-//	import std.stdio;
-//	import eris.assertions;
-//}
+unittest {
+	writeln("==========================");
+	writeln("decimal context......begin");
+	writeln("==========================");
+}
+
+version(unittest) {
+	import std.stdio;
+	import eris.assertions;
+}
 
 /// The available rounding modes. For cumulative operations use the
 /// HALF_EVEN mode to prevent accumulation of errors. Otherwise the
@@ -88,8 +88,8 @@ public struct ContextFlags {
 	private static ubyte traps;
 
 	/// Sets or resets the specified context flag(s).
-@safe
-	void setFlags(const ubyte flags, const bool value = true) {
+	@safe
+	void setFlags(ubyte flags, bool value = true) {
 		if (value) {
 			ubyte saved = this.flags;
 			this.flags |= flags;
@@ -103,8 +103,8 @@ public struct ContextFlags {
 
 	// Checks the state of the flags. If a flag is set and its
 	// trap-enabler is set, an exception is thrown.
-@safe
-	 void checkFlags(const ubyte flags) {
+	@safe
+	 void checkFlags(ubyte flags) {
 		if (flags & INVALID_OPERATION && traps & INVALID_OPERATION) {
 			throw new InvalidOperationException("INVALID_OPERATION");
 		}
@@ -132,7 +132,7 @@ public struct ContextFlags {
 	}
 
 	/// Gets the value of the specified context flag.
-	 bool getFlag(const ubyte flag) {
+	 bool getFlag(ubyte flag) {
 		return (this.flags & flag) == flag;
 	}
 
@@ -147,7 +147,7 @@ public struct ContextFlags {
 	}
 
 	/// Sets or resets the specified trap(s).
-	void setTrap(const ubyte traps, const bool value = true) {
+	void setTrap(ubyte traps, bool value = true) {
 		if (value) {
 			this.traps |= traps;
 		} else {
@@ -156,7 +156,7 @@ public struct ContextFlags {
 	}
 
 	/// Returns the value of the specified trap.
-	 bool getTrap(const ubyte trap) {
+	 bool getTrap(ubyte trap) {
 		return (this.traps & trap) == trap;
 	}
 
@@ -273,9 +273,9 @@ class UnderflowException: DecimalException {
 	}
 };
 
-//unittest {
-//	writeln("==========================");
-//	writeln("decimal context........end");
-//	writeln("==========================");
-//}
+unittest {
+	writeln("==========================");
+	writeln("decimal context........end");
+	writeln("==========================");
+}
 

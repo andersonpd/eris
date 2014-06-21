@@ -163,40 +163,60 @@ unittest {	// rounding
 //	string mixins
 //--------------------------------
 
-template GenConstant(string name)
+template Constant(string name)
 {
-const char[] GenConstant =
+const char[] Constant =
 	"/// Returns the value of the constant at the specified precision.\n" ~
    	"public T " ~ name ~ "(T)(int precision = T.precision) {
-		Context context = Context(precision, Rounding.HALF_EVEN);
+		Context context = Context(precision);
 		static T value;
 		static int lastPrecision = 0;
 		if (precision == lastPrecision) return value;
 		if (precision > lastPrecision) {
-			value = " ~ name ~ "!T(context);
+			value = eris.decimal.math." ~ name ~ "!T(context);
 			lastPrecision = precision;
 		}
 		return roundToPrecision(value, precision);
 	}";
 }
 
-template GenUnaryFunction(string name)
+// TODO: (behavior) add conversions from int and float.
+template UnaryFunction(string name)
 {
-const char[] GenUnaryFunction =
-	"/// Returns the value of the function at the specified precision.\n" ~
-   	"public T " ~ name ~ "(T)(T x, int precision = T.precision) {
+const char[] UnaryFunction =
+
+	"/// Returns the value of the function at the specified precision.
+   	public T " ~ name ~ "(T)(T x, int precision = T.precision) {
 		if (x.isNaN) {
 			contextFlags.setFlags(INVALID_OPERATION);
 			return T.nan;
 		}
 		Context context = Context(precision, Rounding.HALF_EVEN);
 		return " ~ name ~ "!T(x, context);
+	}
+
+	/// Returns the value of the function at the specified precision.
+   	public T " ~ name ~ "(T)(string str, int precision = T.precision) {
+		T x = T(str);
+		return " ~ name ~ "!T(x, precision);
+	}
+
+	/// Returns the value of the function at the specified precision.
+   	public T " ~ name ~ "(T)(long n, int precision = T.precision) {
+		T x = T(n);
+		return " ~ name ~ "!T(x, precision);
+	}
+
+	/// Returns the value of the function at the specified precision.
+   	public T " ~ name ~ "(T)(real a, int precision = T.precision) {
+		T x = T(a);
+		return " ~ name ~ "!T(x, precision);
 	}";
 }
 
-template GenBinaryFunction(string name)
+template BinaryFunction(string name)
 {
-const char[] GenBinaryFunction =
+const char[] BinaryFunction =
 	"/// Returns the value of the function at the specified precision.\n" ~
    	"public T " ~ name ~ "(T)(T x, T y, int precision = T.precision) {
 		if (x.isNaN || y.isNaN) {
@@ -212,20 +232,18 @@ const char[] GenBinaryFunction =
 //	CONSTANTS
 //--------------------------------
 
-mixin (GenConstant!("pi"));
-mixin (GenConstant!("invPi"));
-mixin (GenConstant!("e"));
-
 /// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
 private Context guard(Context context, int guardDigits = 2) {
 	return Context(context.precision + guardDigits, Rounding.HALF_EVEN);
 }
 
+mixin (Constant!("pi"));
+
 /// Calculates the value of pi in the specified context.
 package T pi(T)(Context inContext) {
 	// increase the working precision
 	auto context = guard(inContext, 3);
-	// initialize AGM algorithm
+	// AGM algorithm
 	long k = 1;
 	T a0 = T.one;
 	T b0 = sqrt1_2!T(context);
@@ -248,14 +266,16 @@ package T pi(T)(Context inContext) {
 
 unittest {
 	write("-- pi...............");
-	assertStringEqual(dec9("3.14159265358979"), pi!dec9(15));
-	assertStringEqual(dec9("3.14159265"), pi!dec9);
-	assertStringEqual(dec9("3.141592653589793238462643"), pi!dec9(25));
-	assertStringEqual(dec9("3.1416"), pi!dec9(5));
+	assertStringEqual(dec9("3.14159265358979"), dec9.pi(15));
+	assertStringEqual(dec9("3.14159265"), dec9.pi);
+	assertStringEqual(dec9("3.141592653589793238462643"), dec9.pi(25));
+	assertStringEqual(dec9("3.1416"), dec9.pi(5));
 	writeln("passed");
 }
 //	immutable decimal PI = roundString("3.141592653589793238462643 3832795028841"
 //		"9716939937510582097494459230781640628620899862803482534211707");
+
+mixin (Constant!("invPi"));
 
 // TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
 // TODO: (behavior) Reciprocal is way worse than one over division.
@@ -273,6 +293,8 @@ unittest {
 	assertStringEqual(invPi!dec9(25), dec9("0.3183098861837906715377675"));
 	writeln("passed");
 }
+
+mixin (Constant!("e"));
 
 /// Returns the value of e in the specified context.
 package T e(T)(Context inContext) {
@@ -292,39 +314,46 @@ package T e(T)(Context inContext) {
 
 unittest {
 	write("-- e................");
-	assertStringEqual(dec9("2.71828183"), e!dec9);
-	assertStringEqual(dec9("2.7182818284590452353602874713526625"), e!dec9(35));
+	assertStringEqual(dec9("2.71828183"), dec9.e);
+	assertStringEqual(dec9("2.7182818284590452353602874713526625"), dec9.e(35));
 	writeln("passed");
 }
 
-mixin (GenConstant!("ln10"));
-mixin (GenConstant!("ln2"));
-mixin (GenConstant!("sqrt2"));
-mixin (GenConstant!("sqrt1_2"));
+mixin (Constant!("ln10"));
 
 package T ln10(T)(Context context) {
 	return log(T.TEN, context, false);
 }
 
+mixin (Constant!("ln2"));
 package T ln2(T)(Context context) {
 	return log(T.TWO, context, false);
 }
 
+mixin (Constant!("sqrt2"));
 package T sqrt2(T)(Context context) {
 	return sqrt(T.TWO, context);
 }
 
+mixin (Constant!("sqrt1_2"));
 package enum T sqrt1_2(T)(Context context) {
 	return sqrt(T.HALF, context);
+}
+
+mixin (Constant!("phi"));
+package enum T phi(T)(Context context) {
+	return mul(add(T(1) , sqrt(T(5), context), context) , T.half, context);
 }
 
 // TODO: (testing) Test these at higher precisions
 unittest {
 	write("-- constants........");
-	assertEqual("2.30258509", ln10!dec9);
-	assertEqual("0.693147181", ln2!dec9);
-	assertEqual("1.41421356", sqrt2!dec9);
-	assertEqual("0.707106780", sqrt1_2!dec9);
+	assertEqual(ln10!dec9,    "2.30258509");
+	assertEqual(ln2!dec9,     "0.693147181");
+	assertEqual(sqrt2!dec9,   "1.41421356");
+	assertEqual(sqrt1_2!dec9, "0.707106780");
+	assertEqual(phi!dec9,     "1.61803399");
+	assertStringEqual(phi!dec9(25), "1.618033988749894848204587");
 	writeln("passed");
 }
 //--------------------------------
@@ -344,9 +373,9 @@ unittest {	// isOdd
 
 // TODO: (behavior) add bitshift function?
 
-mixin (GenUnaryFunction!("reciprocal"));
-mixin (GenUnaryFunction!("invSqrt"));
-mixin (GenUnaryFunction!("sqrt"));
+mixin (UnaryFunction!("reciprocal"));
+mixin (UnaryFunction!("invSqrt"));
+mixin (UnaryFunction!("sqrt"));
 
 package T reciprocal(T)(T x, Context inContext) {
 
@@ -386,6 +415,15 @@ unittest {	// reciprocal
 	a = one/num;
 	b = reciprocal(num);
 	assertEqual(b, a);
+	a = reciprocal!dec9(125);
+	b = "0.008";
+	a = reciprocal!dec9(0.008);
+	b = 125;
+	assertEqual(b, a);
+	a = reciprocal!dec9("0.008");
+	b = 125;
+	assertEqual(b, a);
+
 	writeln("passed");
 }
 
@@ -493,9 +531,7 @@ unittest {
 // EXPONENTIAL AND LOGARITHMIC FUNCTIONS
 //--------------------------------
 
-mixin (GenUnaryFunction!("exp"));
-mixin (GenUnaryFunction!("expm1"));
-
+mixin (UnaryFunction!("exp"));
 // FIXTHIS: incorrect results for negative numbers.
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
@@ -548,7 +584,9 @@ unittest {
 }
 +/
 
-/// expm1(x) will be more accurate than exp(x) - 1 for x near 1.
+mixin (UnaryFunction!("expm1"));
+
+/// expm1(x) will be more accurate than exp(x) - 1 for x << 1.
 /// Decimal version of std.math function.
 /// Reference: Beebe, Nelson H. F., "Computation of expm1(x) = exp(x) - 1".
 public T expm1(T)(T x, Context inContext) {
@@ -558,18 +596,15 @@ public T expm1(T)(T x, Context inContext) {
 
 	auto context = guard(inContext);
 	T sum = T.zero;
-	// this function is only useful near zero
 	const T lower = T("-0.7");
 	const T upper = T("0.5");
+	// if too large return exp(x) - 1.
 	if (x < lower || x > upper) {
 		sum = sub(exp(x, context), 1, context);
-//writefln("sum = %s", sum);
 		return roundToPrecision(sum, inContext);
 	}
-
-//	auto context = guard(inContext);
+	// otherwise return expm1(x)
 	T term = x;
-//	T sum = T.zero;
 	long n = 1;
 	while (term.copyAbs > T.epsilon(context)) {
 		sum = add(sum, term, context);
@@ -593,11 +628,12 @@ unittest {
 	writeln("passed");
 }
 
-mixin (GenUnaryFunction!("log"));
-mixin (GenUnaryFunction!("log1p"));
-mixin (GenUnaryFunction!("log10"));
-mixin (GenUnaryFunction!("log2"));
+mixin (UnaryFunction!("log"));
+mixin (UnaryFunction!("log1p"));
+mixin (UnaryFunction!("log10"));
+mixin (UnaryFunction!("log2"));
 
+// TODO: (behavior) add log(number, base) function (will have to have a different name -- logBase or something
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 // TODO: efficiency) see Natural Logarithm, Wikipedia.
@@ -718,7 +754,7 @@ public T log2(T)(T x, Context inContext) {
 unittest {
 	write("-- log2.............");
 	assertEqual(log2(dec9(10)), dec9("3.32192809"));
-	assertEqual(log2(e!dec9), dec9("1.44269504"));
+	assertEqual(log2(dec9.e), dec9("1.44269504"));
 	writeln("passed");
 }
 
@@ -749,7 +785,7 @@ unittest {
 	writeln("test missing");
 }
 
-mixin (GenBinaryFunction!("hypot"));
+mixin (BinaryFunction!("hypot"));
 
 /// Returns the square root of the sum of the squares in the specified context.
 /// Decimal version of std.math function.
@@ -792,8 +828,8 @@ unittest {
 // TRIGONOMETRIC FUNCTIONS
 //--------------------------------
 
-//mixin (GenUnaryFunction!("sin"));
-//mixin (GenUnaryFunction!("cos"));
+//mixin (UnaryFunction!("sin"));
+//mixin (UnaryFunction!("cos"));
 
 // Returns the reduced argument and the quadrant.
 //o 0 <= pi/4 and sets the quadrant.
@@ -842,7 +878,7 @@ package T sin(T)(T x, Context inContext) {
 	while (term.copyAbs > T.epsilon(context)) {
 		sum = add(sum, term, context);
 		n += 2;
-		powx = mul(-powx, sqrx, context);
+		powx = mul(powx.copyNegate, sqrx, context);
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
 	}
@@ -850,23 +886,13 @@ package T sin(T)(T x, Context inContext) {
 }
 
 unittest {
-	write("sin..........");
-	writeln;
-	writeln("sin(1) = 0.84147098480789650665250232163029899962256306079837");
-writefln("sin(1, dec9.context) = %s", sin(dec9.one, dec9.context));
-	writefln("sin(1) = %s", sin(dec9.one));
-writefln("...");
-writeln;
-	dec9 test = dec9(2); //10,22);
-writefln("test = %s", test);
-//	writefln("sin(10^^22) = %s", sin(test));
-	/*dec9*/ test = dec9("22000.12345");
-writefln("test = %s", test);
-	/*dec9*/ test = dec9("2");
-//	writeln("sin(22) = -0.008851309290403875921690256815772332463289203951");
-writefln("test = %s", test);
-	writefln("sin(test) = %s", sin(dec9(2)));
-	writefln("sin(2) = %s", sin(dec9(2), 12));
+	write("-- sin..............");
+	assertEqual(sin(dec9.one), dec9("0.8414709848978965"));
+	assertEqual(sin(dec9.one, 16), dec9("0.8414709848978965"));
+	assertEqual(sin(dec9("0.333")), dec9("0.326879693"));
+	// TODO: (testing) one value from each quadrant, reduced value.
+	// TODO: (behavior) this is a notoriously difficult value "sin(10^^22)"
+	writeln("passed");
 }
 
 /// Decimal version of std.math function.
@@ -902,7 +928,7 @@ package T cos(T)(T x, Context inContext) {
 		sum = add(sum, term, context);
 //writefln("sum = %s", sum);
 		n += 2;
-		powx = mul(-powx, sqrx, context);
+		powx = mul(powx.copyNegate, sqrx, context);
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
 //writefln("sum = %s", sum);
@@ -911,12 +937,12 @@ package T cos(T)(T x, Context inContext) {
 }
 
 unittest {
-	write("cos..........");
-	writeln;
-	writeln("cos(1) = 0.54030230586813971740093660744297660373231042061792");
-writefln("cos(dec9.one, dec9.context) = %s", cos(dec9.one, dec9.context));
-	writefln("cos(1) = %s", cos(dec9(1)));
-	writeln("..failed");
+	write("-- cos..............");
+	assertEqual(cos(dec9.one), dec9("0.5403023058681397174009"));
+	assertEqual(cos(dec9.one, 23), dec9("0.5403023058681397174009"));
+	assertEqual(cos(dec9("0.333")), dec9("0.945065959"));
+	// TODO: (testing) one value from each quadrant, reduced value.
+	writeln("passed");
 }
 
 public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision) {
@@ -959,11 +985,11 @@ public void sincos(T)(T x, out T sine, out T cosine, Context inContext) {
 	cx = 1;	cterm = cx;	csum = cterm;
 	sx = x;	sterm = sx;	ssum = sterm;
 	while (sterm.copyAbs > T.epsilon) {
-		cx = mul(-cx, sqrx, context);
+		cx = mul(cx.copyNegate, sqrx, context);
 		fact = mul(fact, n++, context);
 		cterm = div(cx, fact, context);
 		csum = add(csum, cterm, context);
-		sx = mul(-sx, sqrx, context);
+		sx = mul(sx.copyNegate, sqrx, context);
 		fact = mul(fact, n++, context);
 		sterm = div(sx, fact, context);
 		ssum = add(ssum, sterm, context);
@@ -984,7 +1010,7 @@ unittest {
  * Decimal version of std.math function.
  *
  */
- // Newton's method .. is it faster?
+// TODO: (efficiency) compare tan1 with tan.
 public T tan1(T)(T x) {
 	T sine;
 	T cosine;
@@ -1014,17 +1040,12 @@ public T tan(T)(T x, int precision = T.precision) {
 }
 
 unittest {
-	writeln("tan..........");
-/*	for (int i = 0; i <= 370; i += 10) {
-writef("i = %s, ", i);
-		dec9 radians = i * pi!dec9() / dec9(180);
-writef("radians = %s, ", radians);
-		dec9 sine = sin(radians);
-		dec9 cosine = cos(radians);
-		dec9 tangent = tan(radians);
-writefln("tangent = %s", tangent);
-	}*/
-	writeln("..failed");
+	write("-- tan..............");
+	// TODO: (testing) one value from each quadrant, reduced value.
+	assertEqual(tan(dec9.one), dec9("1.55740772465490223"));
+	assertEqual(tan(dec9.one, 14), dec9("1.55740772465490223"));
+	assertEqual(tan(dec9("0.333")), dec9("0.345880295"));
+	writeln("passed");
 }
 
 /// Calculates the value of pi in the specified context.
@@ -1056,50 +1077,37 @@ package T arctan(T)(T x, Context inContext = T.context) {
 //\arccos x = 2 \arctan \frac{\sqrt{1-x^2}}{1+x},\text{ if }-1 < x \leq +1
 //\arctan x = 2 \arctan \frac{x}{1+\sqrt{1+x^2}}
 
-/**
- * Decimal version of std.math function.
- *
- */
+/// Decimal version of std.math function.
+// TODO: (behavior) convert to std unary function.
 public T asin(T)(T x) {
 	T result = 2 * atan!T(x/(1+sqrt(1-sqr(x)))); //^^2)));
 	return result;
 }
 
 unittest {
-	write("asin.........");
-	dec9 x;
-	x = 0.5;
-	dec9 a = asin(x);
-writeln;
-writefln("asin(0.5) = %s", a);
-writeln("asin(0.5) = 0.523599");
-	writeln("..failed");
+	write("-- asin.............");
+	assertEqual(asin(dec9.half), dec9("0.523598776"));
+//	assertEqual(asin(dec9.one, 14), dec9("1.55740772465490223"));
+	assertEqual(asin(dec9("0.333")), dec9("0.339483378"));
+	writeln("passed");
 }
 
-/**
- * Decimal version of std.math function.
- *
- */
+/// Decimal version of std.math function.
+// TODO: (behavior) convert to std unary function.
 public T acos(T)(T x) {
 	T result = 2 * atan(sqrt(1-sqr(x))/(1 + x));
 	return result;
 }
 
 unittest {
-	write("acos.........");
-	dec9 x;
-	x = 0.5;
-	dec9 a = acos(x);
-writeln;
-writefln("acos(0.5) = %s", a);
-writeln("acos(0.5) = 1.0472");
-	writeln("..failed");
+	write("-- acos.............");
+	assertEqual(acos(dec9.half), dec9("1.0471975511965977461542144610932"));
+//	assertEqual(acos(dec9.one, 14), dec9("1.55740772465490223"));
+	assertEqual(acos(dec9("0.333")), dec9("1.23131295"));
+	writeln("passed");
 }
 
-public T atan(T)(T x, int precision = T.precision) {
-	Context context = Context(precision, Rounding.HALF_EVEN);
-	return atan!T(x, context);
-}
+mixin (UnaryFunction!("atan"));
 
 /// Returns the arctangent of the argument in the specified context.
 /// Algorithm uses Taylor's theorem for arctangent.
@@ -1131,20 +1139,13 @@ public T atan(T)(T x, Context inContext) {
 
 
 unittest {
-	writeln("arctan.........");
-	writeln ("math.arctan(1.0) = 0.7853981633974483096156608458198757210492923498438");
-writefln("       atan(1.0) = %s", atan!dec9(dec9("1.0")));
-writefln("     arctan(1.0) = %s", arctan!dec9(dec9("1.0")));
-
-writeln ("math.arctan(0.1) = 0.099668652491162038065120043484057532623410224914551");
-writefln("       atan(1.0) = %s", atan!dec9(dec9("0.1"), 15));
-writefln("     arctan(0.1) = %s", arctan(dec9("0.1")));
-
-writeln ("math.arctan(0.9) = 0.73281510178650655085164089541649445891380310058594");
-writefln("       atan(0.9) = %s", atan!dec9(dec9("0.9")));
-writefln("     arctan(0.9) = %s", arctan(dec9("0.9")));
-
-	writeln("..failed");
+	write("-- atan.............");
+	assertEqual(atan(dec9.half), dec9("0.463647609"));
+	assertEqual(atan(dec9.one, 14), dec9("0.78539816339745"));
+	assertEqual(atan(dec9("0.333")), dec9("0.321450524"));
+	assertEqual(atan(dec9("0.1")), dec9("0.099668652491162038065120043484057532623410224914551"));
+	assertEqual(atan(dec9("0.9")), dec9("0.73281510178650655085164089541649445891380310058594"));
+	writeln("passed");
 }
 
 /**
@@ -1165,10 +1166,10 @@ unittest {
 // HYPERBOLIC TRIGONOMETRIC FUNCTIONS
 //--------------------------------
 
-mixin (GenUnaryFunction!("sinh"));
-mixin (GenUnaryFunction!("cosh"));
-mixin (GenUnaryFunction!("tanh"));
-//mixin (GenUnaryFunction!("atanh"));
+mixin (UnaryFunction!("sinh"));
+mixin (UnaryFunction!("cosh"));
+mixin (UnaryFunction!("tanh"));
+//mixin (UnaryFunction!("atanh"));
 
 /// Decimal version of std.math function.
 public T sinh(T)(T x, Context inContext) {
@@ -1189,18 +1190,19 @@ public T sinh(T)(T x, Context inContext) {
 	return roundToPrecision(sum, inContext);
 }
 
-/*
+
 /// Decimal version of std.math function.
+// TODO: why does this perform so poorly?
 public T sinh1(T)(T x) {
 	return (exp(x) - exp(-x))*T.half;
 	}
-*/
+
 
 unittest {
-	write("sinh.........");
-writeln("sinh(1.0) = 1.1752011936438014568823818505956008151557179813341");
-writefln("sinh(1.0) = %s", sinh(dec9("1.0")));
-	writeln("..failed");
+	write("-- sinh.............");
+	assertEqual(sinh(dec9("1.0")), dec9("1.1752011936438014568823818505956008151557179813341"));
+//	assertEqual(sinh1(dec9("1.0")), dec9("1.1752011936438014568823818505956008151557179813341"));
+	writeln("passed");
 }
 
 /**
@@ -1226,10 +1228,9 @@ public T cosh(T)(T x, Context inContext) {
 }
 
 unittest {
-	write("cosh.........");
-writeln("cosh(1.0) = 1.5430806348152437784779056207570616826015291123659");
-writefln("cosh(1.0) = %s", cosh(dec9("1.0")));
-	writeln("..failed");
+	write("-- cosh.............");
+	assertEqual(cosh(dec9("1.0")), dec9("1.5430806348152437784779056207570616826015291123659"));
+	writeln("passed");
 }
 
 /**
@@ -1243,31 +1244,27 @@ public T tanh(T)(T x, Context inContext) {
 }
 
 unittest {
-	write("tanh.........");
-writeln("tanh(1.0) = 0.76159415595576488811945828260479");
-writefln("tanh(1.0) = %s", tanh(dec9(1.0)));
-	writeln("..failed");
+	write("-- tanh.............");
+	assertEqual(tanh(dec9("1.0")), dec9("0.76159415595576488811945828260479"));
+	writeln("passed");
 }
 
-mixin (GenUnaryFunction!("asinh"));
-mixin (GenUnaryFunction!("acosh"));
-mixin (GenUnaryFunction!("atanh"));
-/**
- * Decimal version of std.math function.
- *
- */
+mixin (UnaryFunction!("asinh"));
+mixin (UnaryFunction!("acosh"));
+mixin (UnaryFunction!("atanh"));
+
+/// Decimal version of std.math function.
 public T asinh(T)(T x, Context inContext) {
 	// TODO: (behavior) special values
 	auto context = guard(inContext);
 	T arg = add(x, sqrt(add(sqr(x, context), T.one, context), context), context);
-	return roundToPrecision(log(arg, context));
+	return roundToPrecision(log(arg, context), inContext);
 }
 
 unittest {
-	write("asinh........");
-writefln("asinh(1.0) = %s", "0.88137358701954302523260932497979");
-writefln("asinh(1.0) = %s", asinh(dec9(1.0)));
-	writeln("..failed");
+	write("-- asinh............");
+	assertEqual(asinh(dec9("1.0")), dec9("0.88137358701954302523260932497979"));
+	writeln("passed");
 }
 
 /**
@@ -1284,10 +1281,9 @@ public T acosh(T)(T x, Context inContext) {
 }
 
 unittest {
-	write("acosh........");
-writefln("acosh(1.5) = %s", "0.96242365011920689499551782684874");
-writefln("acosh(1.5) = %s", acosh(dec9(1.5)));
-	writeln("..failed");
+	write("-- acosh............");
+	assertEqual(acosh(dec9("1.5")), dec9("0.96242365011920689499551782684874"));
+	writeln("passed");
 }
 
 /**
@@ -1306,17 +1302,10 @@ public T atanh(T)(T x, Context inContext) {
 }
 
 unittest {
-	write("atanh........");
-writefln("atanh(0.5) = %s", "0.54930614433405484569762261846126");
-writefln("atanh(0.5) = %s", atanh(dec9(0.5)));
-	writeln("..failed");
+	write("-- atanh............");
+	assertEqual(atanh(dec9("0.5")), dec9("0.54930614433405484569762261846126"));
+	writeln("passed");
 }
-
-//--------------------------------
-//
-// General Decimal Arithmetic Specification Functions
-//
-//--------------------------------
 
 unittest {
 	writeln("==========================");

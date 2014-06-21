@@ -1281,14 +1281,14 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	/// Performs the specified binary operation on this number
 	/// and the argument then assigns the result to this number.
-	ref decimal opOpAssign(string op, T:decimal) (in T x) {
+	ref decimal opOpAssign(string op, T:decimal) (T x) {
 		this = opBinary!op(x);
 		return this;
 	}
 
 	/// Performs the specified binary operation on this number
 	/// and the argument then assigns the result to this number.
-	ref decimal opOpAssign(string op, T) (in T x) {
+	ref decimal opOpAssign(string op, T) (T x) {
 		this = opBinary!op(decimal(x));
 		return this;
 	}
@@ -1315,21 +1315,21 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 
 	/// Returns the smallest representable number that is larger than
 	/// this number.
-	const decimal nextUp() {
+	decimal nextUp() const {
 		return nextPlus(this, decimal.context);
 	}
 
 	/// Returns the largest representable number that is smaller than
 	/// this number.
-	const decimal nextDown() {
+	decimal nextDown() const {
 		return nextMinus(this, decimal.context);
 	}
 
 	/// Returns the representable number that is closest to the
 	/// this number (but not this number) in the
 	/// direction toward the argument.
-	const decimal nextAfter(const decimal arg) {
-		return nextToward(this, arg, decimal.context);
+	decimal nextAfter(decimal x) const {
+		return nextToward(this, x, decimal.context);
 	}
 
 	unittest {	// nextUp, nextDown, nextAfter
@@ -1361,39 +1361,58 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 // decimal constants
 //--------------------------------
 
-	/// base of natural logarthims, e = 2.7182818283...
+	/// Constants are computed at compile time to the type precision.
+	/// For values of the constant at other precisions use constant(n),
+	/// where n is the desired precision.
+
+	/// ratio of a circle's circumference to its diameter, pi = 3.14159266...
+	enum decimal PI = roundString("3.1415926535897932384626433832795028841"
+		"9716939937510582097494459230781640628620899862803482534211707");
+
+	public static decimal pi(int precision = decimal.precision) {
+		if (precision != decimal.precision) {
+			return eris.decimal.math.pi!decimal(precision);
+		}
+		return PI;
+	}
+
+	/// Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
+	/// to the desired precision.
 	enum decimal E = roundString("2.71828182845904523536028747135266249775"
 		"724709369995957496696762772407663035354759457138217852516643");
 
-/*
+	public static decimal e(int precision = decimal.precision) {
+		if (precision != decimal.precision) {
+			return eris.decimal.math.e!decimal(precision);
+		}
+		return E;
+	}
+
+
 	/// base 2 logarithm of 10 = 3.32192809...
-	enum decimal LG_10 = roundString("3.3219280948873623478703194294893901"
+	enum decimal LOG2_10 = roundString("3.3219280948873623478703194294893901"
 		"7586483139302458061205475639581593477660862521585013974335937016");
 
 	/// base 2 logarithm of e = 1.44269504...
-	enum decimal LG_E = roundString("1.44269504088896340735992468100189213"
+	enum decimal LOG2_E = roundString("1.44269504088896340735992468100189213"
 		"742664595415298593413544940693110921918118507988552662289350634");
 
 	/// base 10 logarithm of 2 = 0.301029996...
-	enum decimal LOG_2 = roundString("0.3010299956639811952137388947244930"
+	enum decimal LOG10_2 = roundString("0.3010299956639811952137388947244930"
 		"26768189881462108541310427461127108189274424509486927252118186172");
 
 	/// base 10 logarithm of e  = 4.34294482...
-	enum decimal LOG_E = roundString("4.3429448190325182765112891891660508"
+	enum decimal LOG10_E = roundString("4.3429448190325182765112891891660508"
 		"2294397005803666566114453783165864649208870774729224949338431748");
 
 	/// natural logarithm of 2 = 0.693147806...
-	enum decimal LN2 = roundString("0.693147180559945309417232121458176568"
+	enum decimal LOG2 = roundString("0.693147180559945309417232121458176568"
 		"075500134360255254120680009493393621969694715605863326996418688");
 
 	/// natural logarithm of 10 = 2.30258509...
-	enum decimal LN10 = roundString("2.30258509299404568401799145468436420"
+	enum decimal LOG10 = roundString("2.30258509299404568401799145468436420"
 		"760110148862877297603332790096757260967735248023599720508959820");
-*/
-	/// pi = 3.14159266...
-	enum decimal PI = roundString("3.1415926535897932384626433832795028841"
-		"9716939937510582097494459230781640628620899862803482534211707");
-/*
+
 	/// pi/2
 	enum decimal PI_2 = roundString("1.57079632679489661923132169163975144"
 		"209858469968755291048747229615390820314310449931401741267105853");
@@ -1415,15 +1434,19 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		"7856967187537694807317667973799073247846210703885038753432764157");
 
 	/// square root of one half = 0.707106781...
-	enum decimal SQRT1_2 = roundString("0.70710678118654752440084436210484"
-		"9039284835937688474036588339868995366239231053519425193767163820786");
-*/
+	enum decimal SQRT1_2 = roundString("0.707106781186547524400844362104849"
+		"039284835937688474036588339868995366239231053519425193767163820786");
+
+	/// golden ration = 1.6180339887...
+	enum decimal PHI = roundString("1.6180339887498948482045868343656381177"
+		"20309179805762862135448622705260462818902449707207204189391137");
+
 	/// Rounds a string representation of a number to specified precision.
 	/// Does not convert the string to a number. A decimal point may be
 	/// included, but no exponent is allowed.
 	/// A string of all nines will throw an exception.
 	private static string roundString(
-			const string str, int precision = decimal.precision) {
+			string str, int precision = decimal.precision) {
 
 		// make a copy, deleting any whitespace at ends of the string
 		char[] copy = strip(str).dup;
@@ -1480,9 +1503,6 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		assertStringEqual(dec9.PI, "3.14159265");
 		writeln("passed");
 	}
-
-//	mixin (eris.decimal.math.GenConstant!("invPi"));
-
 
 }	 // end struct Decimal
 

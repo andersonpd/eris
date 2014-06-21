@@ -1,7 +1,7 @@
 ﻿// Written in the D programming language
 
 /**
- *	Copyright Paul D. Anderson 2009 - 2013.
+ *	Copyright Paul D. Anderson 2009 - 2014.
  *	Distributed under the Boost Software License, Version 1.0.
  *	(See accompanying file LICENSE_1_0.txt or copy at
  *	http://www.boost.org/LICENSE_1_0.txt)
@@ -1060,7 +1060,7 @@ unittest {
 			return q;
 		}
 		// TODO: why does the algorithm fail if x == y?
-		if (x == y) {
+		if (x == y || (nx == ny && x[0..nx-1] == y[0..ny-1])) {
 			mod = [0];
 			return [1];
 		}
