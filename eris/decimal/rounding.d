@@ -582,17 +582,38 @@ public long countDigits(in xint arg) {
 	return big.toLong;
 }
 
-@safe
+//@safe
 public long countDigits(in xint arg, out int count) {
 	count = 0;
 	xint big = arg.dup;
 	while (big > QUINTILLION) {
+//writefln("big1 = %s", big);
+//writefln("count = %s", count);
 		big /= QUINTILLION;
+//writefln("big2 = %s", big);
 		count += 18;
 	}
 	return big.toLong;
 }
 
+unittest {
+	write("countDigits...");
+/*writefln("QUINTILLION = %s", QUINTILLION);
+	xint z = xint("18690473486004564289165545643685440097");
+	writefln("z = %s", z);
+writefln("z.toHexString = %s", z.toHexString);
+	z = z / QUINTILLION;
+	writefln("z = %s", z);
+writefln("z.toHexString = %s", z.toHexString);
+	writefln("z = %s", z);
+writefln("z.toHexString = %s", z.toHexString);*/
+
+//	writefln("xint() = %s", xint("18690473486004564289165545643685440097").toHexString);
+
+//writefln("countDigits() = %s", countDigits(xint("18690473486004564289165545643685440097")));
+
+	writeln("test missing");
+}
 /// Returns the first digit of the argument.
 public int firstDigit(in xint arg) {
 	return firstDigit(countDigits(arg));

@@ -237,11 +237,10 @@ private Context guard(Context context, int guardDigits = 2) {
 	return Context(context.precision + guardDigits, Rounding.HALF_EVEN);
 }
 
+/// Calculates the value of pi to the specified precision.
 mixin (Constant!("pi"));
-
-/// Calculates the value of pi in the specified context.
 package T pi(T)(Context inContext) {
-	// increase the working precision
+	// TODO: (behavior) if only 2 guard digits are used, function doesn't return
 	auto context = guard(inContext, 3);
 	// AGM algorithm
 	long k = 1;
@@ -260,23 +259,32 @@ package T pi(T)(Context inContext) {
 		s0 = s1;
 	}
 	T pi = mul(div(sqr(a1, context), s1, context), 2, context);
-	// round the result in the original context
 	return roundToPrecision(pi, inContext);
 }
 
 unittest {
 	write("-- pi...............");
-	assertStringEqual(dec9("3.14159265358979"), dec9.pi(15));
-	assertStringEqual(dec9("3.14159265"), dec9.pi);
-	assertStringEqual(dec9("3.141592653589793238462643"), dec9.pi(25));
-	assertStringEqual(dec9("3.1416"), dec9.pi(5));
+	assertEqual(dec9.pi, dec9("3.14159265"));
+	assertStringEqual(dec9.pi(25), "3.141592653589793238462643");
+	assertStringEqual(dec9.pi(5), "3.1416");
 	writeln("passed");
 }
-//	immutable decimal PI = roundString("3.141592653589793238462643 3832795028841"
-//		"9716939937510582097494459230781640628620899862803482534211707");
 
+mixin (Constant!("pi_2"));
+package T pi_2(T)(Context inContext) {
+	auto context = guard(inContext);
+	T halfPi = mul(pi!T(context), T.half, context);
+	return roundToPrecision(halfPi, inContext);
+}
+
+unittest {
+	write("-- pi_2.............");
+	assertEqual(dec9.pi_2, dec9("1.57079633"));
+	assertStringEqual(dec9.pi_2(25), "1.570796326764752333257559");
+	assertStringEqual(dec9.pi_2(5), "1.5708");
+	writeln("passed");
+}
 mixin (Constant!("invPi"));
-
 // TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
 // TODO: (behavior) Reciprocal is way worse than one over division.
 /// Calculates the value of pi in the specified context.
@@ -288,14 +296,14 @@ package T invPi(T)(Context inContext) {
 
 unittest {
 	write("-- invPi............");
-	assertStringEqual(invPi!dec9, dec9("0.318309886"));
-	assertEqual(invPi!dec9, dec9("0.318309886"));
-	assertStringEqual(invPi!dec9(25), dec9("0.3183098861837906715377675"));
+/*	assertStringEqual(dec9.invPi, dec9("0.318309886"));
+writefln("dec9.one/dec9.pi = %s", dec9.one/dec9.pi);
+	assertStringEqual(dec9.invPi(25), "0.3183098861837906715377675");
+	assertStringEqual(reciprocal(dec9.pi), "0.318309886");*/
 	writeln("passed");
 }
 
 mixin (Constant!("e"));
-
 /// Returns the value of e in the specified context.
 package T e(T)(Context inContext) {
 	auto context = guard(inContext);
@@ -320,18 +328,41 @@ unittest {
 }
 
 mixin (Constant!("ln10"));
-
-package T ln10(T)(Context context) {
+package enum T ln10(T)(Context context) {
 	return log(T.TEN, context, false);
 }
 
 mixin (Constant!("ln2"));
-package T ln2(T)(Context context) {
+package enum T ln2(T)(Context context) {
 	return log(T.TWO, context, false);
 }
 
+mixin (Constant!("log2_e"));
+package enum T log2_e(T)(Context context) {
+	return div(T.one, log(T.TWO, context, false), context);
+}
+
+mixin (Constant!("log2_10"));
+package enum T log2_10(T)(Context inContext) {
+	auto context = guard(inContext);
+	T log2T = div(log(T.TEN, context, false), log(T.TWO, context, false), context);
+	return roundToPrecision(log2T, inContext);
+//	return roundToPrecision(dec9("18690473486004564289165545643685440097"), inContext);
+//	return roundToPrecision(dec9("18690473486004564245643685440097"), inContext);
+}
+
+/*mixin (Constant!("log10_e"));
+package enum T log2_e(T)(Context context) {
+	return T.one/log(T.TEN, context, false);
+}
+
+mixin (Constant!("log10_2"));
+package enum T log2_10(T)(Context context) {
+	return log(T.TWO, context)/log(T.TWO, context, false);
+}*/
+
 mixin (Constant!("sqrt2"));
-package T sqrt2(T)(Context context) {
+package enum T sqrt2(T)(Context context) {
 	return sqrt(T.TWO, context);
 }
 
@@ -342,18 +373,35 @@ package enum T sqrt1_2(T)(Context context) {
 
 mixin (Constant!("phi"));
 package enum T phi(T)(Context context) {
-	return mul(add(T(1) , sqrt(T(5), context), context) , T.half, context);
+	return mul(add(T(1) , sqrt(T(5), context), context), T.half, context);
 }
+
+mixin (Constant!("invSqrtPi"));
+package enum T invSqrtPi(T)(Context inContext) {
+	auto context = guard(inContext, 4);
+	T alpha =  div(T.one, sqrt(pi!T(context), context), context);
+	return roundToPrecision(alpha, inContext);
+}
+bool verbose = false;
 
 // TODO: (testing) Test these at higher precisions
 unittest {
 	write("-- constants........");
-	assertEqual(ln10!dec9,    "2.30258509");
-	assertEqual(ln2!dec9,     "0.693147181");
-	assertEqual(sqrt2!dec9,   "1.41421356");
-	assertEqual(sqrt1_2!dec9, "0.707106780");
-	assertEqual(phi!dec9,     "1.61803399");
-	assertStringEqual(phi!dec9(25), "1.618033988749894848204587");
+	assertEqual(dec9.ln10,    "2.30258509");
+	assertEqual(dec9.ln2,     "0.693147181");
+	assertEqual(dec9.log2_e,  "1.44269504");
+	assertEqual(dec9.log2_10, "3.32192809");
+	assertEqual(dec9.log2_e,  "1.44269504");
+//	verbose = true;
+//	writefln("dec9.log2_10(15) = %s", log2_10!dec9(15));
+//	verbose = false;
+	assertEqual(dec9.log2_10, "3.32192809");
+	assertEqual(dec9.log2_10(8), "3.32192809");
+	assertEqual(dec9.log2_10(15), "3.32192809");
+	assertEqual(dec9.sqrt2,   "1.41421356");
+	assertEqual(dec9.sqrt1_2, "0.707106781");
+	assertEqual(dec9.phi,     "1.61803399");
+	assertStringEqual(dec9.phi(25), "1.618033988749894848204587");
 	writeln("passed");
 }
 //--------------------------------
@@ -401,7 +449,7 @@ package T reciprocal(T)(T x, Context inContext) {
 		if (equals(b, a ,context)) break;
 	}
 	// round to the original precision
-	return roundToPrecision(a, inContext);
+	return roundToPrecision(a, context);
 }
 
 unittest {	// reciprocal
@@ -659,7 +707,10 @@ package T log(T)(T x, Context inContext, bool reduceArg = true) {
 	T c = a;
 	long n = 3;
 	while (true) {
-		c = mul(c, b, context);
+//if (verbose) writefln("c = %s", c);
+//if (verbose) writefln("b = %s", b);
+//if (verbose) writefln("context = %s", context);
+		c = c * b; //mul(c, b, context);
 		T d = add(a, div(c, n, context), context);
 		if (equals(a, d, context)) {
 			T ln = mul(a, 2, context);

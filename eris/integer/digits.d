@@ -1050,20 +1050,23 @@ unittest {
 	/// Preconditions: y != 0
 	@safe
 	public digit[] divmodDigits(
-		ref digit[] x, int nx, ref digit[] y, int ny, out digit[] mod) {
+		in digit[] xin, int nx, in digit[] yin, int ny, out digit[] mod) {
 
 
 		if (ny == 1) {
 			digit m;
-			digit[] q = divmodDigit(x, nx, y[0], m);
+			digit[] q = divmodDigit(xin, nx, yin[0], m);
 			mod = [m];
 			return q;
 		}
-		// TODO: why does the algorithm fail if x == y?
-		if (x == y || (nx == ny && x[0..nx-1] == y[0..ny-1])) {
+		// TODO: why does the algorithm fail if xin == yin?
+		if (xin == yin || (nx == ny && xin[0..nx-1] == yin[0..ny-1])) {
 			mod = [0];
 			return [1];
 		}
+		digit[] x = xin.dup;
+		digit[] y = yin.dup;
+
 		// normalize the operands
 		digit k = divDigit([0u, 1u], y[ny-1]+1)[0];
 		if (k != 1) {
@@ -1079,7 +1082,7 @@ unittest {
 			x = subDigits(x, ys);
 			q = addDigit(q,1);
 		}
-
+        nx = numDigits(x);
 		for (int i = nx-1; i >= ny; i--) {
 			int ix = i-ny;
 			if (x[i] == y[ny-1]) {
@@ -1098,14 +1101,14 @@ unittest {
 			if (compareDigits(x, xs) < 0) {
 				q[ix]--;
 				xs = subDigits(xs, yb);
-//			q = addDigit(q,1);
+//				q = addDigit(q,1);
 			}
 			x = subDigits(x, xs);
-//			q = addDigit(q,1);
 		}
 		mod = k == 1 ? x : divDigit(x, k);
 		return q;
 	}
+
 
 	/// Returns the quotient of an array of digits divided by a single digit.
 	@safe

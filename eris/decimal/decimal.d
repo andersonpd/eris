@@ -1365,37 +1365,35 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// For values of the constant at other precisions use constant(n),
 	/// where n is the desired precision.
 
-	/// ratio of a circle's circumference to its diameter, pi = 3.14159266...
+	/// Returns pi, pi = 3.14159266...
+	mixin Constant!("pi");
 	enum decimal PI = roundString("3.1415926535897932384626433832795028841"
 		"9716939937510582097494459230781640628620899862803482534211707");
 
-	public static decimal pi(int precision = decimal.precision) {
-		if (precision != decimal.precision) {
-			return eris.decimal.math.pi!decimal(precision);
-		}
-		return PI;
-	}
-
 	/// Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
-	/// to the desired precision.
+	mixin Constant!("e");
 	enum decimal E = roundString("2.71828182845904523536028747135266249775"
 		"724709369995957496696762772407663035354759457138217852516643");
 
-	public static decimal e(int precision = decimal.precision) {
-		if (precision != decimal.precision) {
-			return eris.decimal.math.e!decimal(precision);
-		}
-		return E;
-	}
+	/// natural logarithm of 2 = 0.693147806...
+	mixin Constant!("ln2");
+	enum decimal LN2 = roundString("0.693147180559945309417232121458176568"
+		"075500134360255254120680009493393621969694715605863326996418688");
 
-
-	/// base 2 logarithm of 10 = 3.32192809...
-	enum decimal LOG2_10 = roundString("3.3219280948873623478703194294893901"
-		"7586483139302458061205475639581593477660862521585013974335937016");
+	/// natural logarithm of 10 = 2.30258509...
+	mixin Constant!("ln10");
+	enum decimal LN10 = roundString("2.30258509299404568401799145468436420"
+		"760110148862877297603332790096757260967735248023599720508959820");
 
 	/// base 2 logarithm of e = 1.44269504...
+	mixin Constant!("log2_e");
 	enum decimal LOG2_E = roundString("1.44269504088896340735992468100189213"
 		"742664595415298593413544940693110921918118507988552662289350634");
+
+	/// base 2 logarithm of 10 = 3.32192809...
+	mixin Constant!("log2_10");
+	enum decimal LOG2_10 = roundString("3.3219280948873623478703194294893901"
+		"7586483139302458061205475639581593477660862521585013974335937016");
 
 	/// base 10 logarithm of 2 = 0.301029996...
 	enum decimal LOG10_2 = roundString("0.3010299956639811952137388947244930"
@@ -1405,15 +1403,8 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	enum decimal LOG10_E = roundString("4.3429448190325182765112891891660508"
 		"2294397005803666566114453783165864649208870774729224949338431748");
 
-	/// natural logarithm of 2 = 0.693147806...
-	enum decimal LOG2 = roundString("0.693147180559945309417232121458176568"
-		"075500134360255254120680009493393621969694715605863326996418688");
-
-	/// natural logarithm of 10 = 2.30258509...
-	enum decimal LOG10 = roundString("2.30258509299404568401799145468436420"
-		"760110148862877297603332790096757260967735248023599720508959820");
-
 	/// pi/2
+	mixin Constant!("pi_2");
 	enum decimal PI_2 = roundString("1.57079632679489661923132169163975144"
 		"209858469968755291048747229615390820314310449931401741267105853");
 
@@ -1422,6 +1413,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		"1049292349843776455243736148076954101571552249657008706335529267");
 
 	/// 1/pi
+	mixin Constant!("invPi","INV_PI");
 	enum decimal INV_PI = roundString("0.318309886183790671537767526745028"
 		"724068919291480912897495334688117793595268453070180227605532506172");
 
@@ -1430,16 +1422,56 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		"4362034459645740456448747667344058896797634226535090113802766253086");
 
 	/// square root of two = 1.41421357
+	mixin Constant!("sqrt2");
 	enum decimal SQRT2 = roundString("1.4142135623730950488016887242096980"
 		"7856967187537694807317667973799073247846210703885038753432764157");
 
 	/// square root of one half = 0.707106781...
+	mixin Constant!("sqrt1_2");
 	enum decimal SQRT1_2 = roundString("0.707106781186547524400844362104849"
 		"039284835937688474036588339868995366239231053519425193767163820786");
 
-	/// golden ration = 1.6180339887...
+	/// golden ratio = 1.6180339887...
+	mixin Constant!("phi");
 	enum decimal PHI = roundString("1.6180339887498948482045868343656381177"
 		"20309179805762862135448622705260462818902449707207204189391137");
+
+	unittest {
+		write("-- constants........");
+		assertStringEqual(dec9.E,     "2.71828183");
+		assertStringEqual(dec9.pi,    "3.14159265");
+		assertStringEqual(dec9.PI,    "3.14159265");
+		assertStringEqual(dec9.LN2,   "0.693147181");
+		assertStringEqual(dec9.LN10,  "2.30258509");
+		assertStringEqual(dec9.SQRT2, "1.41421356");
+		assertStringEqual(dec9.INV_PI,"0.318309886");
+		assertStringEqual(dec9.invPi, "0.318309886");
+		writeln("passed");
+	}
+
+//--------------------------------
+// decimal constant boilerplate
+//--------------------------------
+
+    /// mixin template to add a constant and a arbitrary precision constant.
+	mixin template Constant(string name) {
+		mixin ("public static decimal " ~ name ~ "(int precision = decimal.precision) {
+			if (precision != decimal.precision) {
+				return eris.decimal.math." ~ name ~ "!decimal(precision);
+			}
+			return " ~ name.toUpper ~ ";
+		}");
+	}
+
+    /// mixin template to add a constant and a arbitrary precision constant.
+	mixin template Constant(string lcName, string ucName) {
+		mixin ("public static decimal " ~ lcName ~ "(int precision = decimal.precision) {
+			if (precision != decimal.precision) {
+				return eris.decimal.math." ~ lcName ~ "!decimal(precision);
+			}
+			return " ~ ucName ~ ";
+		}");
+	}
 
 	/// Rounds a string representation of a number to specified precision.
 	/// Does not convert the string to a number. A decimal point may be
@@ -1495,13 +1527,6 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 			last = copy[lix];
 		}
 		return copy[0..precision].idup;
-	}
-
-	unittest {
-		write("-- constants........");
-		assertStringEqual(dec9.E, "2.71828183");
-		assertStringEqual(dec9.PI, "3.14159265");
-		writeln("passed");
 	}
 
 }	 // end struct Decimal
