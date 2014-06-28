@@ -716,7 +716,8 @@ package T log(T)(T x, Context inContext, bool reduceArg = true) {
 	long n = 3;
 	while (true) {
 		// FIXTHIS: (behavior) this still makes a range error.
-		c = c * b; //mul(c, b, context);
+//		c = c * b;
+		c = mul(c, b, context);
 		T d = add(a, div(c, n, context), context);
 		if (equals(a, d, context)) {
 			T ln = mul(a, 2, context);

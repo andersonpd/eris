@@ -126,7 +126,10 @@ unittest {	// roundToPrecision
 	before = 12459;
 	after = roundToPrecision(before, 3);;
 	assertStringEqual(after.toAbstract(), "[0,125,2]");
-	// TODO: (testing) test for subnormal as below...
+//	xint test = "18690473486004564289165545643685440097";
+//	long  count = countDigits(test);
+//	roundToPrecision(test);
+		// TODO: (testing) test for subnormal as below...
 /*	Dec32 a = Dec32(0.1);
 	Dec32 b = Dec32.min * Dec32(8888888);
 	assert("[0,8888888,-101]" == b.toAbstract);
@@ -561,6 +564,25 @@ public long countDigits(in xint arg) {
 		big /= QUINTILLION;
 	}
 	return big.toLong;
+}
+
+public long countDigits2(in xint arg) {
+	xint big = arg.dup;
+writefln("big = %s", big);
+writefln("QUINTILLION = %s", QUINTILLION);
+	int count = 0;
+	while (big > QUINTILLION) {
+writefln("count++ = %s", count++);
+		big /= QUINTILLION;
+	}
+	return big.toLong;
+}
+
+unittest {
+	write("countDigits...");
+	xint x = "18690473486004564289165545643685440097";
+//	countDigits2(x);
+	writeln("test missing");
 }
 
 // TODO: (language) These functions need better names

@@ -225,19 +225,19 @@ public struct ExtendedInt {
 
 	/// Returns a copy of an extended integer.
 	@safe
-	public const xint dup() {
+	public xint dup() const {
 		return xint(this);
 	}
 
 	/// Returns a copy of an extended integer.
 	@safe
-	public const xint copy() {
+	public xint copy() const{
 		return xint(this);
 	}
 
 	/// Returns a copy of an extended integer.
 	@safe
-	public const xint copyAbs() {
+	public xint copyAbs() const {
 		xint copy = this.dup;
 		copy.sign = false;
 		return copy;
@@ -245,7 +245,7 @@ public struct ExtendedInt {
 
 	/// Returns a copy of an extended integer.
 	@safe
-	public const xint copyNegate() {
+	public xint copyNegate() const {
 		xint copy = this.dup;
 		copy.sign = !copy.sign;
 		return copy;
@@ -617,7 +617,7 @@ public struct ExtendedInt {
 	/// Returns -1, 0, or 1, if this extended integer is, respectively,
 	/// less than, equal to or greater than the argument.
 	@safe
-	public static int compare(const xint x, const xint y) {
+	public static int compare(in xint x, in xint y) {
 		if (x.isNegative && !y.isNegative) return -1;
 		if (y.isNegative && !x.isNegative) return  1;
 		if (x.isNegative) {
@@ -968,9 +968,7 @@ public struct ExtendedInt {
 		}
 	}
 
-
-
-	unittest {	// opUnary
+ 	unittest {	// opUnary
 		write("-- opUnary..........");
 		xint num = 4;
 		assertEqual(+num, num);
@@ -1126,7 +1124,7 @@ public struct ExtendedInt {
 
 	/// Adds two extended integers and returns the sum.
 	@safe
-	private static xint add(const xint x, const xint y)
+	private static xint add(in xint x, in xint y)
 	{
 		xint sum;
 		if (x.sign == y.sign) {
@@ -1163,7 +1161,7 @@ public struct ExtendedInt {
 
 	/// Subtracts one extended integer from another and returns the difference.
 	@safe
-	private static xint sub(const xint x, const xint y) {
+	private static xint sub(in xint x, in xint y) {
 		if (x.sign == y.sign) {
 			return add(x, y.minus);
 		}
@@ -1211,7 +1209,7 @@ public struct ExtendedInt {
 
 	/// Multiplies two extended integers and returns the product.
 	@safe
-	private static xint mul(const xint x, const xint y) {
+	private static xint mul(in xint x, in xint y) {
 		uint[] xd;
 		int nx = copyDigits(x.digits, xd);
 		// special cases: x = 0, x = 1, x = -1
@@ -1251,7 +1249,7 @@ public struct ExtendedInt {
 
 	/// Divides one extended integer by another and returns the integer quotient.
 	@safe
-	private static xint div(const xint x, const xint y) {
+	private static xint div(in xint x, in xint y) {
         if (y == 0) throw new DivByZeroException("division by zero");
 		uint[] xd;
 		int nx = copyDigits(x.digits, xd);
@@ -1276,6 +1274,10 @@ public struct ExtendedInt {
 		assertEqual(x/y, xint(-3));
 		x = 0;
 		assertEqual(x/y, ZERO);
+		x = "18690473486004564289165545643685440097";
+		y = "1000000000000000000";
+		xint z = div(x,y);
+writefln("z = %s", z);
 		x = xint("1234567890");
 		y = xint("123456789");
 		assertEqual(x/y, 10);
@@ -1291,7 +1293,7 @@ public struct ExtendedInt {
 
 	/// Divides one extended integer by another and returns the remainder.
 	@safe
-	private static xint mod(const xint x, const xint y) {
+	private static xint mod(in xint x, in xint y) {
 		// FIXTHIS: check for division by zero.
 		uint[] xd;
 		int nx = copyDigits(x.digits, xd);
@@ -1336,13 +1338,13 @@ public struct ExtendedInt {
 
 	/// Raises an extended integer to an integer power.
 	@safe
-	private static xint pow(const xint x, const xint y) {
+	private static xint pow(in xint x, in xint y) {
 		return xint(pow(x, y.toUint));
 	}
 
 	/// Raises an extended integer to an integer power.
 	@safe
-	private static xint pow(const xint x, const int n) {
+	private static xint pow(in xint x, int n) {
 		if (n < 0) throw new InvalidOperationException();
 		if (n == 0) return ONE.dup;
 		if (n == 1) return x.dup;
@@ -1370,14 +1372,14 @@ public struct ExtendedInt {
 	/// Shifts an extended integer left by an integral value.
 	/// No check for overflow is made.
 	@safe
-	private static xint shl(const xint x, const xint y) {
+	private static xint shl(in xint x, in xint y) {
 		return shl(x, y.toUint);
 	}
 
 	/// Shifts an extended integer left by an integral value.
 	/// No check for overflow is made.
 	@safe
-	private static xint shl(const xint x, const uint n) {
+	private static xint shl(in xint x, const uint n) {
 		int nDigs = n / 32;
 		int nBits = n % 32;
 		uint [] array = x.digits.dup;
@@ -1390,13 +1392,13 @@ public struct ExtendedInt {
 
 	/// Shifts an extended integer right by an integral value.
 	@safe
-	private static xint shr(const xint x, const xint y) {
+	private static xint shr(in xint x, in xint y) {
 		return shr(x, y.toInt);
 	}
 
 	/// Shifts an extended integer right by an integral value.
 	@safe
-	private static xint shr(const xint x, const uint n) {
+	private static xint shr(in xint x, const uint n) {
 		int digits = n / 32;
 		int nBits = n % 32;
 		// FIXTHIS: see fixed integer
@@ -1424,7 +1426,7 @@ unittest {
 	/// Negative integers are converted to their twos-complement representation.
 	/// If the integers are of unequal lengths the shorter is sign-extended.
 	@safe
-	private static xint and(const xint x, const xint y) {
+	private static xint and(in xint x, in xint y) {
 		auto xd =  x.isNegative ? negateDigits(x.digits) : x.digits.dup;
 		auto yd =  y.isNegative ? negateDigits(y.digits) : y.digits.dup;
 		matchLengthSigned(xd, yd);
@@ -1440,7 +1442,7 @@ unittest {
 	/// Negative integers are converted to their twos-complement representation.
 	/// If the integers are of unequal lengths the shorter is sign-extended.
 	@safe
-	private static xint or(const xint x, const xint y) {
+	private static xint or(in xint x, in xint y) {
 		auto xd =  x.isNegative ? negateDigits(x.digits) : x.digits.dup;
 		auto yd =  y.isNegative ? negateDigits(y.digits) : y.digits.dup;
 		matchLengthSigned(xd, yd);
@@ -1456,7 +1458,7 @@ unittest {
 	/// Negative integers are converted to their twos-complement representation.
 	/// If the integers are of unequal lengths the shorter is sign-extended.
 	@safe
-	private static xint xor(const xint x, const xint y) {
+	private static xint xor(in xint x, in xint y) {
 		auto xd =  x.isNegative ? negateDigits(x.digits) : x.digits.dup;
 		auto yd =  y.isNegative ? negateDigits(y.digits) : y.digits.dup;
 		matchLengthSigned(xd, yd);
@@ -1678,7 +1680,7 @@ unittest {
 		writeln("passed");
 	}
 
-	public static xint min(const xint a, const xint b) {
+	public static xint min(in xint a, in xint b) {
 		return b > a ? b.dup : a.dup;
 	}
 
