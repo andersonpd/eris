@@ -1101,7 +1101,6 @@ unittest {
 			if (compareDigits(x, xs) < 0) {
 				q[ix]--;
 				xs = subDigits(xs, yb);
-//				q = addDigit(q,1);
 			}
 			x = subDigits(x, xs);
 		}

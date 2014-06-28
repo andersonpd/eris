@@ -39,24 +39,19 @@ public T roundToPrecision(T)(in T num, Rounding rounding) {
 	return roundToPrecision(num, T.precision, rounding);
 }
 
+/// Rounds the referenced number using the precision and rounding mode of
+/// the context parameter.
+/// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
+//@safe
 public T roundToPrecision(T)(in T num,
 	in int precision = T.precision,
 	in Rounding rounding = T.rounding) {
 
-/// Rounds the referenced number using the precision and rounding mode of
-/// the context parameter.
-/// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
-	int step = 1;
-//if (T.verbose) writefln("step = %s", step++);
-	//@safe
 	T result = num.dup;	// copy the input
-
 	if (rounding == Rounding.NONE) return result;
-//if (T.verbose) writefln("step = %s", step++);
 
 	// special values aren't rounded
 	if (!num.isFinite) return result;
-//if (T.verbose) writefln("step = %s", step++);
 
 	// zero values aren't rounded, but they are checked for
 	// subnormal and out of range exponents.
@@ -70,7 +65,6 @@ public T roundToPrecision(T)(in T num,
 		}
 		return result;
 	}
-//if (T.verbose) writefln("step = %s", step++);
 
 	// handle subnormal numbers
 	if (num.isSubnormal()) {
@@ -89,24 +83,16 @@ public T roundToPrecision(T)(in T num,
 		}
 		return result;
 	}
-//if (T.verbose) writefln("step = %s (overflow 1)", step++);
 
 	// Don't round the number if it is too large to represent
-	if (overflow(result, rounding)) return result;
-//if (T.verbose) writefln("step = %s", step++);
+	if (overflow(result, rounding)) {
+		return result;
+    }
 	// round the number
-//	if (result.isGuarded) {
-//		roundByMode(result, precision + T.guardDigits, rounding);
-//	}
-//	else {
-//if (T.verbose) writefln("step = %s (mode)", step++);
-		roundByMode(result, precision, rounding);
-//	}
+	roundByMode(result, precision, rounding);
 	// check again for an overflow
-//if (T.verbose) writefln("step = %s (overflow 2)", step++);
 	overflow(result, rounding);
 	return result;
-
 } // end roundToPrecision()
 
 unittest {	// roundToPrecision
@@ -210,9 +196,6 @@ private bool halfRounding(Rounding rounding) {
 private void roundByMode(T)(ref T num, int precision, Rounding mode) {
 
 	if (mode == Rounding.NONE) return;
-
-	// check for precision overrides
-//	if (T.guardDigits)   precision += T.guardDigits;
 
 	// calculate the remainder
 	T remainder = getRemainder(num, precision);
@@ -328,7 +311,7 @@ private T getRemainder(T) (ref T x, int precision)  {
 		contextFlags.setFlags(INEXACT);
 	}
 	x.coefficient = quotient;
-	x.digits = precision;
+	x.digits = numDigits(quotient); //precision;
 	x.exponent = x.exponent + diff;
 	return remainder;
 }
@@ -571,8 +554,6 @@ unittest {	// numDigits
 	assertEqual(actual, expect);
 }
 
-// FIXTHIS: if this function is named "countDigits" the compiler gets confused.
-
 @safe
 public long countDigits(in xint arg) {
 	xint big = arg.dup;
@@ -582,38 +563,18 @@ public long countDigits(in xint arg) {
 	return big.toLong;
 }
 
-//@safe
+// TODO: (language) These functions need better names
+@safe
 public long countDigits(in xint arg, out int count) {
 	count = 0;
 	xint big = arg.dup;
 	while (big > QUINTILLION) {
-//writefln("big1 = %s", big);
-//writefln("count = %s", count);
 		big /= QUINTILLION;
-//writefln("big2 = %s", big);
 		count += 18;
 	}
 	return big.toLong;
 }
 
-unittest {
-	write("countDigits...");
-/*writefln("QUINTILLION = %s", QUINTILLION);
-	xint z = xint("18690473486004564289165545643685440097");
-	writefln("z = %s", z);
-writefln("z.toHexString = %s", z.toHexString);
-	z = z / QUINTILLION;
-	writefln("z = %s", z);
-writefln("z.toHexString = %s", z.toHexString);
-	writefln("z = %s", z);
-writefln("z.toHexString = %s", z.toHexString);*/
-
-//	writefln("xint() = %s", xint("18690473486004564289165545643685440097").toHexString);
-
-//writefln("countDigits() = %s", countDigits(xint("18690473486004564289165545643685440097")));
-
-	writeln("test missing");
-}
 /// Returns the first digit of the argument.
 public int firstDigit(in xint arg) {
 	return firstDigit(countDigits(arg));
@@ -621,9 +582,6 @@ public int firstDigit(in xint arg) {
 
 unittest {	// firstDigit(xint)
 	write("-- 1stDigit(xint)...");
-/*writefln("\nlong.max    = %s", long.max);
-writefln("ulong.max   = %s", ulong.max);
-writefln("QUINTILLION = %s", QUINTILLION);*/
 	xint x;
 	x = "5000000000000000000000";
 	assertEqual(firstDigit(x), 5);
@@ -785,17 +743,11 @@ bool verbose = false;
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted left.
 public xint shiftRight(xint num, const int n) {
-//		const int precision) { // = Decimal.context.precision) {
 
 	if (n > 0) {
-//if (verbose) writefln("num in = %s", num);
 		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
-if (verbose) writefln("fives  = %s", fives);
 		num = num >> n;
-if (verbose) writefln("shift  = %s", n);
-if (verbose) writefln("shiftd = %s", num);
 		num /= fives;
-if (verbose) writefln("num/5  = %s", num);
 	}
 	if (n < 0) {
 		num = shiftLeft(num, -n/*, precision*/);
@@ -806,19 +758,10 @@ if (verbose) writefln("num/5  = %s", num);
 unittest {
 	write("shiftRight...");
 	xint num = "1000000000000000";
-/*verbose = true;
-	for (int i = 1; i < 25; i++) {
-	num = xint(10)^^i;
-	writefln("\ni = %s", i);
-	writefln("num = %s", num);
-	xint res = shiftRight(num, i);
-	writefln("res = %s", res);
-}*/
 //	num = 10;
 //	writefln("num = %s", num);
 //	res = shiftRight(num, 1);
 //	writefln("res = %s", res);
-//verbose = false;
 	writeln("test missing");
 }
 
@@ -865,7 +808,7 @@ writeln("rot = ", rot);
 
 /// Rotates the number to the right by the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
-/// If n < 0 the number is rotated to the left.
+/// If n < 0 the number is rotated to the left. // TODO: (behavior) should throw.
 public ulong rotateRight(ulong num, const int n, const int precision) {
 	if (n > precision) return 0;
 	if (n == precision) return num;
@@ -962,7 +905,7 @@ public int trailingZeros(in xint arg, const int digits) {
 
 /// Trims any trailing zeros and returns the number of zeros trimmed.
 // TODO: (language) move this to arithmetic?
-public int trimZeros(ref xint n, const int digits) {
+public int trimZeros(ref xint n, int digits) {
 	int zeros = trailingZeros(n, digits);
 	if (zeros == 0) return 0;
 	n /= tens(zeros);

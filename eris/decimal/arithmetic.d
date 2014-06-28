@@ -277,7 +277,6 @@ unittest {	// scaleb
 /// "This operation was called 'normalize' prior to
 /// version 1.68 of the specification." (p. 37)
 /// Flags: INVALID_OPERATION
-/// NOTE: if the operand is guarded, the result will be guarded.
 public T reduce(T)(in T x,
 		Context context = T.context)  {
 	// TODO: (language) remove constness from x.
@@ -463,7 +462,7 @@ public T nextPlus(T)(in T x, Context context = T.context) {
 	// (A)TODO: (behavior) must add the increment w/o setting flags
 	T y = T(1L, adjustedExpo);
 	T z = add(x, y, context);
-		if (z > T.max) {
+	if (z > T.max) {
 		z = T.infinity;
 	}
 	return z;
@@ -523,6 +522,8 @@ unittest {
 	expect = dec9("1.00000001");
 	actual = nextPlus(arg);
 	assertEqual(actual, expect);
+	verbose = false;
+	dec9.verbose = false;
 	arg = 10;
 	expect = dec9("10.0000001");
 	actual = nextPlus(arg);
@@ -574,6 +575,16 @@ public int compare(T)(in T x, in T y, Context context = T.context) {
 	if (x.isNaN || y.isNaN) {
 		return x.isNaN ? 1 : -1;
 	}
+
+	// if either is zero...
+	if (x.isZero) {
+		if (y.isZero) return 0;
+		return y.isNegative ? 1 : -1;
+	}
+	if (y.isZero) {
+		return x.isNegative ? -1 : 1;
+	}
+
 	// if signs differ, just compare the signs
 	if (x.sign != y.sign) {
 		// check for zeros: +0 and -0 are equal
@@ -601,7 +612,7 @@ public int compare(T)(in T x, in T y, Context context = T.context) {
 	T xr = x.reduce;
 	T yr = y.reduce;
 	int diff = (xr.exponent + xr.digits) - (yr.exponent + yr.digits);
-/*	if (diff != 0) {
+	if (diff != 0) {
 		if (!x.sign) {
 			if (diff > 0) return 1;
 			if (diff < 0) return -1;
@@ -610,7 +621,7 @@ public int compare(T)(in T x, in T y, Context context = T.context) {
 			if (diff > 0) return -1;
 			if (diff < 0) return 1;
 		}
-	}*/
+	}
 	// align the operands
  	T xx = x.dup;
 	T yy = y.dup;
@@ -626,9 +637,6 @@ unittest {	// compare
 	dec9 x, y;
 	x = dec9(2.1);
 	y = dec9(3);
-/*writeln(" --- ");
-writefln("x = %s", x);
-writefln("y = %s", y);*/
 	assertEqual(compare(y, x), 1);
 	y = -y;
 	assertEqual(compare(x, y), 1);
@@ -640,6 +648,7 @@ writefln("y = %s", y);*/
 	assertEqual(compare(x, y), 0);
 	x = dec9(2.1);
 	y = dec9(3);
+	// TODO: (testing) test rounded to precision comparison.
 	writeln("passed");
 }
 
@@ -666,60 +675,36 @@ public bool equals(T)(in T x, in T y, Context context = T.context) {
 	// if they are identical...
 	if (x is y) return true;
 
-	// if either is infinite...
-	if (x.isInfinite || y.isInfinite) {
-		return (x.isInfinite && y.isInfinite && x.isSigned == y.isSigned);
-	}
-
 	// if either is zero...
 	if (x.isZero || y.isZero) {
+		// ...they are equal if both are zero (regardless of sign)
 		return (x.isZero && y.isZero);
 	}
 
-	// if their signs differ...
+	// if their signs differ they are not equal
 	if (x.sign != y.sign) return false;
+
+	// if either is infinite...
+	if (x.isInfinite || y.isInfinite) {
+		// ...they are equal only if both are infinite with the same sign
+		return (x.isInfinite && y.isInfinite);
+	}
 
 	// if they have the same representation, they are equal
 	if (x.exponent == y.exponent && x.coefficient == y.coefficient) {
 		return true;
 	}
 
-	// restrict operands to current precision
+	// restrict operands to the context precision
 	T rx, ry;
 	rx = roundToPrecision(x, context);
 	ry = roundToPrecision(y, context);
 
-	// if they have different magnitudes, they are not equal
-/*	int diff = (rx.exponent + rx.digits) - (ry.exponent + ry.digits);
-	if (diff != 0) {
-		return false;
-	}*/
-//	else {
-//
-//writefln("diff = %s", diff);
-//writefln("rx        0 = %s", rx);
-//writefln("rx.reduce 1 = %s", rx.reduce);
-//writefln("rx.reduce 2 = %s", rx.reduce(context));
-//writefln("ry = %s", ry);
-//writefln("ry.reduce = %s", ry.reduce);
-//writefln("ry.reduce = %s", ry.reduce(context));
-//
-//}
-
+	// if they are not of the same magnitude they are not equal
+	if (rx.exponent + rx.digits != ry.exponent + ry.digits) return false;
 	// align the operands
-// 	T xx = x.dup;
-//	T yy = y.dup;
 	alignOps!T(rx, ry);
 	return rx.coefficient == ry.coefficient;
-
-/*	// They have the same exponent after alignment.
-	// The only difference is in the coefficients.
-    int comp = xcompare(xx.coefficient, yy.coefficient);
-	return x.sign ? -comp : comp;
-    rx = reduce(rx, context);
-    ry = reduce(ry, context);
-	// otherwise they are equal if they represent the same value
-	return rx.coefficient == ry.coefficient;*/
 }
 
 unittest {	// equals
@@ -734,8 +719,55 @@ unittest {	// equals
 	x = 123.45671234;
 	y = 123.4567121;
 	assertTrue(equals(x, y));
+	x = "1000000E-8";
+	y = "1E-2";
+	assertTrue(equals(x, y));
+	x = "+100000000E-08";
+	y = "+1E+00";
+	assertTrue(equals(x, y));
+	x = "1.00000000";
+	y = "1";
+	assertTrue(equals(x, y));
 	writeln("passed");
 }
+
+bool precisionEqual(T)(T x, T y, int precision) {
+	auto context = Context(precision);
+	return (equals(x, y, context));
+}
+
+/// Returns true if the actual value equals the expected value to the specified precision.
+/// Otherwise prints an error message and returns false.
+bool assertPrecisionEqual(T)(T actual, T expected, int precision,
+		string file = __FILE__, int line = __LINE__ ) {
+//	auto context = Context(precision);
+	if (precisionEqual!T(expected, actual, precision))	{
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+	        	" expected \"", expected, "\"",
+	        	" but found \"", actual, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the actual value equals the expected value to the specified precision.
+/// Otherwise prints an error message and returns false.
+bool assertPrecisionEqual(T)(T actual, string expected, int precision,
+		string file = __FILE__, int line = __LINE__ ) {
+	auto context = Context(precision);
+	if (equals(T(expected), actual, context))	{
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+	        	" expected \"", expected, "\"",
+	        	" but found \"", actual, "\".");
+		return false;
+	}
+}
+
 
 /// Compares the numeric values of two numbers. CompareSignal is identical to
 /// compare except that quiet NaNs are treated as if they were signaling.
@@ -1297,8 +1329,6 @@ unittest {
 /// The result may be rounded and context flags may be set.
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
-/// If either operand is guarded the result is guarded and is rounded
-/// to the guarded precision.
 public T add(T)(in T x, in T y,
 		Context context = T.context)  {
 
@@ -1363,11 +1393,11 @@ public T add(T)(in T x, in T y,
 	}
 	sum.digits = numDigits(sum.coefficient);
 	sum.exponent = xx.exponent;
-//	sum.isGuarded = (x.isGuarded || y.isGuarded);
-
 	// round the result
 	return roundToPrecision(sum, context);
-}	 // end add(x, y)
+}
+
+
 
 
 /// Adds a long value to a decimal number. The result is identical to that of
@@ -1375,8 +1405,6 @@ public T add(T)(in T x, in T y,
 /// The result may be rounded and context flags may be set.
 /// This function is not included in the specification.
 /// Flags: INVALID_OPERATION, OVERFLOW.
-/// If the decimal operand is guarded the result is guarded and is rounded
-/// to the guarded precision.
 public T add(T)(in T x, in long n,
 		Context context = T.context)  {
 
@@ -1435,7 +1463,6 @@ public T add(T)(in T x, in long n,
 	// set the number of digits and the exponent
 	sum.digits = numDigits(sum.coefficient);
 	sum.exponent = augend.exponent;
-//	sum.isGuarded = x.isGuarded;
 
 	return roundToPrecision(sum, context);
 }	 // end add(x, n)
@@ -1472,8 +1499,6 @@ unittest {	// add, addLOng
 /// Subtracts the second operand from the first operand.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'subtract' function in the specification. (p. 26)
-/// If either operand is guarded the result is guarded and is rounded
-/// to the guarded precision.
 public T sub(T) (in T x, in T y,
 		Context context = T.context) {
 	return add(x, copyNegate(y), context);
@@ -1484,8 +1509,6 @@ public T sub(T) (in T x, in T y,
 /// The result is identical to that of the 'subtract' function
 /// as if the long value were converted to a decimal number.
 /// This function is not included in the specification.
-/// If the decimal operand is guarded the result is guarded and is rounded
-/// to the guarded precision.
 public T sub(T,U:long) (in T x, in U n,	Context context = T.context)  {
 	return add(x, -n, context);
 }	 // end sub(x, n)
@@ -1510,8 +1533,6 @@ unittest {
 /// Multiplies the two operands.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'multiply' function in the specification. (p. 33-34)
-/// If either operand is guarded the result is guarded and is rounded
-/// to the guarded precision.
 public T mul(T)(in T x, in T y, Context context = T.context)  {
 
 	T product;	// NaN
@@ -1544,16 +1565,13 @@ public T mul(T)(in T x, in T y, Context context = T.context)  {
 		product.digits = numDigits(product.coefficient);
 	}
 
-//	product.isGuarded = (x.isGuarded || y.isGuarded);
 	return roundToPrecision(product, context);
 }
 
 /// Multiplies a decimal number by a long integer.
 /// The result may be rounded and context flags may be set.
 /// Not a required function, but useful because it avoids
-/// an unnecessary conversion to a decimal when multiplying.
-/// If the decimal operand is guarded the result is guarded and is rounded
-/// to the guarded precision.
+/// an unnecessary conversion to a decimal when multiplying by an integer.
 public T mul(T)(in T x, long n, Context context = T.context) {
 
 	// if invalid, return NaN
@@ -1584,7 +1602,6 @@ public T mul(T)(in T x, long n, Context context = T.context) {
 		product.sign = x.sign ^ (n < 0);
 		product.digits = numDigits(product.coefficient);
 	}
-//	product.isGuarded = x.isGuarded;
 	return roundToPrecision(product, context);
 }
 
@@ -1607,14 +1624,12 @@ unittest {	// mul
 	result = mul(arg1, arg3);
 	assertStringEqual(result, "-21000");
 	result = mul(dec9.infinity, arg2);
-writefln("result = %s", result);
+// TODO: test this result
 	writeln("passed");
 }
 
 /// Squares the argument and returns the xx.
 /// The result may be rounded and context flags may be set.
-/// If the operand is guarded the result is guarded and is rounded
-/// to the guarded precision.
 public T sqr(T)(in T x,	Context context = T.context)  {
 
 	// if operand is invalid, return NaN
@@ -1695,12 +1710,11 @@ public T div(T)(in T x, in T y, Context context = T.context)  {
 		xx.exponent = xx.exponent - shift;
 		xx.digits = xx.digits + shift;
 	}
+	// TODO: (behavior) is this check necessary? Why does it never exit?
 //	// divisor may have become zero. Check again.
 //	if (divisionIsInvalid!T(xx, yy, q)) {
 //		return nan;
 //	}
-//writefln("xx.coefficient = %s", xx.coefficient);
-//writefln("yy.coefficient = %s", yy.coefficient);
 	q.coefficient = xx.coefficient / yy.coefficient;
 	q.exponent = xx.exponent - yy.exponent;
 	q.sign = xx.sign ^ yy.sign;
@@ -1740,8 +1754,6 @@ public T div(T)(T x, long n, Context context = T.context)  {
 //	if (divisionIsInvalid!T(x, n, q)) {
 //		return nan;
 //	}
-//writefln("x.coefficient = %s", x.coefficient);
-//writefln("n.coefficient = %s", n.coefficient);
 	q.coefficient = x.coefficient / n;
 	q.exponent = x.exponent; // - n.exponent;
 	q.sign = x.sign ^ (n < 0);
@@ -1849,7 +1861,6 @@ unittest {	// div
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
-// TODO: (behavior) guard?
 public T divideInteger(T)(const T arg1, const T arg2)  {
 	// check for NaN or divide by zero
 	T result = T.nan;
@@ -1908,7 +1919,6 @@ unittest {	// divideInteger
 /// The sign of the remainder is the same as that of the first operand.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'remainder' function in the specification. (p. 37-38)
-// TODO: (behavior) guard?
 public T remainder(T)(const T arg1, const T arg2,
 		in int precision = T.precision)  {
 	T quotient;
@@ -1962,7 +1972,6 @@ unittest {	// remainder
 /// The sign of the remainder is the same as that of the first operand.
 /// This function corresponds to the "remainder" function
 /// in the General Decimal Arithmetic Specification.
-// TODO: (behavior) guard?
 public T remainderNear(T)(const T x, const T y)  {
 	T quotient;
 	if (divisionIsInvalid!T(x, y, quotient)) {

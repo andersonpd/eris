@@ -79,23 +79,25 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	public:
 	/// Maximum length of the coefficient in decimal digits.
 	enum int precision = PRECISION;
-	/// Maximum value of the adjusted exponent.
+	/// Maximum value of the exponent.
 	enum int maxExpo = MAX_EXPO;
+	/// Maximum value of the adjusted exponent.
+	enum int maxAdjustedExpo = MAX_EXPO - (PRECISION - 1);
 	/// Smallest normalized exponent.
-	enum int minExpo = 1 - maxExpo;
+	enum int minExpo = 1 - MAX_EXPO;
 	/// Smallest non-normalized exponent.
-	enum int tinyExpo = 2 - maxExpo - precision;
+	enum int tinyExpo = 2 - MAX_EXPO - PRECISION;
 	/// Rounding mode.
 	enum Rounding rounding = ROUNDING_MODE;
 	/// Struct containing the precision and rounding mode.
-	enum Context context = Context(precision, rounding);
+	enum Context context = Context(PRECISION, ROUNDING_MODE);
 
-	/// Marker used to identify this type irrespective of size.
+/*	/// Marker used to identify this type irrespective of size.
 	private enum bool IS_DECIMAL = true;
 
 	private bool isDecimal(T)() {
 		return __traits(hasMember, T, "IS_DECIMAL");
-			}
+			}*/
 
 	// decimal special values
 	enum decimal NAN		= decimal(SV.QNAN);
@@ -157,7 +159,10 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	/// false == 0, true == 1
 	public this(const bool value) {
 		this = zero;
-        if (value) mant = 1;
+        if (value) {
+			mant = 1;
+			this.digits = 1;
+		}
 	}
 
 	unittest {	// boolean construction
@@ -190,6 +195,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = dec9(true, xint(7254), 94);
 		assertStringEqual(num, "-7.254E+97");
 		num = dec9(true, xint(7254), 194);
+		num = dec9(true, xint(1), 194);
 		num = roundToPrecision(num);
 		assertStringEqual(num, "-Infinity");
 		writeln("passed");
@@ -343,44 +349,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 // casts
 //--------------------------------
 
-/*	static decimal opCast(T:Decimal)(T input) {
-		decimal output;
-		output.sign = input.sign;
-		output.mant = input.mant;
-		output.expo = input.expo;
-		output.digits = input.digits;
-		output.sval = input.sval;
-		if (T.precision > output.precision || T.maxExpo > output.maxExpo) {
-			output = roundToPrecision(output);
-		}
-		return output;
-	}*/
-
-	// NOTE: will cast to current precision(?) why?
-/*	public Decimal opCast(T:Decimal)() if(!isDecimal(T)) {
-//writefln("calling opcast = %s", typeof(T));
-		T that;
-		that.sign = this.sign;
-		that.sval = this.sval;
-		that.expo = this.expo;
-		that.digits = this.digits;
-writefln("T.precision = %s", T.precision);
-		return roundToPrecision(that, T.precision);
-	}*/
-
-	unittest {
-		write("casts...");
-/*		alias dec10 = Decimal!(10,99);
-		dec9  bingo = "123.4567890123";
-		dec10 result = cast(dec10)bingo;
-//writefln("result = %s", result.toAbstract);
-		bingo = cast(dec9)result;
-//writefln("bingo = %s", bingo.toAbstract);
-		bingo -= 2;
-		dec10 c10 = cast(dec10)(bingo);
-//writefln("c10 = %s", c10);*/
-		writeln("passed");
-	}
+// TODO: (testing) test casts to other precisions.
 
 //--------------------------------
 // assignment
@@ -393,7 +362,6 @@ writefln("T.precision = %s", T.precision);
 		this.digits  = that.digits;
 		this.expo	 = that.expo;
 		this.mant	 = that.mant;
-//		this.guarded = that.guarded;
 	}
 
 	///    Assigns an xint value.
@@ -548,19 +516,6 @@ writefln("T.precision = %s", T.precision);
 		return signed;
 	}
 
-//	@property
-//	@safe
-//	const bool isGuarded() {
-//		return this.guarded;
-//	}
-//
-//	@property
-//	@safe
-//	bool isGuarded(bool value) {
-//		guarded = value;
-//		return guarded;
-//	}
-
 //--------------------------------
 // floating point properties
 //--------------------------------
@@ -622,7 +577,7 @@ writefln("T.precision = %s", T.precision);
 
 	/// Returns the maximum representable normal value in the current context.
 	@safe
-	enum decimal max = decimal(maxCoefficient, maxExpo);
+	enum decimal max = decimal(maxCoefficient, maxAdjustedExpo);
 
 	/// Returns the minimum representable normal value in this context.
 	@safe
@@ -948,6 +903,7 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		assertTrue(num.isIntegralValued);
 	}*/
 +/
+
 	/// Returns true if this number is a true value.
 	/// Non-zero finite numbers are true.
 	/// Infinity is true and NaN is false.

@@ -265,8 +265,8 @@ package T pi(T)(Context inContext) {
 unittest {
 	write("-- pi...............");
 	assertEqual(dec9.pi, dec9("3.14159265"));
-	assertStringEqual(dec9.pi(25), "3.141592653589793238462643");
-	assertStringEqual(dec9.pi(5), "3.1416");
+	assertPrecisionEqual(dec9.pi(25), "3.141592653589793238462643", 25);
+	assertPrecisionEqual(dec9.pi(5), "3.1416", 5);
 	writeln("passed");
 }
 
@@ -280,14 +280,13 @@ package T pi_2(T)(Context inContext) {
 unittest {
 	write("-- pi_2.............");
 	assertEqual(dec9.pi_2, dec9("1.57079633"));
-	assertStringEqual(dec9.pi_2(25), "1.570796326764752333257559");
-	assertStringEqual(dec9.pi_2(5), "1.5708");
+	assertPrecisionEqual(dec9.pi_2(25), "1.570796326764752333257559", 25);
+	assertPrecisionEqual(dec9.pi_2(5), "1.5708", 5);
 	writeln("passed");
 }
 mixin (Constant!("invPi"));
 // TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
-// TODO: (behavior) Reciprocal is way worse than one over division.
-/// Calculates the value of pi in the specified context.
+/// Calculates the value of 1/pi in the specified context.
 package T invPi(T)(Context inContext) {
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.one, pi!T(context), context);
@@ -296,10 +295,9 @@ package T invPi(T)(Context inContext) {
 
 unittest {
 	write("-- invPi............");
-/*	assertStringEqual(dec9.invPi, dec9("0.318309886"));
-writefln("dec9.one/dec9.pi = %s", dec9.one/dec9.pi);
-	assertStringEqual(dec9.invPi(25), "0.3183098861837906715377675");
-	assertStringEqual(reciprocal(dec9.pi), "0.318309886");*/
+	assertEqual(dec9.invPi, dec9("0.318309886"));
+	assertPrecisionEqual(dec9.invPi(25), "0.3183098861837906715377675", 25);
+//	assertPrecisionEqual(reciprocal(dec9.pi), "0.318309886", 9);
 	writeln("passed");
 }
 
@@ -322,8 +320,8 @@ package T e(T)(Context inContext) {
 
 unittest {
 	write("-- e................");
-	assertStringEqual(dec9("2.71828183"), dec9.e);
-	assertStringEqual(dec9("2.7182818284590452353602874713526625"), dec9.e(35));
+	assertEqual(dec9.e, "2.71828183");
+	assertPrecisionEqual(dec9.e(35), "2.7182818284590452353602874713526625", 35);
 	writeln("passed");
 }
 
@@ -392,16 +390,13 @@ unittest {
 	assertEqual(dec9.log2_e,  "1.44269504");
 	assertEqual(dec9.log2_10, "3.32192809");
 	assertEqual(dec9.log2_e,  "1.44269504");
-//	verbose = true;
-//	writefln("dec9.log2_10(15) = %s", log2_10!dec9(15));
-//	verbose = false;
 	assertEqual(dec9.log2_10, "3.32192809");
-	assertEqual(dec9.log2_10(8), "3.32192809");
-	assertEqual(dec9.log2_10(15), "3.32192809");
+	assertEqual(dec9.log2_10(8), "3.3219281");
+	assertPrecisionEqual(dec9.log2_10(15), "3.32192809546257", 15);
 	assertEqual(dec9.sqrt2,   "1.41421356");
 	assertEqual(dec9.sqrt1_2, "0.707106781");
 	assertEqual(dec9.phi,     "1.61803399");
-	assertStringEqual(dec9.phi(25), "1.618033988749894848204587");
+	assertPrecisionEqual(dec9.phi(25), "1.618033988749894848204587", 25);
 	writeln("passed");
 }
 //--------------------------------
@@ -580,13 +575,14 @@ unittest {
 //--------------------------------
 
 mixin (UnaryFunction!("exp"));
-// FIXTHIS: incorrect results for negative numbers.
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 package T exp(T)(T x, Context inContext) {
 	if (x.isInfinite) {
 		return x.isNegative ? T.zero : x;
 	}
+	bool negative = x.isNegative;
+	if (negative) x = x.copyAbs;
 	auto context = guard(inContext);
 	T sqrx = sqr(x, context);
 	long n = 1;
@@ -603,6 +599,7 @@ package T exp(T)(T x, Context inContext) {
 		term = div(add(t1, t2, context), fact, context);;
 		sum  = add(sum, term, context);
 	}
+	if (negative) sum = div(T.one, sum, context);
 	return roundToPrecision(sum, inContext);
 }
 
@@ -613,6 +610,7 @@ unittest {
 	assertEqual(exp(dec9.one, 15), dec9("2.71828182845905"));
 	assertEqual(exp(dec9.two, 15), dec9("7.3890560989306502272"));
 	assertEqual(exp(dec9.two, 11), dec9("7.3890560989306502272"));
+	assertEqual(exp(-dec9.two, 11), dec9("0.13533528324"));
 	writeln("passed");
 }
 
@@ -644,8 +642,17 @@ public T expm1(T)(T x, Context inContext) {
 
 	auto context = guard(inContext);
 	T sum = T.zero;
+
+	// if too large return exp(x) - 1.
 	const T lower = T("-0.7");
 	const T upper = T("0.5");
+	if (x.copyAbs < lower || x.copyAbs > upper) {
+		sum = sub(exp(x, context), 1, context);
+		return roundToPrecision(sum, inContext);
+	}
+
+	bool negative = x.isNegative;
+	if (negative) x = x.copyAbs;
 	// if too large return exp(x) - 1.
 	if (x < lower || x > upper) {
 		sum = sub(exp(x, context), 1, context);
@@ -659,6 +666,7 @@ public T expm1(T)(T x, Context inContext) {
 		n++;
 		term = mul(term, div(x, n, context), context);
 	}
+//	if (negative) sum = div(T.one, sum, context);
 	return roundToPrecision(sum, inContext);
 }
 
@@ -671,8 +679,8 @@ unittest {
 	num = "-0.4";
 	assertEqual(expm1(num), dec9("-0.329679954"));
 	// FIXTHIS: incorrect result for negative numbers.
-//	num = "-2";
-//	assertEqual(expm1(num), dec9("-0.864664717"));
+	num = "-2";
+	assertEqual(expm1(num), dec9("-0.864664717"));
 	writeln("passed");
 }
 
@@ -707,9 +715,7 @@ package T log(T)(T x, Context inContext, bool reduceArg = true) {
 	T c = a;
 	long n = 3;
 	while (true) {
-//if (verbose) writefln("c = %s", c);
-//if (verbose) writefln("b = %s", b);
-//if (verbose) writefln("context = %s", context);
+		// FIXTHIS: (behavior) this still makes a range error.
 		c = c * b; //mul(c, b, context);
 		T d = add(a, div(c, n, context), context);
 		if (equals(a, d, context)) {
@@ -752,7 +758,6 @@ public T log1p(T)(T x, Context inContext) {
 		term = div(pwr, n, context);
 	}
 	sum = add(term, sum, context);
-//writefln("sum = %s", sum);
 	return roundToPrecision(sum, inContext);
 }
 
@@ -975,14 +980,11 @@ package T cos(T)(T x, Context inContext) {
 	T fact = 1;
 	T term = powx;
 	while (term.copyAbs > T.epsilon(context)) {
-//writefln("term = %s", term);
 		sum = add(sum, term, context);
-//writefln("sum = %s", sum);
 		n += 2;
 		powx = mul(powx.copyNegate, sqrx, context);
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
-//writefln("sum = %s", sum);
 	}
 	return roundToPrecision(sum, inContext);
 }

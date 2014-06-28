@@ -920,26 +920,9 @@ public struct ExtendedInt {
 		for (int i = 0; i < length; i++) {
 			str = std.string.format("_%08X", digits[i]) ~ str;
 		}
-//		if (sign) str = '-' ~ str;
 		return sign ? "-0x" ~ str[1..$].idup : "0x" ~ str[1..$].idup;
 	}
 
-unittest {
-	write("toHexString...");
-//	xint hex1 = 10^^18;
-	long n = 10L^^18;
-	writefln("n = %s", n);
-	writefln("long.max = %s", long.max);
-
-	xint hex1 = 1_000_000_000_000_000_000;
-	writefln("hex1 = %s", hex1.toHexString);
-	writefln("hex1 = %s", hex1.toDecimalString);
-	xint hex2 = 0x0DE0B6B3_A7640000;
-	writefln("hex2 = %s", hex2.toHexString);
-	writefln("hex2 = %s", hex2.toDecimalString);
-	assertEqual(hex1, hex2);
-	writeln("test missing");
-}
 	/// Converts the extended integer value to a binary string.
 	// FIXTHIS: doesn't do signed
 	public const string toBinaryString() {
@@ -1303,37 +1286,6 @@ unittest {
 		y = xint("14567890123456789");
 		assertEqual(x/y, 10);
 		assertThrows!DivByZeroException(x/0);
-		const xint z = xint("18690473486004564289165545643685440097");
-//					   18690473486004564289165545643685440097//	xint z = xint("18446744073709551616000000000000000001"); lower limit
-//	xint z = xint("18400000000000000000000000000000000001");
-//	 z = xint("0x0DE0B6B3_A7640000_00000000_00000000");
-writefln("z = %s", z);
-writefln("z = %s", z.toHexString);
-writefln("z = %s", z.toBinaryString);
-writefln("getDigitCount(z) = %s", z.getDigitCount());
-//	     z = xint("1858000000000000000000000000000000001");
-//writefln("z = %s", z.toBinaryString);
-//writefln("z = %s", z.toHexString);
-//	     z = xint("10000000000000000001");
-//writefln("z = %s", z.toBinaryString);
-//writefln("z = %s", z.toHexString);
-//writefln("z = %s", z);
-/*		y = z;
-writefln("y = %s", y);
-		while (y > 10) {
-			y = y / 10;
-writefln("y = %s", y);
-			}*/
-		xint p = xint(10L^^18);
-writefln("p = %s", p);
-writefln("p = %s", p.toHexString);
-writefln("p = %s", p.toBinaryString);
-writefln("getDigitCount(p) = %s", p.getDigitCount());
-		xint r;
-//		xint t = divmodDigits2(z.digits.idup, p.digits.idup, r.digits);
-//		writefln("z/QUINTILLION = %s", divmodDigits(z.digits.idup, z.getDigitCount, q.digits.idup, q.getDigitCount, r.digits));
-//		writefln("z/QUINTILLION = %s", divmodDigits(z.digits.idup, q.digits.idup, r.digits));
-writeln("Wha' Happened??");
 		writeln("passed");
 	}
 

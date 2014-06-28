@@ -95,7 +95,6 @@ public struct ContextFlags {
 			this.flags |= flags;
 			ubyte changed = saved ^ flags;
 			checkFlags(changed);
-			// TODO: (behavior) if this flag is trapped an exception should be thrown.
 		} else {
 			this.flags &= !flags;
 		}
@@ -172,9 +171,9 @@ public struct ContextFlags {
 
 };
 
-// this is the single instance of the context flags
+// this is the single instance of the context flags.
+// TODO: (language) Make this a singleton.
 public ContextFlags contextFlags;
-
 
 //--------------------------
 // Context flags and trap-enablers
