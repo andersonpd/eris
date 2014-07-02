@@ -392,7 +392,7 @@ unittest {
 	assertEqual(dec9.log2_e,  "1.44269504");
 	assertEqual(dec9.log2_10, "3.32192809");
 	assertEqual(dec9.log2_10(8), "3.3219281");
-	assertPrecisionEqual(dec9.log2_10(15), "3.32192809546257", 15);
+	assertPrecisionEqual(dec9.log2_10(15), "3.32192809488736", 15);
 	assertEqual(dec9.sqrt2,   "1.41421356");
 	assertEqual(dec9.sqrt1_2, "0.707106781");
 	assertEqual(dec9.phi,     "1.61803399");
@@ -470,7 +470,6 @@ unittest {	// reciprocal
 	writeln("passed");
 }
 
-// TODO: (behavior) sometimes fails to break out of loop (e.g. reduce guard digits to +2)
 public T invSqrt(T)(T x, Context inContext) {
 	// special values
 	if (x.isZero) {
@@ -619,7 +618,7 @@ unittest {
  * Decimal version of std.math function.
  * 2^x
  */
-public Decimal exp2T)(in T arg) {
+public Decimal exp2T)( arg) {
 	Decimal result;
 	return result;
 }

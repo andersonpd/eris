@@ -369,13 +369,13 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		this = decimal(that);
 	}
 
-// TODO: (behavior) if a ulong is converted to a long, the sign will be wrong.
-	///    Assigns a long value.
+	/// Assigns a long value.
+	/// NOTE: Unsigned long integers are first converted to signed.
 	void opAssign(T:long)(in T that) {
 		this = decimal(that);
 	}
 
-	///    Assigns a floating point value.
+	/// Assigns a floating point value.
 	void opAssign(T:real)(in T that) {
 		this = decimal(that);
 	}
@@ -394,6 +394,12 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertStringEqual(num,str);
 		num = long.max;
 		str = "9223372036854775807";
+		assertStringEqual(num,str);
+		num = ulong.max - 12;
+		str = "-13";
+		assertStringEqual(num,str);
+		num = 237UL;
+		str = "237";
 		assertStringEqual(num,str);
 		num = real.max;
 		str = "1.1897315E+4932";
@@ -862,47 +868,39 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		writeln("passed");
 	}
 
-/*	/// Returns true if this number is integral;
-	/// that is, if its fractional part is zero.
-	 const bool isIntegral() {
-	 	// TODO: (tbd) need to take trailing zeros into account
-		return expo >= 0;
-	 }*/
-/+
-	/// Returns true if the number is an integer.
+	/// Returns true if the number is an integer (the fractional part is zero).
 	const bool isIntegralValued() {
-writeln(" -------- -------- ");
-writefln("expo = %s", expo);
-writefln("coefficient = %s", coefficient);
 		if (isSpecial) return false;
 		if (exponent >= 0) return true;
-		uint expo2 = std.math.abs(exponent);
-writefln("expo2 = %s", expo2);
-		if (expo2 >= context.precision) return false;
-//		if (expo2 == 0) return true;
-writefln("10^^expo2 = %s", 10^^expo2);
-writefln("coefficient mod 10 = %s", coefficient % 10);
-		if (coefficient % 10^^expo2 == 0) return true;
+		int expo = -exponent;
+		if (expo >= context.precision) return false;
+		// NOTE: this is an expensive operation if the goal is to reduce calculation cost.
+		int zeros = trailingZeros(coefficient, digits);
+		if (zeros) {
+			expo += zeros;
+			if (expo >= 0) return true;
+		}
 		return false;
 	}
 
-/*	unittest {	// isIntegralValued
+	unittest {	// isIntegralValued
+		write("-- isIntegralValued.");
 		dec9 num;
 		num = 12345;
-//writefln("num.isIntegralValued = %s", num.isIntegralValued);
 		assertTrue(num.isIntegralValued);
 		num = xint("123456098420234978023480");
-//writefln("num.isIntegralValued = %s", num.isIntegralValued);
 		assertTrue(num.isIntegralValued);
 		num = 1.5;
-//writefln("num.isIntegralValued = %s", num.isIntegralValued);
 		assertTrue(!num.isIntegralValued);
 		num = 1.5E+1;
 		assertTrue(num.isIntegralValued);
 		num = 0;
 		assertTrue(num.isIntegralValued);
-	}*/
-+/
+		num = "2.19000000E+5";
+		num = "21900.000E-2";
+		assertTrue(num.isIntegralValued);
+		writeln("passed");
+	}
 
 	/// Returns true if this number is a true value.
 	/// Non-zero finite numbers are true.
@@ -965,14 +963,13 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
 	/// or greater than the argument, respectively. NOTE: The comparison
 	/// is made to the current precision.
-	const int opCmp(T:decimal)(in T that) {
-		// TODO: (behavior) this is a place where the context is set from the outside.
-		return compare(this, that, context);
+	const int opCmp(T:decimal)(T that) {
+		return compare(this, that);
 	}
 
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
 	/// or greater than the argument, respectively.
-	const int opCmp(T)(in T that) {
+	const int opCmp(T)(T that) {
 		return opCmp(decimal(that));
 	}
 
@@ -983,17 +980,12 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 	/// Zeros are equal regardless of sign.
 	/// A NaN is not equal to any number, not even to another NaN.
 	/// A number is not even equal to itself (this != this) if it is a NaN.
-	const bool opEquals(T:decimal)(in T that) {
+	const bool opEquals(T:decimal)(T that) {
 		return equals!T(this, that);
 	}
 
-/*	/// Returns true if this extended integer is equal to the argument.
-	const bool opEquals(T:long)( in T that) {
-		return opEquals(decimal(that));
-	}*/
-
 	/// Returns true if this extended integer is equal to the argument.
-	const bool opEquals(T)(in T that) {
+	const bool opEquals(T)(T that) {
 		return opEquals(decimal(that));
 	}
 
@@ -1302,15 +1294,6 @@ writefln("coefficient mod 10 = %s", coefficient % 10);
 		expect = big.nextDown;
 		assertEqual(big.nextAfter(dec9(123.44)), expect);
 		writeln("passed");
-	}
-
-	// TODO: (language) move this outside the struct
-	// TODO: (efficiency) currently multiplies by 5s and shifts bits
-	/// Returns a xint value of ten raised to the specified power.
-	//@safe
-	public static xint pow10(int n) {
-		xint num = 1;
-		return shiftLeft(num, n/*, precision*/);
 	}
 
 //--------------------------------

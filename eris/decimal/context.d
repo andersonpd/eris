@@ -1,5 +1,4 @@
-﻿
-// Written in the D programming language
+﻿// Written in the D programming language
 
 /**
  *	A D programming language implementation of the
@@ -58,10 +57,18 @@ public enum : ubyte {
 	CLAMPED            = 0x01
 }
 
+
+///	The context specifies the precision and the rounding mode.
+///	These two values govern operations on decimal types.
+/// The precision is the number of digits in the result of most operations,
+/// and in internal operations as well. With a few exceptions the result
+/// of most operations will be rounded (using the context rounding mode) to
+/// the context precision.
+/// TODO: (docs) copy edit this.
 public struct Context {
 
-	public const int precision;
-	public const Rounding rounding;
+	public immutable int precision;
+	public immutable Rounding rounding;
 
 	public this(int precision, Rounding rounding) {
 		this.precision = precision;
@@ -82,14 +89,16 @@ public struct Context {
 /// set to 1 when the signal occurs.
 /// It is only reset to 0 by explicit user action."
 /// General Decimal Arithmetic Specification, p. 15.
-public struct ContextFlags {
+private struct ContextFlags {
 
-	private static ubyte flags;
-	private static ubyte traps;
+	private static ubyte flags = 0;
+	private static ubyte traps = 0;
+
+//	static ContextFlags instance = ContextFlags();
 
 	/// Sets or resets the specified context flag(s).
 	@safe
-	void setFlags(ubyte flags, bool value = true) {
+	public void setFlags(ubyte flags, bool value = true) {
 		if (value) {
 			ubyte saved = this.flags;
 			this.flags |= flags;
@@ -100,10 +109,14 @@ public struct ContextFlags {
 		}
 	}
 
+	public void resetFlags(ubyte flags) {
+		setFlags(flags, false);
+	}
+
 	// Checks the state of the flags. If a flag is set and its
 	// trap-enabler is set, an exception is thrown.
 	@safe
-	 void checkFlags(ubyte flags) {
+	 public void checkFlags(ubyte flags) {
 		if (flags & INVALID_OPERATION && traps & INVALID_OPERATION) {
 			throw new InvalidOperationException("INVALID_OPERATION");
 		}
@@ -131,22 +144,22 @@ public struct ContextFlags {
 	}
 
 	/// Gets the value of the specified context flag.
-	 bool getFlag(ubyte flag) {
-		return (this.flags & flag) == flag;
+	public bool getFlags(ubyte flags) {
+		return (this.flags & flags) == flags;
 	}
 
 	/// Returns a snapshot of the context flags.
-	 ubyte getFlags() {
+	public ubyte getFlags() {
 		return flags;
 	}
 
 	/// Clears all the context flags.
-	void clearFlags() {
+	public void clearFlags() {
 		flags = 0;
 	}
 
 	/// Sets or resets the specified trap(s).
-	void setTrap(ubyte traps, bool value = true) {
+	public void setTraps(ubyte traps, bool value = true) {
 		if (value) {
 			this.traps |= traps;
 		} else {
@@ -165,15 +178,14 @@ public struct ContextFlags {
 	}
 
 	/// Clears all the traps.
-	void clearTraps() {
+	public void clearTraps() {
 		traps = 0;
 	}
 
 };
 
 // this is the single instance of the context flags.
-// TODO: (language) Make this a singleton.
-public ContextFlags contextFlags;
+public enum ContextFlags contextFlags = ContextFlags();
 
 //--------------------------
 // Context flags and trap-enablers

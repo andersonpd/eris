@@ -306,7 +306,7 @@ public struct ExtendedInt {
 
 	/// Returns this extended integer with sign bit cleared.
 	@safe
-	public const xint abs() {
+	public xint abs() const {
 		xint copy = this.dup;
 		copy.sign = false;
 		return copy;
@@ -314,7 +314,7 @@ public struct ExtendedInt {
 
 	/// Returns the square of this extended integer.
 	@safe
-	public const xint sqr() {
+	public xint sqr() const {
 		return xint(sqrDigits(this.digits));
 	}
 
@@ -1684,6 +1684,13 @@ unittest {
 		return b > a ? b.dup : a.dup;
 	}
 
+/*	public static xint pow10(int n) {
+		if (n < 0) return ZERO.dup;	// TODO: should throw
+		xint ten = xint(10);
+		if (n == 0) return ten;
+		return ten^^n;
+	}
+*/
 /*	/// Returns a copy of the entire array of uint values, unmodified
 	public const uint[] toArray()
 	{
@@ -1698,6 +1705,13 @@ unittest {
 	}*/
 
 }	// end struct ExtendedInt
+
+	public xint pow10(int n) {
+		if (n < 0) return xint.ZERO;	// TODO: should throw?
+		xint ten = xint(10);
+		if (n == 0) return ten;
+		return ten^^n;
+	}
 
 unittest {
 	writeln("==========================");

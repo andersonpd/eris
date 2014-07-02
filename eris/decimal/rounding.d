@@ -302,7 +302,7 @@ private T getRemainder(T) (ref T x, int precision)  {
 		return remainder;
 	}
 	contextFlags.setFlags(ROUNDED);
-	xint divisor = T.pow10(diff);
+	xint divisor = pow10(diff);
 	xint dividend = x.coefficient;
 	xint quotient = dividend/divisor;
 	auto mant = dividend - quotient*divisor;
@@ -344,7 +344,7 @@ private void incrementAndRound(T)(ref T x)  {
 		return;
 	}
 	if (lastDigit(x.coefficient) == 0) {
-		if (x.coefficient / T.pow10(digits) > 0) {
+		if (x.coefficient / pow10(digits) > 0) {
 			x.coefficient = x.coefficient / 10;
 			x.exponent = x.exponent + 1;
 		}
@@ -679,14 +679,14 @@ unittest {	// firstDigit
 /// Shifts the number left by the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted right.
-public xint shiftLeft(xint num, const int n/*, const int precision*/) {
+public xint shiftLeft(xint num, int n) {
 	if (n > 0) {
 		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
 		num = num << n;
 		num *= fives;
 	}
 	if (n < 0) {
-		num = shiftRight(num, -n/*, precision*/);
+		num = shiftRight(num, -n);
 	}
 	return num;
 }
@@ -764,7 +764,7 @@ bool verbose = false;
 /// Shifts the number right the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted left.
-public xint shiftRight(xint num, const int n) {
+public xint shiftRight(xint num, int n) {
 
 	if (n > 0) {
 		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
@@ -904,8 +904,7 @@ unittest {	// lastDigit(xint)
 
 /// Returns the number of trailing zeros in the argument.
 // TODO: (language) move to arithmetic
-public int trailingZeros(in xint arg, const int digits) {
-	xint n = arg.dup;
+public int trailingZeros(xint n, int digits) {
 	// shortcuts for frequent values
 	if (n ==  0) return 0;
 	if (n %  10) return 0;
@@ -935,7 +934,7 @@ public int trimZeros(ref xint n, int digits) {
 }
 
 /// Returns a xint value of ten raised to the specified power.
-public xint tens(const int n) {
+public xint tens(int n) {
 	if (n < 19) return xint(TENS[n]);
 	xint num = 1;
 	return shiftLeft(num, n);
