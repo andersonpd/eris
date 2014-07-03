@@ -1700,13 +1700,6 @@ unittest {
 		return b > a ? b.dup : a.dup;
 	}
 
-/*	public static xint pow10(int n) {
-		if (n < 0) return ZERO.dup;	// TODO: should throw
-		xint ten = xint(10);
-		if (n == 0) return ten;
-		return ten^^n;
-	}
-*/
 /*	/// Returns a copy of the entire array of uint values, unmodified
 	public const uint[] toArray()
 	{
@@ -1722,12 +1715,13 @@ unittest {
 
 }	// end struct ExtendedInt
 
-	public xint pow10(int n) {
-		if (n < 0) return xint.ZERO;	// TODO: should throw?
-		xint ten = xint(10);
-		if (n == 0) return ten;
-		return ten^^n;
-	}
+// TODO: (efficiency) can this take advantage of small numbers? i.e. < long.max?
+public xint pow10(int n) {
+	if (n < 0) throw new InvalidOperationException();
+//	xint ten = xint.TEN;
+	if (n == 0) return xint.TEN;
+	return xint.TEN^^n;
+}
 
 unittest {
 	writeln("==========================");

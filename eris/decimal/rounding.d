@@ -336,7 +336,7 @@ unittest {	// getRemainder
 /// the last digit (it will be zero) and incrementing the exponent.
 private void incrementAndRound(T)(ref T x)  {
 
-	x.coefficient = x.coefficient + 1;	// TODO: (language) why not x.co...++?
+	x.coefficient = x.coefficient + 1;
 	int digits = x.digits;
 	// if x was zero
 	if (digits == 0) {
@@ -558,8 +558,8 @@ unittest {	// numDigits
 }
 
 @safe
-public long countDigits(in xint arg) {
-	xint big = arg.dup;
+public long countDigits(in xint x) {
+	xint big = x.dup;
 	while (big > QUINTILLION) {
 		big /= QUINTILLION;
 	}
@@ -587,9 +587,9 @@ unittest {
 
 // TODO: (language) These functions need better names
 @safe
-public long countDigits(in xint arg, out int count) {
+public long countDigits(in xint x, out int count) {
 	count = 0;
-	xint big = arg.dup;
+	xint big = x.dup;
 	while (big > QUINTILLION) {
 		big /= QUINTILLION;
 		count += 18;
@@ -598,8 +598,8 @@ public long countDigits(in xint arg, out int count) {
 }
 
 /// Returns the first digit of the argument.
-public int firstDigit(in xint arg) {
-	return firstDigit(countDigits(arg));
+public int firstDigit(in xint x) {
+	return firstDigit(countDigits(x));
 }
 
 unittest {	// firstDigit(xint)
@@ -801,6 +801,7 @@ public ulong shiftRight(ulong num, int n,
 	return num;
 }*/
 
+/+
 /// Rotates the number to the left by the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is rotated to the right.
@@ -861,7 +862,7 @@ writeln("rot = ", rot);
 writeln("rot = ", rot);
 	writeln("test missing");
 }
-
++/
 
 /// Returns the last digit of the argument.
 @safe

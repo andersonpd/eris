@@ -981,7 +981,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	/// A NaN is not equal to any number, not even to another NaN.
 	/// A number is not even equal to itself (this != this) if it is a NaN.
 	const bool opEquals(T:decimal)(T that) {
-		return equals!T(this, that);
+		return equals(this, that);
 	}
 
 	/// Returns true if this extended integer is equal to the argument.
@@ -1016,17 +1016,17 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	//@safe
 	private decimal opUnary(string op)() {
 		static if (op == "+") {
-			return plus(this, decimal.context);
+			return plus(this);
 		}
 		else static if (op == "-") {
-			return minus(this, decimal.context);
+			return minus(this);
 		}
 		else static if (op == "++") {
-			this = add(this, 1, decimal.context);
+			this = add(this, 1);
 			return this;
 		}
 		else static if (op == "--") {
-			this = sub(this, 1, decimal.context);
+			this = sub(this, 1);
 			return this;
 		}
 	}
@@ -1074,34 +1074,34 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	const decimal opBinary(string op, T:decimal)(in T x)
 	{
 		static if (op == "+") {
-			return add(this, x, T.context);
+			return add(this, x);
 		}
 		else static if (op == "-") {
-			return sub(this, x, T.context);
+			return sub(this, x);
 		}
 		else static if (op == "*") {
-			return mul(this, x, T.context);
+			return mul(this, x);
 		}
 		else static if (op == "/") {
-			return div(this, x, T.context);
+			return div(this, x);
 		}
 		else static if (op == "%") {
 			return remainder(this, x);
 		}
 		else static if (op == "&") {
-			return and(this, x/*, context*/);
+			return and(this, x);
 		}
 		else static if (op == "|") {
-			return or(this, x/*, context*/);
+			return or(this, x);
 		}
 		else static if (op == "^") {
-			return xor(this, x/*, context*/);
+			return xor(this, x);
 		}
 	}
 
+	// TODO: (behavior) is this needed?
 /*	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
-	// TODO: (language, behavior) is this needed?
 	const decimal opBinaryRight(string op, T:decimal)(in T arg)
 	{
 		static if (op == "+") {
@@ -1130,15 +1130,9 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		}
 	}*/
 
-/*	/// Returns the result of performing the specified
-	/// binary operation on this number and the argument.
-	const decimal opBinary(string op, T)(in T arg) {
-		return opBinary(decimal(arg));
-	}*/
-
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
-	const decimal opBinary(string op, T:long)(in T x)
+	const decimal opBinary(string op, T:long)(T x)
 	{
 		static if (op == "+") {
 			return add(this, x, decimal.context);
