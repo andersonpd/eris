@@ -466,7 +466,8 @@ public struct ExtendedInt {
 		if (this > INT_MAX) return int.max;
 		if (this < INT_MIN) return int.min;
 		if (this.isZero) return 0;
-		return cast(int)digits[0];
+		int n = cast(int)digits[0];
+		return sign ? -n : n;
 	}
 
 	/// Returns true if the value of this extended integer
@@ -1277,7 +1278,6 @@ public struct ExtendedInt {
 		x = "18690473486004564289165545643685440097";
 		y = "1000000000000000000";
 		xint z = div(x,y);
-writefln("z = %s", z);
 		x = xint("1234567890");
 		y = xint("123456789");
 		assertEqual(x/y, 10);
@@ -1334,6 +1334,22 @@ writefln("z = %s", z);
 		assertEqual(x % y, 0);
 
 		writeln("passed");
+	}
+
+	/// Divides one extended integer by another and returns the quotient and the remainder.
+	@safe
+	public static xint divmod(xint x, xint y, out xint mod) {
+        if (y == 0) throw new DivByZeroException("division by zero");
+		uint[] xd;
+		int nx = copyDigits(x.digits, xd);
+		if (nx == 0) return ZERO.dup;
+		uint[] yd;
+		int ny = copyDigits(y.digits, yd);
+		uint[] md;
+		auto quotient = xint(divmodDigits(xd, nx, yd, ny, md));
+		quotient.sign = x.sign ^ y.sign;
+		mod = xint(md); // TODO: (behavior) sign?
+		return quotient;
 	}
 
 	/// Raises an extended integer to an integer power.

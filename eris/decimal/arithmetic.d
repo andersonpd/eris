@@ -1255,7 +1255,9 @@ public T shift(T)(T x, T y, Context context = T.context)  {
 	if (y.exponent != 0) return invalidOperand(y);
 	if (y.coefficient > context.precision ||
 		y.coefficient < -context.precision) return invalidOperand(y);
-	return shift(x, y.coefficient.toInt, context);
+	int n = y.coefficient.toInt;
+	if (y.sign) n = -n;
+	return shift(x, n, context);
 }
 
 /// Shifts the first operand by the specified number of DECIMAL digits.
@@ -1284,6 +1286,7 @@ public T shift(T)(T x, int n, Context context = T.context)  {
 	}
 
 	if (n > 0) {
+		// shift left
 		x.coefficient = x.coefficient * pow10(n);
 		x.digits = numDigits(x.coefficient);
 		if (x.digits > context.precision) {
@@ -1292,6 +1295,7 @@ public T shift(T)(T x, int n, Context context = T.context)  {
 		}
 	}
 	else {
+		// shift right
 		x.coefficient = x.coefficient / pow10(-n);
 		x.digits = numDigits(x.coefficient);
 	}
@@ -1299,23 +1303,27 @@ public T shift(T)(T x, int n, Context context = T.context)  {
 }
 
 unittest {
-	write("shift...");
-	dec9 x, s;
+	write("-- shift............");
+	dec9 x, y, z;
 	x = "34";
-	s = "400000000";
-	assertEqual(shift(x, dec9(8)), s);
-	assertEqual(shift(x, 8), s);
+	y = 8;
+	z = "400000000";
+	assertEqual(shift(x, y), z);
 	x = "12";
-	s = "0";
-	assertEqual(shift(x, 9), s);
+	y = 9;
+	z = "0";
+	assertEqual(shift(x, y), z);
 	x = "123456789";
-	s = "1234567";
-	assertEqual(shift(x,-2), s);
-	s = "123456789";
-	assertEqual(shift(x, 0), s);
-	s = "345678900";
-	assertEqual(shift(x, 2), s);
-	writeln("test missing");
+	y = -2;
+	z = "1234567";
+	assertEqual(shift(x, y), z);
+	y = 0;
+	z = "123456789";
+	assertEqual(shift(x, y), z);
+	y = 2;
+	z = "345678900";
+	assertEqual(shift(x, y), z);
+	writeln("passed");
 }
 
 /// Rotates the first operand by the specified number of decimal digits.
@@ -1325,40 +1333,114 @@ unittest {
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T)(T arg, int n, Context context = T.context)  {
+public T rotate(T)(T x, T y, Context context = T.context)  {
+	if (x.isNaN) return invalidOperand(x);
+	if (y.isNaN) return invalidOperand(y);
+	if (y.exponent != 0) return invalidOperand(y);
+	if (y.coefficient > context.precision ||
+		y.coefficient < -context.precision) return invalidOperand(y);
+	int n = y.coefficient.toInt;
+	if (y.sign) n = -n;
+	return rotate(x, n, context);
+}
 
-	// check for NaN operand
-	if (operandIsInvalid!T(arg, result)) {
-		return T.nan;
-	}
+// Rotates the first operand by the specified number of decimal digits.
+/// (Not binary digits!) Positive values of the second operand rotate the
+/// first operand left (multiplying by tens). Negative values rotate right
+/// (divide by 10s). If the number is NaN, or if the rotate value is less
+/// than -precision or greater than precision, an INVALID_OPERATION is signaled.
+/// An infinite number is returned unchanged.
+/// Implements the 'rotate' function in the specification. (p. 47-48)
+public T rotate(T)(T x, int n, Context context = T.context)  {
+
+	// check for NaN
+	if (x.isNaN) return invalidOperand(x);
+
+	// shift by zero returns the argument
+	if (n == 0) return x;
+
+	// shift of an infinite number returns the argument
+	if (x.isInfinite) return x;
+
+	int precision = context.precision;
+
+	// shifting by more than precision is invalid.
 	if (n < -precision || n > precision) {
-		return setInvalidFlag();
+		return setInvalidFlag!T;
 	}
-	if (arg.isInfinite) {
-		return arg;
-	}
-	if (n == 0) {
-		return arg;
+    // clip leading digits
+	if (x.digits > precision){
+		x.coefficient = x.coefficient % pow10(precision);
 	}
 
-//	result = arg.dup;
-	Decimal result = arg.dup;//toBigDecimal!T(arg);
 	if (n > 0) {
-		shiftLeft(result);
+		// rotate left
+		x.coefficient = x.coefficient * pow10(n);
+		x.digits = numDigits(x.coefficient);
+		if (x.digits > context.precision) {
+			xint rem;
+			xint div = xint.divmod(x.coefficient, pow10(precision), rem);
+			x.coefficient = div + rem;
+			x.digits = numDigits(x.coefficient);
+		}
 	}
 	else {
-		shiftRight(result);
+		// rotate right
+		n = -n;
+		xint rem;
+		xint div = xint.divmod(x.coefficient, pow10(n), rem);
+		x.coefficient = rem * pow10(precision - n) + div;
+		x.digits = numDigits(x.coefficient);
 	}
-	return T(result);
-
-//	return n < 0 ? decRotR!T(// TODO: (language, behavior) And then a miracle happens....
-
-	return result;
+	return x;
 }
 
 unittest {
-	write("shift, rotate...");
-	writeln("test missing");
+	write("-- rotate...........");
+	dec9 x, y, z;
+	x = "34";
+	y = 8;
+	z = "400000003";
+	assertEqual(rotate(x, y), z);
+	x = "12";
+	y = 9;
+	z = "12";
+	assertEqual(rotate(x, y), z);
+	x = "123456789";
+	y = -2;
+	z = "891234567";
+	assertEqual(rotate(x, y), z);
+	x = "1234567890";
+	y = -2;
+	z = "902345678";
+	assertEqual(rotate(x, y), z);
+
+	x = "912345678900000";
+	y = 2;
+	z = "890000067";
+	assertEqual(rotate(x, y), z);
+
+	x = "123000456789";
+	y = 2;
+	z = "45678900";
+	assertEqual(rotate(x, y), z);
+
+	x = "123000456789";
+	y = -2;
+	z = "890004567";
+	assertEqual(rotate(x, y), z);
+
+	x = "123456789";
+	y = -5;
+	z = "567891234";
+	assertEqual(rotate(x, y), z);
+	y = 0;
+	z = "123456789";
+	assertEqual(rotate(x, y), z);
+	y = 2;
+	z = "345678912";
+	assertEqual(rotate(x, y), z);
+	writeln("passed");
 }
 
 //------------------------------------------
