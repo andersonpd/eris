@@ -34,7 +34,7 @@ import eris.assertions;
 import std.string;
 
 import eris.decimal.context;
-import eris.decimal.decimal;
+import eris.decimal;
 import eris.decimal.rounding;
 
 unittest {

@@ -20,7 +20,7 @@ import std.string;
 import std.format;
 
 import eris.decimal.context;
-import eris.decimal.decimal;
+import eris.decimal;
 import eris.decimal.rounding;
 import eris.integer.extended;
 
@@ -608,7 +608,8 @@ public T toNumber(T)(const string inStr) {
 		return num;
 	};
 	// at this point, num must be finite
-	num = T.zero(sign);
+//	num = T.zero(sign); // TODO: (language) dmd 2.066 requires a 'this' for zero fctn. zero used to be immutable static, now is enum..
+	num = num.zero(sign);
 	// check for exponent
 	int pos = indexOf(str, 'e');
 	if (pos > 0) {

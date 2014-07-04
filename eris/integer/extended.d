@@ -56,13 +56,13 @@ public struct ExtendedInt {
 	/// digits[0] is the least significant digit while
 	/// digits[$-1] is most significant digit.
 	@safe
-	private this(T:uint[])(const T digits) {
+	private this(T:uint[])(T digits) {
 		this.digits = digits.dup;
 	}
 
 	/// Private constructor for internal use.
 	@safe
-	private this(T:uint[])(bool sign, const T digits) {
+	private this(T:uint[])(bool sign, T digits) {
 		this.digits = digits.dup;
 		this.sign = sign;
 	}
@@ -73,7 +73,7 @@ public struct ExtendedInt {
 
 	/// Constructs an extended integer from a signed integer type.
 	@safe
-	public this(T)(const T num)
+	public this(T)(T num)
 			if (__traits(isIntegral, T) && !__traits(isUnsigned, T)) {
 		long value = cast(long)num;
 		if (value >= 0) {
@@ -104,13 +104,13 @@ public struct ExtendedInt {
 
 	/// Constructs an extended integer from a boolean value.
 	@safe
-	public this(T:bool)(const T value) {
+	public this(T:bool)(T value) {
 		this(cast(long)value);
 	}
 
 	/// Constructs an extended integer from an unsigned integer type.
 	@safe
-	public this(T)(const T num)
+	public this(T)(T num)
 			if (__traits(isIntegral, T) && __traits(isUnsigned, T)) {
 		ulong value = cast(ulong)num;
 		if (value > uint.max) {
@@ -1365,7 +1365,9 @@ public struct ExtendedInt {
 		if (n == 0) return ONE.dup;
 		if (n == 1) return x.dup;
 		if (n == 2) return x.sqr;
-		return xint(powDigits(x.digits, n));
+		uint[] ret = powDigits(x.digits, n);
+		return xint(ret);
+//		return xint(powDigits(x.digits, n));
 	}
 
 	unittest {

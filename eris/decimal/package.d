@@ -12,7 +12,7 @@
  *	http://www.boost.org/LICENSE_1_0.txt)
 **/
 
-module eris.decimal.decimal;
+module eris.decimal;
 
 import std.conv;
 //import std.bigint;
