@@ -33,8 +33,8 @@ import eris.integer.extended;
 import eris.assertions;
 import std.string;
 
-import eris.decimal.context;
 import eris.decimal;
+import eris.decimal.context;
 import eris.decimal.rounding;
 
 unittest {

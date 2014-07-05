@@ -17,8 +17,8 @@ module eris.decimal.math;
 import eris.integer.extended;
 //import std.bigint;
 
-import eris.decimal.context;
 import eris.decimal;
+import eris.decimal.context;
 import eris.decimal.arithmetic;
 import eris.decimal.rounding;
 
@@ -780,6 +780,7 @@ public T log10(T)(T x, Context inContext) {
 	auto context = guard(inContext);
 	int k = ilogb(x) + 1;
 	x.exponent = x.exponent - k;
+//	x.exponent -= k;
 	T lg10 = add(div(log(x, context), ln10!T(context)), k);
 	return roundToPrecision(lg10, inContext);
 }

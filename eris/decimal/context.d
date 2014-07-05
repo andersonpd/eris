@@ -26,7 +26,7 @@ version(unittest) {
 }
 
 /// The available rounding modes. For cumulative operations use the
-/// HALF_EVEN mode to prevent accumulation of errors. Otherwise the
+/// HALF_EVEN mode to prevent accumulation of errors. Otherwise, the
 /// HALF_UP and HALF_DOWN modes are satisfactory. The UP, DOWN, FLOOR,
 /// and CEILING modes are also useful for some operations.
 /// General Decimal Arithmetic Specification, p. 13-14.
@@ -58,15 +58,13 @@ public enum : ubyte {
 }
 
 
-///	The context specifies the precision and the rounding mode.
-///	These two values govern operations on decimal types.
-/// The precision is the number of digits in the result of most operations,
-/// and in internal operations as well. With a few exceptions the result
-/// of most operations will be rounded (using the context rounding mode) to
-/// the context precision.
-/// TODO: (docs) copy edit this.
-public struct Context {
-
+///	Decimal arithmetic operationa are governed by their context.
+/// The context specifies the precision (number of decimal digits)
+/// and the rounding mode in place for the operation.
+///	The result of most operations will be rounded to the context precision
+/// using the context rounding mode
+public struct Context
+{
 	public immutable int precision;
 	public immutable Rounding rounding;
 

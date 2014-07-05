@@ -323,7 +323,7 @@ public struct ExtendedInt {
 		xint a;
 		assertZero(a);
 		a = long.min;
-		assertEqual(a.toHexString, "-0x80000000_00000000");
+		assertEqual(a.toHexString, "0x80000000_00000000");
 		assertEqual(a.abs.toHexString, "0x80000000_00000000");
 		assertEqual(a.sqr.toHexString, "0x40000000_00000000_00000000_00000000");
 		a = -a;
@@ -912,16 +912,19 @@ public struct ExtendedInt {
 	}
 
 	/// Converts the extended integer value to a hexadecimal string.
-	public const string toHexString() {
+	/// If the sign of the extended integer is true, the two's complement
+	/// of the integer is returned (without a minus sign).
+	public string toHexString() const {
 		char[] str;
 		int length = numDigits(digits);
 		if (length == 0) {
 			return ("0x00000000");
 		}
+		uint[] a =  sign ? negateDigits(digits) : digits.dup;
 		for (int i = 0; i < length; i++) {
 			str = std.string.format("_%08X", digits[i]) ~ str;
 		}
-		return sign ? "-0x" ~ str[1..$].idup : "0x" ~ str[1..$].idup;
+		return "0x" ~ str[1..$].idup;
 	}
 
 	/// Converts the extended integer value to a binary string.
@@ -1445,8 +1448,8 @@ unittest {
 	/// If the integers are of unequal lengths the shorter is sign-extended.
 	@safe
 	private static xint and(in xint x, in xint y) {
-		auto xd =  x.isNegative ? negateDigits(x.digits) : x.digits.dup;
-		auto yd =  y.isNegative ? negateDigits(y.digits) : y.digits.dup;
+		auto xd = x.isNegative ? negateDigits(x.digits) : x.digits.dup;
+		auto yd = y.isNegative ? negateDigits(y.digits) : y.digits.dup;
 		matchLengthSigned(xd, yd);
 		xint z = xint(andDigits(xd, yd));
 		z.sign = x.sign & y.sign;
@@ -1485,36 +1488,38 @@ unittest {
 		if (z.sign) {
 			z.digits = negateDigits(z.digits);
 		}
+		z.reduce();
 		return z;
 	}
 
+ 	// TODO: (testing) more testing, please!!
 	unittest {
-		write("-- logical ops......");
+		writeln("-- logical ops......");
 
 		xint A = "0x80000000_00000000_00001111";
 		xint B = "0xFF00FF00_88883333_AAAA5555";
 		xint C = "0x80000000";
 		xint D = "0x7FFFFFFF_FFFFFFFF_FFFFFFFF_BEEFCAFE";
 
-		assertEqual(A & B, xint("0x80000000_00000000_00001111"));
-		assertEqual(A | B, xint("0xFF00FF00_88883333_AAAA5555"));
-		assertEqual(A ^ B, xint("0x7F00FF00_88883333_AAAA4444"));
+		assertEqual((A & B).toHexString, "0x80000000_00000000_00001111");
+		assertEqual((A | B).toHexString, "0xFF00FF00_88883333_AAAA5555");
+		assertEqual((A ^ B).toHexString, "0x7F00FF00_88883333_AAAA4444");
 
-		assertEqual(A & C, xint("0x00000000"));
-		assertEqual(A | C, xint("0x80000000_00000000_80001111"));
-		assertEqual(A ^ C, xint("0x80000000_00000000_80001111"));
+		assertEqual((A & C).toHexString, "0x00000000");
+		assertEqual((A | C).toHexString, "0x80000000_00000000_80001111");
+		assertEqual((A ^ C).toHexString, "0x80000000_00000000_80001111");
 
-		assertEqual(B & C, xint("0x80000000"));
-		assertEqual(B | C, xint("0xFF00FF00_88883333_AAAA5555"));
-		assertEqual(B ^ C, xint("0xFF00FF00_88883333_2AAA5555"));
+		assertEqual((B & C).toHexString, "0x80000000");
+		assertEqual((B | C).toHexString, "0xFF00FF00_88883333_AAAA5555");
+		assertEqual((B ^ C).toHexString, "0xFF00FF00_88883333_2AAA5555");
 
-		assertEqual(B & D, xint("0x7FFFFFFF_FF00FF00_88883333_AAAA4054"));
-		assertEqual(B | D, xint("0xFFFFFFFF_FFFFFFFF_FFFFFFFF_BEEFDFFF"));
-		assertEqual(B ^ D, xint("0x80000000_00FF00FF_7777CCCC_14459FAB"));
+		assertEqual((B & D).toHexString, "0xFF00FF00_88883333_AAAA4054");
+		assertEqual((B | D).toHexString, "0x7FFFFFFF_FFFFFFFF_FFFFFFFF_BEEFDFFF");
+		assertEqual((B ^ D).toHexString, "0x7FFFFFFF_00FF00FF_7777CCCC_14459FAB");
 
-		assertEqual(C & D, xint("0x80000000"));
-		assertEqual(C | D, xint("0x7FFFFFFF_FFFFFFFF_FFFFFFFF_BEEFCAFE"));
-		assertEqual(C ^ D, xint("0x7FFFFFFF_FFFFFFFF_FFFFFFFF_3EEFCAFE"));
+		assertEqual((C & D).toHexString, "0x80000000");
+		assertEqual((C | D).toHexString, "0x7FFFFFFF_FFFFFFFF_FFFFFFFF_BEEFCAFE");
+		assertEqual((C ^ D).toHexString, "0x7FFFFFFF_FFFFFFFF_FFFFFFFF_3EEFCAFE");
 
 		long ai,bi,ci,di;
 		ai = 3;
@@ -1526,6 +1531,7 @@ unittest {
 		b = -7;
 		c = 0xFF;
 		d = -12;
+
 		assertEqual(a, ai);
 		assertEqual(b, bi);
 		assertEqual(c, ci);
@@ -1634,7 +1640,6 @@ unittest {
 		digits[$ - n - 1] = value;
 	}
 
-
 	/// Returns the length of the uint digit array. Includes leading
 	/// zeros, if any.
 	@safe
@@ -1671,7 +1676,7 @@ unittest {
 		}
 	}
 
-	/// Increases the length of the digit array of this extended integer
+/*	/// Increases the length of the digit array of this extended integer
 	/// to at least the specified value. If the array is already as long
 	/// or longer than the specified length the integer is not modified.
 	@safe
@@ -1679,7 +1684,7 @@ unittest {
 		if (n < this.digits.length) {
 			this.digits.length = n;
 		}
-	}
+	}*/
 
 	unittest {
 //		write("digit manipulation...");
@@ -1720,7 +1725,6 @@ unittest {
 // TODO: (efficiency) can this take advantage of small numbers? i.e. < long.max?
 public xint pow10(int n) {
 	if (n < 0) throw new InvalidOperationException();
-//	xint ten = xint.TEN;
 	if (n == 0) return xint.TEN;
 	return xint.TEN^^n;
 }

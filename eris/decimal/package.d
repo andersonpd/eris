@@ -455,7 +455,8 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	}
 
 
-	// TODO: (language) What does it take to make this an l-value?
+	// NOTE: (language) What does it take to make this an l-value?
+	/// sets the exponent of this number
 	@property
 	@safe
 	int exponent(int expo) {

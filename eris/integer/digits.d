@@ -25,7 +25,7 @@ version(unittest) {
 	import eris.assertions;
 }
 
-	public static const ulong BASE = 1UL << 32;
+	public static enum ulong BASE = 1UL << 32;
 
 	alias digit = uint;
 
@@ -474,13 +474,13 @@ version(unittest) {
 
 	/// Returns the last 32 bits of a 64-bit unsigned integer
 	@safe
-	public digit low(const ulong nn) {
+	public digit low(ulong nn) {
 		return nn & 0xFFFFFFFFUL;
 	}
 
 	/// Returns the first 32 bits of a 64-bit unsigned integer
 	@safe
-	public digit high(const ulong nn) {
+	public digit high(ulong nn) {
 		return (nn & 0xFFFFFFFF00000000UL) >> 32;
 	}
 
@@ -489,8 +489,7 @@ version(unittest) {
 	@safe
 	public ulong pack(in digit hi, in digit lo) {
 		ulong packed = (cast(ulong) hi) << 32;
-		packed |= lo;
-		return packed;
+		return packed |= lo;
 	}
 
 //--------------------------------
@@ -536,8 +535,7 @@ version(unittest) {
 	/// false otherwise.
 	@safe
 	public bool isOdd(in digit[] a) {
-// TODO: this is another place where odd things happen
-//		if (a.length == 0) return false;
+		if (a.length == 0) return false;
 		return a[0] & 1u;
 	}
 
@@ -575,6 +573,8 @@ version(unittest) {
 		assertTrue(isOdd(a));
 		a = [1, 1, -1];
 		assertTrue(isNegative(a));
+		a = [0xFF00FF00];
+		assertTrue(isNegative(a));
 		writeln("passed");
 	}
 
@@ -600,7 +600,7 @@ version(unittest) {
 	/// Returns the sum of two digit arrays with specified lengths.
 	@safe
 	public digit[] addDigits(
-			in digit[] x, const int nx, in digit[] y, const int ny) {
+			in digit[] x, int nx, in digit[] y, int ny) {
 
 		// special cases
 		if (nx == 0) return y.dup;
@@ -624,16 +624,11 @@ version(unittest) {
 			carry = high(temp);
 			i++;
 		}
-		while (i < nx) {
-			// TODO -- there's probably a way to slice this
-			sum[i] = x[i];
-			i++;
-		}
+		sum[i..nx] = x[i..nx];
 		if (carry) {
 			sum[i] = carry;
 		}
-		return reduce(sum);
-//		return (sum);
+		return sum;
 	}
 
 	/// Returns the sum of an array of digits and a single digit.
@@ -660,15 +655,11 @@ version(unittest) {
 			carry = high(temp);
 			i++;
 		}
-		while (i < nx) {
-			sum[i] = x[i];
-			i++;
-		}
+		sum[i..nx] = x[i..nx];
 		if (carry == 1) {
 			sum[i] = carry;
 		}
-//		return (sum);
-		return reduce(sum);
+		return sum;
 	}
 
 	unittest {
@@ -687,21 +678,21 @@ version(unittest) {
 		x = [1, 2, 3, 4, 5];
 		y = [6, 7, 8, 9, 10];
 		sum = addDigits(x, y);
-//		reduce(sum);
+		reduce(sum);
 		assertEqual(sum, [7, 9, 11, 13, 15]);
 		x.length = 4;
 		sum = addDigits(x,y);
-//		reduce(sum);
+		reduce(sum);
 		assertEqual(sum, [7, 9, 11, 13, 10]);
 		sum = addDigit(x, 7);
-//		reduce(sum);
+		reduce(sum);
 		assertEqual(sum, [8, 2, 3, 4]);
 		extend(x, 7);
 		sum = addDigits(x,y);
-//		reduce(sum);
+		reduce(sum);
 		assertEqual(sum, [7, 9, 11, 13, 10]);
 		sum = addDigit(x, 7);
-//		reduce(sum);
+		reduce(sum);
 		assertEqual(sum, [8, 2, 3, 4]);
 		writeln("passed");
 	}
@@ -727,13 +718,6 @@ version(unittest) {
 			x.length = ny;
 			nx = ny;
 		}
-/*		bool swapped = false;
-		if (compareDigits(x, nx, y, ny) < 0) {
-			digit[] temp = x;
-			x = y;
-			y = temp;
-			swapped = true;
-		}*/
 
   		digit[] diff = new digit[nx + 1];
 		digit borrow = 0;
@@ -741,9 +725,6 @@ version(unittest) {
 		while (i < ny) {
 			diff[i] = x[i] - y[i] - borrow;
 			borrow = (x[i] >= y[i] + borrow) ? 0 : 1;
-// TODO: why don't the following tests work??
-//			borrow = (diff[i] < int.max) ? 0 : 1;
-//			borrow =  cast(int)(diff[i] < 0) ? 0 : 1;
 			i++;
 		}
 		while (borrow && i < nx) {
@@ -757,19 +738,13 @@ version(unittest) {
 			}
 			i++;
 		}
-		while (i < nx) {
-			diff[i] = x[i];
-			i++;
-		}
+		diff[i..nx] = x[i..nx];
 		if (borrow == 1) {
 			diff[i] = borrow;
 		}
 		if (diff[nx] != 0) {
 			diff[nx] = uint.max;
 		}
-/*		if (swapped) {
-			diff = negateDigits(diff);
-		}*/
 		return diff;
 	}
 
@@ -783,7 +758,7 @@ version(unittest) {
 	/// and a single digit.
 	@safe
 	public digit[] subDigit(
-		in digit[] x, const int nx, in digit y) {
+		in digit[] x, int nx, in digit y) {
 
   		digit[] diff = new digit[nx + 1];
 		digit borrow = 0;
@@ -795,10 +770,7 @@ version(unittest) {
 			borrow = (x[i] >= borrow) ? 0 : 1;
 			i++;
 		}
-		while (i < nx) {
-			diff[i] = x[i];
-			i++;
-		}
+		diff[i..nx] = x[i..nx];
 		if (borrow == 1) {
 			diff[i] = borrow;
 		}
@@ -858,7 +830,7 @@ version(unittest) {
 	/// Returns the product of the two digit arrays of specified lengths.
 	@safe
 	public digit[] mulDigits(
-		in digit[] x, const int nx, in digit[] y, const int ny) {
+		in digit[] x, int nx, in digit[] y, int ny) {
 		digit[] p = new digit[nx + ny + 1];
 		p[] = 0;
 		for (int i = 0; i < ny; i++) {

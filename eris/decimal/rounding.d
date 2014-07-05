@@ -14,8 +14,8 @@
 
 module eris.decimal.rounding;
 
-import eris.decimal.context;
 import eris.decimal;
+import eris.decimal.context;
 import eris.decimal.arithmetic: copyNegate;
 import eris.integer.extended;
 
@@ -104,27 +104,27 @@ unittest {	// roundToPrecision
 	before = 1234567890;
 	after = roundToPrecision(before, 3);
 	assertStringEqual(after, "1.23E+9");
-	after = roundToPrecision(before, 4);;
+	after = roundToPrecision(before, 4);
 	assertStringEqual(after, "1.235E+9");
-	after = roundToPrecision(before, 5);;
+	after = roundToPrecision(before, 5);
 	assertStringEqual(after,  "1.2346E+9");
-	after = roundToPrecision(before, 6);;
+	after = roundToPrecision(before, 6);
 	assertStringEqual(after,  "1.23457E+9");
-	after = roundToPrecision(before, 7);;
+	after = roundToPrecision(before, 7);
 	assertStringEqual(after,  "1.234568E+9");
-	after = roundToPrecision(before, 8);;
+	after = roundToPrecision(before, 8);
 	assertStringEqual(after,  "1.2345679E+9");
 	before = 1235;
-	after = roundToPrecision(before, 3);;
+	after = roundToPrecision(before, 3);
 	assertStringEqual(after.toAbstract(), "[0,124,1]");
 	before = 12359;
-	after = roundToPrecision(before, 3);;
+	after = roundToPrecision(before, 3);
 	assertStringEqual(after.toAbstract(), "[0,124,2]");
 	before = 1245;
 	after = roundToPrecision(before, 3);
 	assertStringEqual(after.toAbstract(), "[0,124,1]");
 	before = 12459;
-	after = roundToPrecision(before, 3);;
+	after = roundToPrecision(before, 3);
 	assertStringEqual(after.toAbstract(), "[0,125,2]");
 //	xint test = "18690473486004564289165545643685440097";
 //	long  count = countDigits(test);

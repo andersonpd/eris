@@ -19,8 +19,8 @@ import std.ascii: isDigit;
 import std.string;
 import std.format;
 
-import eris.decimal.context;
 import eris.decimal;
+import eris.decimal.context;
 import eris.decimal.rounding;
 import eris.integer.extended;
 
@@ -606,11 +606,10 @@ public T toNumber(T)(const string inStr) {
 	if (str == "inf" || str == "infinity") {
 		num = T.infinity(sign);
 		return num;
-	};
+	}
 	// at this point, num must be finite
-//	num = T.zero(sign); // TODO: (language) dmd 2.066 requires a 'this' for zero fctn. zero used to be immutable static, now is enum..
-	num = num.zero(sign);
-	// check for exponent
+	num = T.zero(sign);
+                         	// check for exponent
 	int pos = indexOf(str, 'e');
 	if (pos > 0) {
 		// if it's just a trailing 'e', return NaN
