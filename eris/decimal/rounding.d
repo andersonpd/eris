@@ -567,25 +567,11 @@ public long countDigits(in xint x) {
 	return big.toLong;
 }
 
-public long countDigits2(in xint arg) {
-
-debug import std.stdio : writefln;
-
-	xint big = arg.dup;
-writefln("big = %s", big);
-writefln("QUINTILLION = %s", QUINTILLION);
-	int count = 0;
-	while (big > QUINTILLION) {
-writefln("count++ = %s", count++);
-		big /= QUINTILLION;
-	}
-	return big.toLong;
-}
-
 unittest {
 	write("countDigits...");
 	xint x = "18690473486004564289165545643685440097";
-//	countDigits2(x);
+//	countDigits(x);
+writefln("countDigits(x) = %s", countDigits(x));
 	writeln("test missing");
 }
 
