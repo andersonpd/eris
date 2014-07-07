@@ -19,6 +19,7 @@ import eris.decimal.context;
 import eris.decimal.arithmetic: copyNegate;
 import eris.integer.extended;
 
+
 unittest {
 	writeln("==========================");
 	writeln("decimal rounding.....begin");
@@ -567,6 +568,9 @@ public long countDigits(in xint x) {
 }
 
 public long countDigits2(in xint arg) {
+
+debug import std.stdio : writefln;
+
 	xint big = arg.dup;
 writefln("big = %s", big);
 writefln("QUINTILLION = %s", QUINTILLION);

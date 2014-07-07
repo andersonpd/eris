@@ -595,7 +595,7 @@ package T exp(T)(T x, Context inContext) {
 		t1   = mul(t2, mul(x, n, context), context);
 		t2   = mul(t2, sqrx, context);
 		fact = mul(fact, n*(n-1), context);
-		term = div(add(t1, t2, context), fact, context);;
+		term = div(add(t1, t2, context), fact, context);
 		sum  = add(sum, term, context);
 	}
 	if (negative) sum = div(T.one, sum, context);
