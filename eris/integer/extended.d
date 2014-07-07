@@ -348,7 +348,7 @@ public struct ExtendedInt {
 	/// Returns one, zero, or minus one if this extended integer is
 	/// positive, zero, or negative, respectively.
 	@safe
-	public const xint sgn() {
+	public xint sgn() const {
 		if (this.isZero) {
 			return ZERO.dup;
 		}
@@ -359,37 +359,37 @@ public struct ExtendedInt {
 
 	/// Returns true if this extended integer is zero, false otherwise.
 	@safe
-	public const bool isZero() {
+	public bool isZero() const {
 		return digits.isZero;
 	}
 
 	/// Returns true if this extended integer is less than zero, false otherwise.
 	@safe
-	public const bool isNegative() {
+	public bool isNegative() const {
 		return sign;
 	}
 
 	/// Returns true if this extended integer is odd, false otherwise.
 	@safe
-	public const bool isOdd() {
+	public bool isOdd() const {
 		return digits.isOdd;
 	}
 
 	/// Returns true if this extended integer is even, false otherwise.
 	@safe
-	public const bool isEven() {
+	public bool isEven() const {
 		return !isOdd;
 	}
 
 	/// Returns true if this extended integer is false (zero), false otherwise.
 	@safe
-	public const bool isFalse() {
+	public bool isFalse() const {
 		return digits.isZero;
 	}
 
 	/// Returns true if this extended integer is true (non-zero), false otherwise.
 	@safe
-	public const bool isTrue() {
+	public bool isTrue() const {
 		return !digits.isZero;
 	}
 
@@ -400,14 +400,14 @@ public struct ExtendedInt {
 	/// Returns true if the value of this extended integer
 	/// is a valid unsigned integer value.
 	@safe
-	public const bool isValidUint() {
+	public bool isValidUint() const {
 		return this >= 0 && this <= UINT_MAX;
 	}
 
 	/// Returns an unsigned integer with the value of this extended integer.
 	/// If the value is too large to be represented uint.max is returned.
 	@safe
-	public const uint toUint() {
+	public uint toUint() const {
 		if (this < 0) return 0U;
 		if (this > UINT_MAX) return uint.max;
 		return cast(uint)digits[0];
@@ -416,14 +416,14 @@ public struct ExtendedInt {
 	/// Returns true if the value of this extended integer
 	/// is a valid unsigned long integer value.
 	@safe
-	public const bool isValidUlong() {
+	public bool isValidUlong() const {
 		return this >= 0 && this <= ULONG_MAX;
 	}
 
 	/// Returns an unsigned long int with the value of this extended integer.
 	/// If the value is too large to be represented ulong.max is returned.
 	@safe
-	public const ulong toUlong() {
+	public ulong toUlong() const {
 		if (this < 0) return 0L;
 		// if too big to represent...
 		if (this > ULONG_MAX) return ulong.max;
@@ -455,14 +455,14 @@ public struct ExtendedInt {
 	/// Returns true if the value of this extended integer
 	/// is a valid integer value.
 	@safe
-	public const bool isValidInt() {
+	public bool isValidInt() const {
 		return this <= INT_MAX && this >= INT_MIN;
 	}
 
 	/// Returns a signed integer with the value of this extended integer.
 	/// If the value is too large to be represented int.max/min is returned.
 	@safe
-	public const int toInt() {
+	public int toInt() const {
 		if (this > INT_MAX) return int.max;
 		if (this < INT_MIN) return int.min;
 		if (this.isZero) return 0;
@@ -473,14 +473,14 @@ public struct ExtendedInt {
 	/// Returns true if the value of this extended integer
 	/// is a valid long integer value.
 	@safe
-	public const bool isValidLong() {
+	public bool isValidLong() const {
 		return this <= LONG_MAX && this >= LONG_MIN;
 	}
 
 	/// Returns a signed long integer with the value of this extended integer.
 	/// If the value is too large to be represented long.max is returned.
 	@safe
-	public const long toLong() {
+	public long toLong() const {
 		// if too big to represent...
 		if (this > LONG_MAX) return long.max;
 		if (this < LONG_MIN) return long.min;
@@ -579,7 +579,7 @@ public struct ExtendedInt {
 
 	/// Returns true if the argument is equal to this extended integer.
 	@safe
-	private const bool opEquals(T:xint)(const T that) {
+	private bool opEquals(T:xint)(const T that) const {
 		// if signs differ the integers cannot be equal.
 		if (!this.isZero && this.sign != that.sign) {
 			return false;
@@ -594,7 +594,7 @@ public struct ExtendedInt {
 
 	 /// Returns true if the argument is equal to this extended integer.
 	@safe
-	private const bool opEquals(T)(const T that) {
+	private const bool opEquals(T)(const T that) const const const {
 		return opEquals(xint(that));
 	}
 
@@ -629,14 +629,14 @@ public struct ExtendedInt {
 		}
 	}
 
-	private const int opCmp(T:xint)(const T that) {
+	private const int opCmp(T:xint)(const T that) const {
 		return compare(this, that);
 	}
 
 	/// Returns -1, 0, or 1, if this extended integer is, respectively,
 	/// less than, equal to or greater than the argument.
 	@safe
-	private const int opCmp(T)(const T that) {
+	private int opCmp(T)(const T that) const {
 		return opCmp(xint(that));
 	}
 
@@ -670,7 +670,7 @@ public struct ExtendedInt {
 
 	/// Returns the unsigned value of the extended integer as
 	///	a big-endian array of bytes. Sign is ignored.
-	public const ubyte[] toByteArray() {
+	public ubyte[] toByteArray() const {
 		uint index = 0;
 		ubyte[] buffer = new ubyte[digits.length * 4];
 		foreach (uint digit; digits) {
@@ -822,7 +822,7 @@ public struct ExtendedInt {
 		writeln("passed");
 	}
 
-	public const string toString(string fmt = "%s") {
+	public string toString(string fmt = "%s") const {
 		import std.exception : assumeUnique;
 		char[] buf;
 		buf.reserve(100);
@@ -830,8 +830,8 @@ public struct ExtendedInt {
 		return assumeUnique(buf);
 	}
 
-	public const void toString(scope void delegate(const(char)[]) sink,
-		string formatString) {
+	public void toString(scope void delegate(const(char)[]) sink,
+		string formatString) const {
 
 		auto f = singleSpec!char(formatString.dup);
 		switch (f.spec) {
@@ -847,8 +847,8 @@ public struct ExtendedInt {
 		}
 	}
 
-    public const void formatDecimal(
-			scope void delegate(const (char)[]) sink, ref FormatSpec!char f) {
+    public void formatDecimal(scope void delegate(const (char)[]) sink,
+			ref FormatSpec!char f) const {
 
         string str = toDecimalString(false);
 		char signChar = isNegative() ? '-' : 0;
@@ -883,17 +883,17 @@ public struct ExtendedInt {
                 sink(" ");
 	}
 
-    public const void formatHex(
-			scope void delegate(const (char)[]) sink) {
+    public void formatHex(
+			scope void delegate(const (char)[]) sink) const {
 		sink(toHexString);
 	}
 
-    public const void formatBinary(
-			scope void delegate(const (char)[]) sink) {
+    public void formatBinary(
+			scope void delegate(const (char)[]) sink) const {
 		sink(toBinaryString);
 	}
 
-	public const string toDecimalString(bool addSign = true) {
+	public string toDecimalString(bool addSign = true) const {
 		char[] str;
 		uint[] from = this.digits.dup;
 		uint n = numDigits(from);
@@ -929,7 +929,7 @@ public struct ExtendedInt {
 
 	/// Converts the extended integer value to a binary string.
 	// FIXTHIS: doesn't do signed
-	public const string toBinaryString() {
+	public string toBinaryString() const {
 		char[] str;
 		int n = numDigits(digits);
 		if (n == 0) {
@@ -996,13 +996,13 @@ public struct ExtendedInt {
 
 	/// Returns a copy of this extended integer.
 	@safe
-	public const xint plus() {
+	public xint plus() const{
 		return this.dup;
 	}
 
 	/// Returns a copy of this extended integer with sign inverted.
 	@safe
-	public const xint minus() {
+	public xint minus() const {
 		if (this.isZero) return ZERO.dup;
 		auto copy = this.dup;
 		copy.sign = !this.sign;
@@ -1011,7 +1011,7 @@ public struct ExtendedInt {
 
 	/// Returns the ones complement of this extended integer
 	@safe
-	public const xint complement() {
+	public xint complement() const {
 		auto temp = digits.dup;
 		eris.integer.digits.reduce(temp);
 		auto comp = compDigits(temp);
@@ -1020,7 +1020,7 @@ public struct ExtendedInt {
 
 	/// Returns the twos complement of this extended integer
 	@safe
-	public const xint negate() {
+	public xint negate() const {
 		if (this.isZero) return ZERO.dup;
 		auto comp = this.complement;
 		comp++;
@@ -1032,7 +1032,7 @@ public struct ExtendedInt {
 	/// Otherwise, the number is negated, the sign is set to false,
 	/// and the result is returned.
 	@safe
-	public const xint toTwosComplement() {
+	public xint toTwosComplement() const {
 		if (!this.sign) return this.dup;
 		auto copy = this.negate;
 		copy.sign = false;
@@ -1044,7 +1044,7 @@ public struct ExtendedInt {
 //--------------------------------
 
 	@safe
-	private const xint opBinary(string op, T:xint)(const T that) {
+	private xint opBinary(string op, T:xint)(const T that) const {
 		static if (op == "+") {
 			return add(this, that);
 		}
@@ -1084,7 +1084,7 @@ public struct ExtendedInt {
 	}	// end opBinary
 
 	@safe
-	private const xint opBinary(string op, T)(const T that) {
+	private xint opBinary(string op, T)(const T that) const {
 		return opBinary!(op, xint)(xint(that));
 	}
 
@@ -1584,7 +1584,7 @@ unittest {
 	/// Returns true if the bit == 1, false otherwise.
 	/// Returns false if the index of the bit is longer than the integer size.
 	@safe
-	public const bool testBit(int n) {
+	public bool testBit(int n) const {
 		uint d = n / 32;
 		if (d >= digits.length) return false;
 		uint digit = digits[d];
@@ -1643,20 +1643,20 @@ unittest {
 	/// Returns the length of the uint digit array. Includes leading
 	/// zeros, if any.
 	@safe
-	public const int getDigitLength() {
+	public int getDigitLength() const {
 		return digits.length;
 	}
 
 	/// Returns the number of significant digits in this integer.
 	/// Leading zeros are ignored.
 	@safe
-	private const int getDigitCount() {
+	private int getDigitCount() const {
 		return this.digits.numDigits();
 	}
 
 	/// Returns this extended integer with leading zeros removed.
 	@safe
-	public const xint trim() {
+	public xint trim() const {
 		return xint(trimDigits(this.digits));
 	}
 
@@ -1708,7 +1708,7 @@ unittest {
 	}
 
 /*	/// Returns a copy of the entire array of uint values, unmodified
-	public const uint[] toArray()
+	public uint[] toArray() const
 	{
 		return digits.dup;
 	}

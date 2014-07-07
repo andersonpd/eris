@@ -26,7 +26,7 @@ import eris.integer.extended;
 
 unittest {
 	writeln("==========================");
-	writeln("decimalconversion...begin");
+	writeln("decimal conversion...begin");
 	writeln("==========================");
 }
 
@@ -250,7 +250,7 @@ unittest {
 	writeln("passed");
 }
 
-/// Converts a decimal number to a string in dec9 format (xxx.xxx).
+/// Converts a decimal number to a string in decimal format (xxx.xxx).
 /// NOTE: The sign of the number is not included in the string.
 private string decimalForm(T)
 	(const T number, const int precision = 6) {
@@ -475,7 +475,7 @@ unittest {	//addPrefix
 /// string is already greater than or equal to the specified width the original
 /// string is returned. If the specified width is negative or if the
 /// flag is set the widened string is left justified.
-private string setWidth(const string str, int width,
+private string setWidth(string str, int width,
 		bool justifyLeft = false, bool padZero = false) {
 
 	if (str.length >= std.math.abs(width)) return str;
@@ -516,9 +516,34 @@ private void sink(const(char)[] str) {
 	app.put(str);
 }
 
+/*	public string toString(string fmt = "%s") {
+		import std.exception : assumeUnique;
+		char[] buf;
+		buf.reserve(100);
+		toString((const(char)[] s) { buf ~= s; }, fmt);
+		return assumeUnique(buf);
+	}
+
+	public void toString(scope void delegate(const(char)[]) sink,
+		string formatString) const {
+
+		auto f = singleSpec!char(formatString.dup);
+		switch (f.spec) {
+			case 's':
+			case 'd': formatDecimal(sink, f);
+						break;
+			case 'x':
+			case 'X': formatHex(sink);
+						break;
+			case 'b': formatBinary(sink);
+						break;
+			default: throw new FormatException("Format specifier not recognized %" ~ f.spec);
+		}
+	}*/
+
 /// Returns a string representing the value of the number, formatted as
 /// specified by the formatString.
-public string toString(T)(const T num, const string formatString = "")
+public string toString(T)(const T num, string formatString = "")
 		/+if (isDecimal!T)+/ {
 
     auto a = std.array.appender!(const(char)[])();
@@ -546,15 +571,15 @@ public string toString(T)(const T num, const string formatString = "")
 }
 
 unittest {
-/*	write("toString...");
+	write("toString...");
 	string expect, actual;
-	Dec32 num = 2;
-	actual = toString!Dec32(num, "%9.6e"); //3.3g41");
-	actual = toString!Dec32(num, "%-9.6e"); //3.3g41");
-	actual = toString!Dec32(num, "%9.6e"); //3.3g41");
+	dec9 num = 2;
+	actual = toString!dec9(num, "%9.6e"); //3.3g41");
+	actual = toString!dec9(num, "%-9.6e"); //3.3g41");
+	actual = toString!dec9(num, "%9.6e"); //3.3g41");
 	expect = "    2e+00";
 	assertEqual(actual, expect);
-	writeln("passed");*/
+	writeln("passed");
 }
 
 
@@ -571,7 +596,7 @@ void writeTo(T)(const T num, scope void delegate(const(char)[]) sink,
 /// in that the coefficient string may contain underscores.
 /// A leading or trailing "." is allowed by the specification even though
 /// it is not valid as a D language real number.
-public T toNumber(T)(const string inStr) {
+public T toNumber(T)(string inStr) {
 	T num;
 	bool sign = false;
 	// strip, copy, tolower
@@ -765,7 +790,7 @@ unittest {	// toNumber
 	writeln("passed");
 }
 
-//public decPX toNumber(int P, int X)(const string inStr) {
+//public decPX toNumber(int P, int X)(string inStr) {
 private T setPayload(T)(T num, char[] str, int len) {
 	// if no payload, return
 	if (str.length == len) {

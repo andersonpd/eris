@@ -75,7 +75,6 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 //	package static Rounding rounding = Rounding.HALF_EVEN;
 	package static bool verbose = false; // for debugging
 
-
 	public:
 	/// Maximum length of the coefficient in decimal digits.
 	enum int precision = PRECISION;
@@ -224,7 +223,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	/// Constructs a number from a sign, a long integer coefficient and
 	/// an integer exponent.
 	//@safe
-	private this(const bool sign, const long coefficient, const int exponent) {
+	public this(const bool sign, const long coefficient, const int exponent) {
 		this(sign, xint(coefficient), exponent);
 	}
 
@@ -273,13 +272,13 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		writeln("passed");
 	}
 
-	// TODO: (testing) this(str): add tests for just over/under int.max, int.min
 	// Constructs a decimal number from a string representation
 	this(const string str) {
 		this = eris.decimal.conv.toNumber!decimal(str);
 	};
 
 	unittest {	// string construction
+	// TODO: (testing) this(str): add tests for just over/under int.max, int.min
 		write("-- this(string).....");
 		dec9 num;
 		num = dec9("7254E94");
@@ -308,7 +307,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		writeln("passed");
 	}
 
-	// TODO: (efficiency) convert real to decimal w/o going to a string.
+	// TODO: (efficiency) fix for small numbers (convert to long, back to real/decimal)
 	/// Constructs a decimal number from a real value.
 	this(const real r) {
 		string str = format("%.*G", cast(int)precision, r);
@@ -418,28 +417,28 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 //--------------------------------
 
 	/// Converts a number to an abstract string representation.
-	public const string toAbstract() {
+	public string toAbstract() const {
 		return eris.decimal.conv.toAbstract(this);
 	}
 
 	/// Converts a number to a full string representation.
-	const string toExact() {
+	public string toExact() const {
 		return eris.decimal.conv.toExact(this);
 	}
 
 	/// Converts a decimal to a "scientific" string representation.
-	const string toSciString() {
+	public string toSciString() const {
 		return eris.decimal.conv.sciForm(this);
 	}
 
 	/// Converts a decimal to an "engineering" string representation.
-	const string toEngString() {
+	public string toEngString() const {
    		return eris.decimal.conv.engForm(this);
 	}
 
 	/// Converts a number to its string representation.
 //	override
-	const string toString() {
+	public string toString() const {
 		return eris.decimal.conv.sciForm(this);
 	}
 
@@ -1100,37 +1099,6 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		}
 	}
 
-	// TODO: (behavior) is this needed?
-/*	/// Returns the result of performing the specified
-	/// binary operation on this number and the argument.
-	const decimal opBinaryRight(string op, T:decimal)(in T arg)
-	{
-		static if (op == "+") {
-			return add!decimal(decimal(arg), this, context);
-		}
-		else static if (op == "-") {
-			return sub!decimal(decimal(arg), this, context);
-		}
-		else static if (op == "*") {
-			return mul!decimal(decimal(arg), this, context);
-		}
-		else static if (op == "/") {
-			return div!decimal(decimal(arg), this, context);
-		}
-		else static if (op == "%") {
-			return remainder!decimal(decimal(arg), this, context);
-		}
-		else static if (op == "&") {
-			return and!decimal(decimal(arg), this, context);
-		}
-		else static if (op == "|") {
-			return or!decimal(decimal(arg), this, context);
-		}
-		else static if (op == "^") {
-			return xor!decimal(decimal(arg), this, context);
-		}
-	}*/
-
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
 	const decimal opBinary(string op, T:long)(T x)
@@ -1191,6 +1159,9 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		}
 	}
 
+
+	// TODO: (testing) more tests to distinguish opBin from opBinRight.
+	// TODO: (testing) need complete coverage
 	unittest {	// opBinary
 		write("-- opBinary.........");
 		dec9 op1, op2, actual, expect;
@@ -1201,6 +1172,9 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertEqual(actual, expect);
 		actual = op1 - op2;
 		expect = -4;
+		assertEqual(actual, expect);
+		actual = op2 - op1;
+		expect = 4;
 		assertEqual(actual, expect);
 		actual = op1 * op2;
 		expect = 32;
