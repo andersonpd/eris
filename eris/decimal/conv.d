@@ -606,7 +606,7 @@ public T toNumber(T)(const string inStr) {
 	if (str == "inf" || str == "infinity") {
 		num = T.infinity(sign);
 		return num;
-	};
+	}
 	// at this point, num must be finite
 //	num = T.zero(sign); // TODO: (language) dmd 2.066 requires a 'this' for zero fctn. zero used to be immutable static, now is enum..
 	num = num.zero(sign);
