@@ -83,7 +83,7 @@ unittest {
 	/// digits[$-1] is most significant digit. This
 	/// is the reverse of the public constructor and
 	/// of the get/set digit and word methods.
-	private this(T:uint[])(const T digits) {
+	private this(const uint[] digits) {
 		uint len = digits.length >= N ? N : digits.length;
 		for (int i = 0; i < len; i++)
 			this.digits[i] = digits[i];
