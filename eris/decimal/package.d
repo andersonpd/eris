@@ -450,6 +450,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	@property
 	@safe
 	int exponent() const {
+		if (isSpecial) return 0;
 		return this.expo;
 	}
 
@@ -466,6 +467,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	@property
 	@safe
 	xint coefficient() const {
+		if (isSpecial) return xint(0);
 		return this.mant.dup;
 	}
 
@@ -499,6 +501,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	@property
 	@safe
 	int adjustedExponent() const {
+		if (isSpecial) return 0;
 		return expo + digits - 1;
 	}
 
@@ -506,6 +509,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	@property
 	@safe
 	int getDigits() const {
+		if (isSpecial) return 0;
 		return this.digits;
 	}
 
