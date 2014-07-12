@@ -831,7 +831,7 @@ unittest {
  * power.
  * Required by General Decimal Arithmetic Specification
  */
-public Decimal power(T)(T x, T y) {
+public T power(T)(T x, T y) {
 	return exp(x*ln(y));
 }
 

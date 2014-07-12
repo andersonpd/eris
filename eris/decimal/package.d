@@ -35,8 +35,8 @@ unittest {
 }
 
 alias xint = ExtendedInt;
-//alias dec99 = Decimal!(99,999);
-alias dec9 = Decimal!(9,99);
+//alias dec99 = BigDecimal!(99,999);
+alias dec9 = BigDecimal!(9,99);
 
 // special values for NaN, Inf, etc.
 private enum SV { NONE, INF, QNAN, SNAN };
@@ -59,10 +59,10 @@ writefln("x2b = %s", x2b(xint("909239874203948")));
 /// Specification, Version 1.70 (25 Mar 2009),
 /// http://www.speleotrove.com/decimal.
 /// This specification conforms with IEEE standard 754-2008.
-struct Decimal(int PRECISION = 99, int MAX_EXPO = 9999,
+struct BigDecimal(int PRECISION = 99, int MAX_EXPO = 9999,
 		Rounding ROUNDING_MODE = Rounding.HALF_EVEN) {
 
-alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
+alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 
 	private SV sval = SV.QNAN;		// special value: default is quiet NaN
 	private bool signed = false;	// true if the value is negative, false otherwise.
@@ -1441,7 +1441,7 @@ alias decimal = Decimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return copy[0..precision].idup;
 	}
 
-}	 // end struct Decimal
+}	 // end struct BigDecimal
 
 unittest {
 	writeln("==========================");

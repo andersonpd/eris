@@ -29,7 +29,6 @@ unittest {
 version(unittest) {
 	import std.stdio;
 	import eris.assertions;
-//	alias dectest = Decimal!(9,99);
 }
 
 public T roundToPrecision(T)(in T num, Context context) {

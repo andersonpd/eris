@@ -58,7 +58,7 @@ public enum : ubyte {
 }
 
 
-///	Decimal arithmetic operationa are governed by their context.
+///	Decimal arithmetic operations are governed by their context.
 /// The context specifies the precision (number of decimal digits)
 /// and the rounding mode in place for the operation.
 ///	The result of most operations will be rounded to the context precision
