@@ -6,7 +6,7 @@
  *	Version 1.70, (25 March 2009).
  *	http://www.speleotrove.com/decimal/decarith.pdf)
  *
- *	Copyright Paul D. Anderson 2009 - 2012.
+ *	Copyright Paul D. Anderson 2009 - 2014.
  *	Distributed under the Boost Software License, Version 1.0.
  *	(See accompanying file LICENSE_1_0.txt or copy at
  *	http://www.boost.org/LICENSE_1_0.txt)
@@ -17,24 +17,28 @@ module decimal.dec32;
 import std.bitmanip;
 import std.conv;
 import std.string;
-import std.stdio;
 
 import eris.decimal;
-import eris.decimal.context;
 import eris.decimal.arithmetic;
+import eris.decimal.context;
+import eris.decimal.conv;
 import eris.decimal.rounding;
 import eris.integer.extended;
 
 
-version (unittest) import eris.assertions;
-
-unittest {	// header
-	writeln("===================");
-	writeln("dec32.........begin");
-	writeln("===================");
+unittest {
+	writeln("==========================");
+	writeln("decimal32............begin");
+	writeln("==========================");
 }
 
-private alias bigDecimal = BigDecimal!(7, 96, Rounding.HALF_UP);
+version(unittest) {
+	import std.stdio;
+	import eris.assertions;
+}
+
+// BigDecimal with the same context as Dec32
+private alias big32 = BigDecimal!(7, 90, Rounding.HALF_UP);
 
 struct Dec32 {
 
@@ -42,36 +46,36 @@ public enum Context context = Context(7, Rounding.HALF_UP);
 
     /// Returns an equivalent BigDecimal number
     @property
-	public bigDecimal toBigDecimal() const {
+	public big32 toBigDecimal() const {
 		if (isFinite) {
-			return bigDecimal(sign, coefficient, exponent);
+			return big32(sign, coefficient, exponent);
 		}
 		if (isInfinite) {
-			return bigDecimal.infinity(sign);
+			return big32.infinity(sign);
 		}
 		// number is a NaN
-		bigDecimal dc;
-		dc = isQuiet ? bigDecimal.nan(payload) : bigDecimal.snan(payload);
+		big32 dc;
+		dc = isQuiet ? big32.nan(payload) : big32.snan(payload);
 		dc.sign = sign;
 		return dc;
 	}
     //Provide implicit conversion of Dec32 to BigDecimal
 	private alias toBigDecimal this;
 
-unittest {
-	write("toBigDecimal...");
-	bigDecimal x;
-	writefln("x = %s", x);
-	Dec32 a = PI;
-writefln("a = %s", a);
-	x = 123.45;
-	writefln("x = %s", x);
-	x = a.toBigDecimal;
-	writefln("x = %s", x);
-	bigDecimal d = a; //writefln("a = %s", a);
-writefln("d = %s", d);
-	writeln("test missing");
-}
+	unittest {
+		write("-- toBigDecimal.....");
+		big32 x;
+	//	writefln("x = %s", x);
+		Dec32 a = PI;
+	//writefln("a = %s", a);
+		x = 123.45;
+	//	writefln("x = %s", x);
+		x = a.toBigDecimal;
+	//	writefln("x = %s", x);
+		big32 d = a; //writefln("a = %s", a);
+	//writefln("d = %s", d);
+		writeln("passed");
+	}
 
 private:
 	// The total number of bits in the decimal number.
@@ -144,20 +148,20 @@ private:
 	enum uint C_IMPLICIT_MASK = 0x1FFFFF;
 //	enum uint C_EXPLICIT_MASK = 0x7FFFFF;
 
-	// The maximum unbiased exponent. The largest binary number that can fit
+	// The maximum biased exponent. The largest binary number that can fit
 	// in the width of the exponent field without setting
 	// either of the first two bits to 1.
-	enum uint MAX_EXPO = 0xBF; // = 191
+	enum uint MAX_BIASED = 0xBF; // = 191
 	// The exponent bias. The exponent is stored as an unsigned number and
 	// the bias is subtracted from the unsigned value to give the true
 	// (signed) exponent.
 	enum int BIAS = 101;		// = 0x65
 	// The maximum representable exponent.
 	// TODO: revisit this value. 90?
-	enum int E_LIMIT = 191;	// MAX_EXPO - BIAS
-	// The min and max adjusted exponents.
-	enum int E_MAX =  96;		// E_LIMIT + PRECISION - 1
-	enum int E_MIN = -95;		// = 1 - E_MAX
+	enum int MAX_EXPO = 90;		// MAX_BIASED - BIAS
+//	// The min and max adjusted exponents.
+//	enum int MAX_ADJUSTED_EXPO =  96;		// MAX_EXPO + PRECISION - 1
+//	enum int MIN_EXPO = -95;		// = 1 - E_MAX
 
 private:
 	// union providing different views of the number representation.
@@ -242,6 +246,11 @@ private:
 		NEG_ZRO = 0xB2800000,
 		POS_MAX = 0x77F8967F,
 		NEG_MAX = 0xF7F8967F,
+
+		EPSILON = 0x2F000001,
+		MIN_NRM = 0x06000001,
+		MIN_SUB = 0x03000001,
+
 		POS_ONE = 0x32800001,
 		NEG_ONE = 0xB2800001,
 		POS_TWO = 0x32800002,
@@ -280,50 +289,53 @@ private:
 
 public:
 	// special values
-	enum Dec32 NAN 	 = Dec32(Bits.POS_NAN);
+	enum Dec32 NAN 	 	= Dec32(Bits.POS_NAN);
 	enum Dec32 NEG_NAN  = Dec32(Bits.NEG_NAN);
-	enum Dec32 SNAN	 = Dec32(Bits.POS_SIG);
+	enum Dec32 SNAN	 	= Dec32(Bits.POS_SIG);
 	enum Dec32 NEG_SNAN = Dec32(Bits.NEG_SIG);
 	enum Dec32 INFINITY = Dec32(Bits.POS_INF);
-	enum Dec32 NEG_INF  = Dec32(Bits.NEG_INF);
-	enum Dec32 ZERO	 = Dec32(Bits.POS_ZRO);
+	enum Dec32 NEG_INF	= Dec32(Bits.NEG_INF);
+	enum Dec32 ZERO		= Dec32(Bits.POS_ZRO);
 	enum Dec32 NEG_ZERO = Dec32(Bits.NEG_ZRO);
-	enum Dec32 MAX 	 = Dec32(Bits.POS_MAX);
+	enum Dec32 MAX		= Dec32(Bits.POS_MAX);
 	enum Dec32 NEG_MAX  = Dec32(Bits.NEG_MAX);
+	enum Dec32 EPSILON  = Dec32(Bits.EPSILON);
+	enum Dec32 MIN_NRM  = Dec32(Bits.MIN_NRM);
+	enum Dec32 MIN_SUB  = Dec32(Bits.MIN_SUB);
 
 	// small integers
-	enum Dec32 ONE 	 = Dec32(Bits.POS_ONE);
-	enum Dec32 NEG_ONE  = Dec32(Bits.NEG_ONE);
-	enum Dec32 TWO 	 = Dec32(Bits.POS_TWO);
-	enum Dec32 NEG_TWO  = Dec32(Bits.NEG_TWO);
-	enum Dec32 FIVE	 = Dec32(Bits.POS_FIV);
-	enum Dec32 NEG_FIVE = Dec32(Bits.NEG_FIV);
-	enum Dec32 TEN 	 = Dec32(Bits.POS_TEN);
-	enum Dec32 NEG_TEN  = Dec32(Bits.NEG_TEN);
+	enum Dec32 ONE		= Dec32(Bits.POS_ONE);
+	enum Dec32 NEG_ONE	= Dec32(Bits.NEG_ONE);
+	enum Dec32 TWO		= Dec32(Bits.POS_TWO);
+	enum Dec32 NEG_TWO	= Dec32(Bits.NEG_TWO);
+	enum Dec32 FIVE		= Dec32(Bits.POS_FIV);
+	enum Dec32 NEG_FIVE	= Dec32(Bits.NEG_FIV);
+	enum Dec32 TEN		= Dec32(Bits.POS_TEN);
+	enum Dec32 NEG_TEN	= Dec32(Bits.NEG_TEN);
 
 	// mathamatical constants
-	enum Dec32 TAU 	 = Dec32(Bits.TAU);
-	enum Dec32 PI		 = Dec32(Bits.PI);
-	enum Dec32 PI_2	 = Dec32(Bits.PI_2);
-	enum Dec32 PI_SQR	 = Dec32(Bits.PI_SQR);
-	enum Dec32 SQRT_PI  = Dec32(Bits.SQRT_PI);
-	enum Dec32 SQRT_2PI = Dec32(Bits.SQRT_2PI);
+	enum Dec32 TAU		= Dec32(Bits.TAU);
+	enum Dec32 PI		= Dec32(Bits.PI);
+	enum Dec32 PI_2		= Dec32(Bits.PI_2);
+	enum Dec32 PI_SQR	= Dec32(Bits.PI_SQR);
+	enum Dec32 SQRT_PI	= Dec32(Bits.SQRT_PI);
+	enum Dec32 SQRT_2PI	= Dec32(Bits.SQRT_2PI);
 
-	enum Dec32 E		 = Dec32(Bits.E);
-	enum Dec32 LOG2_E	 = Dec32(Bits.LOG2_E);
-	enum Dec32 LOG10_E  = Dec32(Bits.LOG10_E);
-	enum Dec32 LN2 	 = Dec32(Bits.LN2);
-	enum Dec32 LOG10_2  = Dec32(Bits.LOG10_2);
-	enum Dec32 LN10	 = Dec32(Bits.LN10);
-	enum Dec32 LOG2_10  = Dec32(Bits.LOG2_10);
-	enum Dec32 SQRT2	 = Dec32(Bits.SQRT2);
-	enum Dec32 SQRT1_2	 = Dec32(Bits.SQRT1_2);
-	enum Dec32 PHI 	 = Dec32(Bits.PHI);
-	enum Dec32 GAMMA	 = Dec32(Bits.GAMMA);
+	enum Dec32 E		= Dec32(Bits.E);
+	enum Dec32 LOG2_E	= Dec32(Bits.LOG2_E);
+	enum Dec32 LOG10_E	= Dec32(Bits.LOG10_E);
+	enum Dec32 LN2		= Dec32(Bits.LN2);
+	enum Dec32 LOG10_2	= Dec32(Bits.LOG10_2);
+	enum Dec32 LN10		= Dec32(Bits.LN10);
+	enum Dec32 LOG2_10	= Dec32(Bits.LOG2_10);
+	enum Dec32 SQRT2	= Dec32(Bits.SQRT2);
+	enum Dec32 SQRT1_2	= Dec32(Bits.SQRT1_2);
+	enum Dec32 PHI		= Dec32(Bits.PHI);
+	enum Dec32 GAMMA	= Dec32(Bits.GAMMA);
 
 	// boolean constants
-	enum Dec32 TRUE	 = ONE;
-	enum Dec32 FALSE	 = ZERO;
+	enum Dec32 TRUE		= ONE;
+	enum Dec32 FALSE	= ZERO;
 
 
 //--------------------------------
@@ -343,17 +355,19 @@ public:
 	}
 
 	unittest {	// this(long)
+		write("-- this(long).......");
 		Dec32 num;
 		num = Dec32(1234567890L);
-		assert(num.toString == "1.234568E+9");
+		assertStringEqual(num,"1.234568E+9");
 		num = Dec32(0);
-		assert(num.toString == "0");
+		assertStringEqual(num,"0");
 		num = Dec32(1);
-		assert(num.toString == "1");
+		assertStringEqual(num,"1");
 		num = Dec32(-1);
-		assert(num.toString == "-1");
+		assertStringEqual(num,"-1");
 		num = Dec32(5);
-		assert(num.toString == "5");
+		assertStringEqual(num,"5");
+		writeln("passed");
 	}
 
 	/// Creates a Dec32 from a boolean value.
@@ -361,19 +375,19 @@ public:
 		this = value ? ONE : ZERO;
 	}
 
-unittest {
-	write("this(bool)...");
-	Dec32 dc;
-	dc = Dec32(false);
-//	assertEqual(dc, 1);	// TODO: doesn't work
-	assertEqual(dc, ZERO);
-//	assertFalse(dc);	// TODO: doesn't work
-//	writefln("dc = %s", dc);
-	dc = Dec32(true);
-	assertEqual(dc, ONE);
-//writefln("dc = %s", dc);
-	writeln("test missing");
-}
+	unittest {
+		write("-- this(bool).......");
+		Dec32 dc;
+		dc = Dec32(false);
+	//	assertEqual(dc, 1);	// TODO: doesn't work
+		assertEqual(dc, ZERO);
+	//	assertFalse(dc);	// TODO: doesn't work
+	//	writefln("dc = %s", dc);
+		dc = Dec32(true);
+		assertEqual(dc, ONE);
+	//writefln("dc = %s", dc);
+		writeln("passed");
+	}
 
 	/// Creates a Dec32 from a long integer coefficient and an int exponent.
 	public this(long mant, int expo) {
@@ -382,21 +396,23 @@ unittest {
 	}
 
 	unittest {	// this(long,int)
+		write("-- this(long,int)...");
 		Dec32 num;
 		num = Dec32(1234567890L, 5);
-		assert(num.toString == "1.234568E+14");
+		assertStringEqual(num,"1.234568E+14");
 		num = Dec32(0, 2);
-		assert(num.toString == "0E+2");
+		assertStringEqual(num,"0E+2");
 		num = Dec32(1, 75);
-		assert(num.toString == "1E+75");
+		assertStringEqual(num,"1E+75");
 		num = Dec32(-1, -75);
-		assert(num.toString == "-1E-75");
+		assertStringEqual(num,"-1E-75");
 		num = Dec32(5, -3);
-		assert(num.toString == "0.005");
+		assertStringEqual(num,"0.005");
 		num = Dec32(true, 1234567890L, 5);
-		assert(num.toString == "-1.234568E+14");
+		assertStringEqual(num,"-1.234568E+14");
 		num = Dec32(0, 0, 2);
-		assert(num.toString == "0E+2");
+		assertStringEqual(num,"0E+2");
+		writeln("passed");
 	}
 
 	///Creates a Dec32 from a boolean sign, an unsigned long
@@ -407,27 +423,29 @@ unittest {
 	}
 
 	unittest {	// this(bool, ulong, int)
+		write("-- this(bool, ulong, int)..");
 		Dec32 num;
 		num = Dec32(1234567890L, 5);
-		assert(num.toString == "1.234568E+14");
+		assertStringEqual(num,"1.234568E+14");
 		num = Dec32(0, 2);
-		assert(num.toString == "0E+2");
+		assertStringEqual(num,"0E+2");
 		num = Dec32(1, 75);
-		assert(num.toString == "1E+75");
+		assertStringEqual(num,"1E+75");
 		num = Dec32(-1, -75);
-		assert(num.toString == "-1E-75");
+		assertStringEqual(num,"-1E-75");
 		num = Dec32(5, -3);
-		assert(num.toString == "0.005");
+		assertStringEqual(num,"0.005");
 		num = Dec32(true, 1234567890L, 5);
-		assert(num.toString == "-1.234568E+14");
+		assertStringEqual(num,"-1.234568E+14");
 		num = Dec32(0, 0, 2);
-		assert(num.toString == "0E+2");
+		assertStringEqual(num,"0E+2");
+		writeln("passed");
 	}
 
 	/// Creates a Dec32 from a BigDecimal
-	public this(in bigDecimal arg) {
+	public this(in big32 arg) {
 
-		bigDecimal dc = plus(arg);
+		big32 dc = plus(arg);
 
 		// if finite, copy and return the copy
 		if (dc.isFinite) {
@@ -439,7 +457,7 @@ unittest {
 		}
 		// check for special values
 		if (dc.isInfinite) {
-			this = infinity(dc.sign);
+			this = Dec32.infinity(dc.sign);
 			return;
 		}
 		if (dc.isQuiet) {
@@ -456,42 +474,46 @@ unittest {
 		this = nan;
 	}
 
-	unittest {	// this(bigDecimal)
-		bigDecimal dec = 0;
+	unittest {	// this(big32)
+		write("-- this(BigDecimal).");
+		big32 dec = 0;
 		Dec32 num = dec;
-		assert(dec.toString == num.toString);
+		assertStringEqual(dec,num.toString);
 		dec = 1;
 		num = Dec32(dec);
-		assert(dec.toString == num.toString);
+		assertStringEqual(dec,num.toString);
 		dec = -1;
 		num = Dec32(dec);
-		assert(dec.toString == num.toString);
+		assertStringEqual(dec,num.toString);
 		dec = -16000;
 		num = Dec32(dec);
-		assert(dec.toString == num.toString);
+		assertStringEqual(dec,num.toString);
 		dec = uint.max;
 		num = Dec32(dec);
-		assert(num.toString == "4.294967E+9");
-		assert(dec.toString == "4294967295");
+		assertStringEqual(num,"4.294967E+9");
+		assertStringEqual(dec,"4294967295");
 		dec = 9999999E+12;
 		num = Dec32(dec);
-		assert(dec.toString == num.toString);
+		assertStringEqual(dec,num.toString);
+		writeln("passed");
 	}
 
 	/// Creates a Dec32 from a string.
 	public this(string str) {
-		bigDecimal dc = bigDecimal(str);
+		big32 dc = big32(str);
 		this(dc);
 	}
 
 	unittest {	// this(string)
+		write("-- this(string).....");
 		Dec32 num;
 		num = Dec32("1.234568E+9");
-		assert(num.toString == "1.234568E+9");
+		assertStringEqual(num,"1.234568E+9");
 		num = Dec32("NaN");
-		assert(num.isQuiet && num.isSpecial && num.isNaN);
+		assertTrue(num.isQuiet && num.isSpecial && num.isNaN);
 		num = Dec32("-inf");
-		assert(num.isInfinite && num.isSpecial && num.isNegative);
+		assertTrue(num.isInfinite && num.isSpecial && num.isNegative);
+		writeln("passed");
 	}
 
 	///	Constructs a number from a real value.
@@ -508,14 +530,16 @@ unittest {
 	}
 
 	unittest {	// this(real)
+		write("-- this(real).......");
 		float f = 1.2345E+16f;
 		Dec32 actual = Dec32(f);
 		Dec32 expect = Dec32("1.2345E+16");
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		real r = 1.2345E+16;
 		actual = Dec32(r);
 		expect = Dec32("1.2345E+16");
-		assert(actual == expect);
+		assertEqual(actual, expect);
+		writeln("passed");
 	}
 
 	/// Copy constructor.
@@ -639,33 +663,35 @@ public:
 		return 0;
 	}
 
-/*	unittest {	// exponent
+	unittest {	// exponent
+		write("-- exponent.........");
 		Dec32 num;
 		// reals
 		num = std.math.PI;
-		assert(num.exponent == -6);
+		assertEqual(num.exponent, -6);
 		num = 9.75E89;
-		assert(num.exponent == 87);
+		assertEqual(num.exponent, 87);
 		// explicit
 		num = 8388607;
-		assert(num.exponent == 0);
+		assertEqual(num.exponent, 0);
 		// implicit
 		num = 8388610;
-		assert(num.exponent == 0);
+		assertEqual(num.exponent, 0);
 		num = 9.999998E23;
-		assert(num.exponent == 17);
+		assertEqual(num.exponent, 17);
 		num = 9.999999E23;
-		assert(num.exponent == 17);
+		assertEqual(num.exponent, 17);
 		// setter
 		num = Dec32(-12000,5);
 		num.exponent = 10;
-		assert(num.exponent == 10);
+		assertEqual(num.exponent, 10);
 		num = Dec32(-9000053,-14);
 		num.exponent = -27;
-		assert(num.exponent == -27);
+		assertEqual(num.exponent, -27);
 		num = Dec32.infinity;
-		assert(num.exponent == 0);
-	}*/
+		assertEqual(num.exponent, 0);
+		writeln("passed");
+	}
 
 	/// Returns the coefficient of the number.
 	/// The exponent is undefined for infinities and NaNs: zero is returned.
@@ -722,8 +748,9 @@ public:
 	}
 
 	unittest {	// coefficient
+		write("-- coefficient......");
 		Dec32 num;
-		bigDecimal dec;
+		big32 dec;
 		assertEqual(num.coefficient, 0);
 //		num = 9.998743;
 //		assertEqual(num.coefficient, 9998743);
@@ -731,7 +758,7 @@ public:
 //		assertEqual(num.coefficient, 9999213);
 		num = Dec32(-125);
 		assertEqual(num.coefficient, 125);
-		dec = bigDecimal(-29999999);
+		dec = big32(-29999999);
 		num = Dec32(-29999999);
 //writefln("dec = %s", dec.toExact);
 //writefln("num = %s", num.toExact);
@@ -742,6 +769,7 @@ public:
 		assertEqual(num.coefficient, 9999999);
 		num = Dec32(99999999);
 		assertEqual(num.coefficient, 1000000);
+		writeln("passed");
 	}
 
 	private static int setExponent(
@@ -826,21 +854,23 @@ public:
 	}
 
 	unittest {	// payload
+		write("-- payload..........");
 		Dec32 num;
-		assert(num.payload == 0);
+		assertEqual(num.payload,0);
 		num = Dec32.snan;
-		assert(num.payload == 0);
+		assertEqual(num.payload,0);
 		num.payload = 234;
-		assert(num.payload == 234);
-		assert(num.toString == "sNaN234");
+		assertEqual(num.payload,234);
+		assertStringEqual(num,"sNaN234");
 		num.payload = 13234;
-		assert(num.payload == 13234);
-		assert(num.toString == "sNaN13234");
+		assertEqual(num.payload,13234);
+		assertStringEqual(num,"sNaN13234");
 		num.payload = cast(ushort)218234;
-		assert(num.payload == 21626);
-		assert(num.toString == "sNaN21626");
+		assertEqual(num.payload,21626);
+		assertStringEqual(num,"sNaN21626");
 //		num = 1234567;
-//		assert(num.payload == 0);
+//		assertEqual(num.payload,0);
+		writeln("passed");
 	}
 
 //--------------------------------
@@ -892,14 +922,14 @@ public:
 	/// Smallest non-normalized exponent.
 	public enum int tinyExpo = 2 - MAX_EXPO - PRECISION;
 	/// Rounding mode.
-	/// Returns the radix (10)
+	/// Returns the radix (always 10 for decimal numbers)
 	public enum int radix = 10;
 
 	// floating point properties
-	public enum Dec32 init    = Dec32.nan;
-	// TODO: (language) add these to Bits type
-//	public enum Dec32 epsilon = Dec32(1, 7);
-//	public enum Dec32 min     = Dec32(1, tinyExpo);
+	public enum Dec32 init    		= NAN;
+	public enum Dec32 epsilon 		= EPSILON;
+	public enum Dec32 min     		= MIN_SUB;
+	public enum Dec32 min_normal	= MIN_NRM;
 
 	static int dig()		{ return 7; }
 	static int mant_dig()	{ return 24; }
@@ -1003,47 +1033,49 @@ public:
 	}
 
 	unittest {	// classification
+		write("-- classification...");
 		Dec32 num;
 		num = Dec32.snan;
-		assert(num.isSignaling);
-		assert(num.isNaN);
-		assert(!num.isNegative);
-		assert(!num.isNormal);
+		assertTrue(num.isSignaling);
+		assertTrue(num.isNaN);
+		assertFalse(num.isNegative);
+		assertFalse(num.isNormal);
 		num.sign = true;
-		assert(num.isSignaling);
-		assert(num.isNaN);
-		assert(num.isNegative);
-		assert(!num.isNormal);
+		assertTrue(num.isSignaling);
+		assertTrue(num.isNaN);
+		assertTrue(num.isNegative);
+		assertFalse(num.isNormal);
 		num = Dec32.nan;
-		assert(!num.isSignaling);
-		assert(num.isNaN);
-		assert(!num.isNegative);
-		assert(!num.isNormal);
+		assertFalse(num.isSignaling);
+		assertTrue(num.isNaN);
+		assertFalse(num.isNegative);
+		assertFalse(num.isNormal);
 		num.sign = true;
-		assert(!num.isSignaling);
-		assert(num.isNaN);
-		assert(num.isNegative);
-		assert(num.isQuiet);
+		assertFalse(num.isSignaling);
+		assertTrue(num.isNaN);
+		assertTrue(num.isNegative);
+		assertTrue(num.isQuiet);
 		num = Dec32.infinity;
-		assert(num.isInfinite);
-		assert(!num.isNaN);
-		assert(!num.isNegative);
-		assert(!num.isNormal);
+		assertTrue(num.isInfinite);
+		assertFalse(num.isNaN);
+		assertFalse(num.isNegative);
+		assertFalse(num.isNormal);
 		num = Dec32.infinity(true);
-		assert(!num.isSignaling);
-		assert(num.isInfinite);
-		assert(num.isNegative);
-		assert(!num.isFinite);
+		assertFalse(num.isSignaling);
+		assertTrue(num.isInfinite);
+		assertTrue(num.isNegative);
+		assertFalse(num.isFinite);
 		num = Dec32.zero;
-		assert(num.isFinite);
-		assert(num.isZero);
-		assert(!num.isNegative);
-//		assert(num.isNormal);
+		assertTrue(num.isFinite);
+		assertTrue(num.isZero);
+		assertFalse(num.isNegative);
+		assertFalse(num.isNormal);
 		num = Dec32.zero(true);
-		assert(!num.isSignaling);
-		assert(num.isZero);
-		assert(num.isNegative);
-		assert(num.isFinite);
+		assertFalse(num.isSignaling);
+		assertTrue(num.isZero);
+		assertTrue(num.isNegative);
+		assertTrue(num.isFinite);
+		writeln("passed");
 	}
 
 	/// Returns true if this number is a true value.
@@ -1061,51 +1093,57 @@ public:
 	}
 
 	unittest {	//isTrue/isFalse
-		assert(Dec32("1").isTrue);
-		assert(!Dec32("0").isTrue);
-		assert(infinity.isTrue);
-		assert(!nan.isTrue);
+		write("-- isTrue/isFalse...");
+		assertTrue(Dec32("1").isTrue);
+		assertFalse(Dec32("0").isTrue);
+		assertTrue(Dec32.infinity.isTrue);
+		assertFalse(Dec32.nan.isTrue);
 
-		assert(Dec32("0").isFalse);
-		assert(!Dec32("1").isFalse);
-		assert(!infinity.isFalse);
-		assert(nan.isFalse);
+		assertTrue(Dec32("0").isFalse);
+		assertFalse(Dec32("1").isFalse);
+		assertFalse(Dec32.infinity.isFalse);
+		assertTrue(Dec32.nan.isFalse);
+		writeln("passed");
 	}
 
 	/// Returns true if the coefficient of this number is zero.
+	// TODO: (language) what is the purpose of this function?
 	public bool isZeroCoefficient() const {
 		return !isSpecial && coefficient == 0;
 	}
 
-/*	unittest {	// isZeroCoefficient
+	unittest {	// isZeroCoefficient
+		write("-- isZeroCoefficient..");
 		Dec32 num;
 		num = Dec32.zero;
-		assert(num.isZeroCoefficient);
+		assertTrue(num.isZeroCoefficient);
 		num = Dec32.zero(true);
-		assert(num.isZeroCoefficient);
+		assertTrue(num.isZeroCoefficient);
 		num = Dec32("0E+4");
-		assert(num.isZeroCoefficient);
+		assertTrue(num.isZeroCoefficient);
 		num = 12345;
-		assert(!num.isZeroCoefficient);
+		assertFalse(num.isZeroCoefficient);
 		num = 1.5;
-		assert(!num.isZeroCoefficient);
+		assertFalse(num.isZeroCoefficient);
 		num = Dec32.nan;
-		assert(!num.isZeroCoefficient);
+		assertFalse(num.isZeroCoefficient);
 		num = Dec32.infinity;
-		assert(!num.isZeroCoefficient);
-	}*/
+		assertFalse(num.isZeroCoefficient);
+		writeln("passed");
+	}
 
 	/// Returns true if the number is subnormal.
+	/// NOTE: zero is not subnormal.
 	public bool isSubnormal() const {
-		if (isSpecial) return false;
+		if (isZero || isSpecial) return false;
 		return adjustedExponent < minExpo;
 	}
 
+	/// Returns true if the number is normal.
+	/// NOTE: zero is not normal.
 	public bool isNormal() const {
-		if (isFinite && !isZero) {
-			return adjustedExponent >= minExpo;
-		}
-		return false;
+		if (isZero || isSpecial) return false;
+		return adjustedExponent >= minExpo;
 	}
 
 	/// Returns the value of the adjusted exponent.
@@ -1124,7 +1162,8 @@ public:
 		return false;
 	}
 
-/*	unittest {	// isIntegralValued
+	unittest {	// isIntegralValued
+		write("-- isIntegralValued.");
 		Dec32 num;
 		num = 22;
 		assert(num.isIntegralValued);
@@ -1134,56 +1173,27 @@ public:
 		assert(!num.isIntegralValued);
 		num = Dec32.INFINITY;
 		assert(!num.isIntegralValued);
-	}*/
-/+
+		writeln("passed");
+	}
+
 //--------------------------------
 //	conversions
 //--------------------------------
 
-	/// Converts a Dec32 number to a big Decimal number
-	const dec32 toBigDecimal() {
-		if (isFinite) {
-			return dec32(sign, BigInt(coefficient), exponent);
-		}
-		if (isInfinite) {
-			return dec32.infinity(sign);
-		}
-		// number is a NaN
-		dec32 dec;
-		if (isQuiet) {
-			dec = dec32.nan;
-		}
-		if (isSignaling) {
-			dec = dec32.snan(sign);
-		}
-		if (payload) {
-			dec.payload(payload);
-		}
-		if (isSigned) dec.sign = true;
-		return dec;
-	}
-
-	unittest {	// toBigDecimal
-		Dec32 num = Dec32("12345E+17");
-		dec32 expected = dec32("12345E+17");
-		dec32 actual = num.toBigDecimal;
-		assert(actual == expected);
-	}
-
-	const int toInt() {
-		int n;
+	int toInt() const {
 		if (isNaN) {
 			contextFlags.setFlags(INVALID_OPERATION);
 			return 0;
 		}
 		if (this > Dec32(int.max) || (isInfinite && !isSigned)) return int.max;
 		if (this < Dec32(int.min) || (isInfinite &&  isSigned)) return int.min;
-		Dec32 temp = roundToIntegralExact!Dec32(this, context);
-		n = temp.coefficient;
+		Dec32 temp = roundToIntegralExact!big32(this);
+		int n = temp.coefficient;
 		return signed ? -n : n;
 	}
 
 	unittest {	// toInt
+		write("-- toInt............");
 		Dec32 num;
 		num = 12345;
 		assert(num.toInt == 12345);
@@ -1195,22 +1205,25 @@ public:
 		assert(num.toInt == int.min);
 		num = Dec32.infinity(true);
 		assert(num.toInt == int.min);
+		writeln("passed");
 	}
 
-	long toLong() const {
+/*	long toLong() const {
 		long n;
 		if (isNaN) {
 			contextFlags.setFlags(INVALID_OPERATION);
 			return 0;
 		}
 		if (this > long.max || (isInfinite && !isSigned)) return long.max;
+		// FIXTHIS: divide by zero error
 		if (this < long.min || (isInfinite &&  isSigned)) return long.min;
-		Dec32 temp = roundToIntegralExact!Dec32(this, context);
+		Dec32 temp = Dec32(roundToIntegralExact!big32(this));
 		n = temp.coefficient;
 		return signed ? -n : n;
 	}
 
 	unittest {	// toLong
+		write("-- toLong...........");
 		Dec32 num;
 		num = -12345;
 		assert(num.toLong == -12345);
@@ -1222,8 +1235,9 @@ public:
 		assert(num.toLong == long.min);
 		num = Dec32.NEG_INF;
 		assert(num.toLong == long.min);
+		writeln("passed");
 	}
-
+*/
 	real toReal() const {
 		if (isNaN) {
 			return real.nan;
@@ -1239,23 +1253,24 @@ public:
 	}
 
 	unittest {	// toReal
+		write("-- toReal...........");
 		Dec32 num;
 		real expect, actual;
 		num = Dec32(1.5);
 		expect = 1.5;
 		actual = num.toReal;
-		assert(actual == expect);
+		assertEqual(actual, expect);
+		writeln("passed");
 	}
 
-+/
 	// Converts the number to an exact scientific-style string representation.
 	string toSciString() const {
-		return eris.decimal.conv.sciForm!Dec32(this);
+		return sciForm(this);
 	}
 
 	// Converts the number to an exact engineering-style string representation.
 	string toEngString() const {
-		return eris.decimal.conv.engForm!Dec32(this);
+		return engForm!Dec32(this);
 	}
 
 	// Converts a Dec32 to a standard string
@@ -1264,39 +1279,45 @@ public:
 	}
 
 	unittest {	// toString
+		write("-- toString.........");
 		string str;
 		str = "-12.345E-42";
 		Dec32 num = Dec32(str);
-		assert(num.toString == "-1.2345E-41");
+		assertStringEqual(num,"-1.2345E-41");
+		writeln("passed");
 	}
 
 	/// Creates an exact representation of the number.
 	string toExact() const {
-		return eris.decimal.conv.toExact!Dec32(this);
+		return eris.decimal.conv.toExact(this);
 	}
 
 	unittest {	// toExact
+		write("-- toExact..........");
 		Dec32 num;
-		assert(num.toExact == "+NaN");
+		assertEqual(num.toExact,  "+NaN");
 		num = Dec32.max;
-		assert(num.toExact == "+9999999E+90");
+		assertEqual(num.toExact,  "+9999999E+90");
 		num = 1;
-		assert(num.toExact == "+1E+00");
+		assertEqual(num.toExact,  "+1E+00");
 		num = C_MAX_EXPLICIT;
-		assert(num.toExact == "+8388607E+00");
+		assertEqual(num.toExact,  "+8388607E+00");
 		num = Dec32.infinity(true);
-		assert(num.toExact == "-Infinity");
+		assertEqual(num.toExact,  "-Infinity");
+		writeln("passed");
 	}
 
 	/// Creates an abstract representation of the number.
 	string toAbstract() const {
-		return eris.decimal.conv.toAbstract!Dec32(this);
+		return eris.decimal.conv.toAbstract(this);
 	}
 
 	unittest {	// toAbstract
+		write("-- toAbstract.......");
 		Dec32 num;
 		num = Dec32("-25.67E+2");
 		assert(num.toAbstract == "[1,2567,0]");
+		writeln("passed");
 	}
 
 	/// Converts the number to a hexadecimal string representation.
@@ -1310,9 +1331,11 @@ public:
 	}
 
 	unittest {	// toHex, toBinary
+		write("-- toHex, toBinary..");
 		Dec32 num = 12345;
-		assert(num.toHexString == "0x32803039");
-		assert(num.toBinaryString == "00110010100000000011000000111001");
+		assertEqual(num.toHexString, "0x32803039");
+		assertEqual(num.toBinaryString, "00110010100000000011000000111001");
+		writeln("passed");
 	}
 //--------------------------------
 //	comparison
@@ -1321,7 +1344,7 @@ public:
 	/// Returns -1, 0 or 1, if the number is less than, equal to or
 	/// greater than the argument, respectively.
 	int opCmp(T:Dec32)(in T that) const {
-		return compare!bigDecimal(this, that);
+		return compare!big32(this, that);
 	}
 
 	/// Returns -1, 0 or 1, if the number is less than, equal to or
@@ -1338,7 +1361,7 @@ public:
 			if (this.isQuiet) return false;
 			// let the main routine handle the signaling NaN
 		}
-		return equals!bigDecimal(this, that);
+		return equals!big32(this, that);
 	}
 
 	 /// Returns true if the number is equal to the specified number.
@@ -1353,18 +1376,20 @@ public:
 	}
 
 	unittest {	// comparison
+		write("-- comparison.......");
 		Dec32 a, b;
 		a = Dec32(104);
 		b = Dec32(105);
-		assert(a < b);
-		assert(b > a);
+		assertTrue(a < b);
+		assertTrue(b > a);
 		a = Dec32(105);
-		assert(a == b);
+		assertTrue(a == b);
 		int c = 105;
-		assert(a == c);
+		assertTrue(a == c);
 		real d = 105.0;
-		assert(a == d);
-		assert(a == 105);
+		assertTrue(a == d);
+		assertTrue(a == 105);
+		writeln("passed");
 	}
 
 //--------------------------------
@@ -1382,14 +1407,16 @@ public:
 	}
 
 	unittest {	// opAssign
+		write("-- opAssign.........");
 		Dec32 that, lhs;
 		that = Dec32(270E-5);
 		lhs = that;
-		assert(lhs == that);
+		assertEqual(lhs, that);
 		that = 332089;
-		assert(that.toString == "332089");
+		assertEqual(that.toString, "332089");
 		that = 3.1415E+3;
-		assert(that.toString == "3141.5");
+		assertEqual(that.toString, "3141.5");
+		writeln("passed");
 	}
 
 //--------------------------------
@@ -1398,52 +1425,54 @@ public:
 
 	private Dec32 opUnary(string op)() {
 		static if (op == "+") {
-			return Dec32(plus!bigDecimal(this));
+			return Dec32(plus!big32(this));
 		} else static if (op == "-") {
-			return Dec32(minus!bigDecimal(this));
+			return Dec32(minus!big32(this));
 		} else static if (op == "++") {
-			this = Dec32(add!bigDecimal(this, 1));
+			this = Dec32(add!big32(this, 1));
 			return this;
 		} else static if (op == "--") {
-			this = Dec32(sub!bigDecimal(this, 1));
+			this = Dec32(sub!big32(this, 1));
 			return this;
 		}
 	}
 
 	unittest {	// opUnary
+		write("-- opUnary..........");
 		Dec32 num, actual, expect;
 		num = 134;
 		expect = num;
 		actual = +num;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		num = 134.02;
 		expect = -134.02;
 		actual = -num;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		num = 134;
 		expect = 135;
 		actual = ++num;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		num = 1.00E12;
 		expect = num;
 		actual = --num;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		actual = num--;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		num = 1.00E12;
 		expect = num;
 		actual = ++num;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		actual = num++;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		num = Dec32(9999999, 90);
 		expect = num;
 		actual = num++;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		num = 12.35;
 		expect = 11.35;
 		actual = --num;
-		assert(actual == expect);
+		assertEqual(actual, expect);
+		writeln("passed");
 	}
 
 //--------------------------------
@@ -1453,21 +1482,21 @@ public:
 	T opBinary(string op, T:Dec32)(in T that) const
 	{
 		static if (op == "+") {
-			return Dec32(add!bigDecimal(this, that));
+			return Dec32(add!big32(this, that));
 		} else static if (op == "-") {
-			return Dec32(sub!bigDecimal(this, that));
+			return Dec32(sub!big32(this, that));
 		} else static if (op == "*") {
-			return Dec32(mul!bigDecimal(this, that));
+			return Dec32(mul!big32(this, that));
 		} else static if (op == "/") {
-			return Dec32(div!bigDecimal(this, that));
+			return Dec32(div!big32(this, that));
 		} else static if (op == "%") {
-			return Dec32(remainder!bigDecimal(this, that));
+			return Dec32(remainder!big32(this, that));
 		} else static if (op == "&") {
-			return Dec32(and!bigDecimal(this, that));
+			return Dec32(and!big32(this, that));
 		} else static if (op == "|") {
-			return Dec32(or!bigDecimal(this, that));
+			return Dec32(or!big32(this, that));
 		} else static if (op == "^") {
-			return Dec32(xor!bigDecimal(this, that));
+			return Dec32(xor!big32(this, that));
 		}
 	}
 
@@ -1476,75 +1505,79 @@ public:
 	}
 
 	unittest {	// opBinary
+		write("-- opBinary.........");
 		Dec32 op1, op2, actual, expect;
 		op1 = 4;
 		op2 = 8;
 		actual = op1 + op2;
 		expect = 12;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		actual = op1 - op2;
 		expect = -4;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		actual = op1 * op2;
 		expect = 32;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		op1 = 5;
 		op2 = 2;
 		actual = op1 / op2;
 		expect = 2.5;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		op1 = 10;
 		op2 = 3;
 		actual = op1 % op2;
 		expect = 1;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		op1 = Dec32("101");
 		op2 = Dec32("110");
 		actual = op1 & op2;
 		expect = 100;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		actual = op1 | op2;
 		expect = 111;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		actual = op1 ^ op2;
 		expect = 11;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		Dec32 num = Dec32(591.3);
 		Dec32 result = num * 5;
-		assert(result == Dec32(2956.5));
+		assertEqual(result, Dec32(2956.5));
+		writeln("passed");
 	}
 
 //-----------------------------
 // operator assignment
 //-----------------------------
 
-/+	ref Dec32 opOpAssign(string op, T:Dec32) (T that) {
+	ref Dec32 opOpAssign(string op, T:Dec32) (T that) {
 		this = opBinary!op(that);
 		return this;
 	}
 
-/* 	ref Dec32 opOpAssign(string op, T) (T that) if (isPromotable!T) {
+ 	ref Dec32 opOpAssign(string op, T) (T that) {
 		this = opBinary!op(that);
 		return this;
-	}*/
+	}
 
 	unittest {	// opOpAssign
+		write("-- opOpAssign.......");
 		Dec32 op1, op2, actual, expect;
 		op1 = 23.56;
 		op2 = -2.07;
 		op1 += op2;
 		expect = 21.49;
 		actual = op1;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		op1 *= op2;
 		expect = -44.4843;
 		actual = op1;
-		assert(actual == expect);
+		assertEqual(actual, expect);
 		op1 = 95;
 		op1 %= 90;
 		actual = op1;
 		expect = 5;
-		assert(actual == expect);
+		assertEqual(actual, expect);
+		writeln("passed");
 	}
 
 	/// Returns uint ten raised to the specified power.
@@ -1555,21 +1588,22 @@ public:
 	}
 
 	unittest { // pow10
+		write("-- pow10............");
 		assert(Dec32.pow10(3) == 1000);
+		writeln("passed");
 	}
 
-	///	Returns the BigInt product of the coefficients.
+/*	///	Returns the BigInt product of the coefficients.
 	/// (Used in arithemtic multiply.)
 	public static xint bigmul(const Dec32 arg1, const Dec32 arg2) {
 		xint big = xint(arg1.coefficient);
 		return big * arg2.coefficient;
-	}
- +/
-}	// end Dec32 struct
+	}*/
+ }	// end Dec32 struct
 
 unittest { // footer
-	writeln("===================");
-	writeln("dec32...........end");
-	writeln("===================");
+	writeln("==========================");
+	writeln("decimal32..............end");
+	writeln("==========================");
 }
 

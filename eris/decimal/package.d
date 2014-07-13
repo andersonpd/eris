@@ -581,7 +581,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	alias min_10_exp = minExpo;
 	alias max_10_exp = maxExpo;
 
-	/// Returns the maximum representable normal value in the current context.
+	/// Returns the maximum integer value of the coefficient in the current context.
 	@safe
 	enum xint maxCoefficient =	pow10(precision) - 1;
 
@@ -670,16 +670,13 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	/// Returns true if this number is exactly one.
 	//@safe
 	const bool isOne() {
-		if (isSimpleOne()) {
+		if (isSimpleOne) {
 			return true;
 		}
 		if (exponent > 0) {
 			return false;
 		}
-		if (this.reduce.isSimpleOne()) {
-			return true;
-		}
-		return false;
+		return this.reduce.isSimpleOne;
 	}
 
 	/// Returns true if this number is exactly (false, 1, 0).
