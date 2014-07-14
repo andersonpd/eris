@@ -460,7 +460,7 @@ unittest {	// numDigits(xint)
 
 /// Returns the number of digits in the argument,
 /// where the argument is an unsigned long integer.
-public int numDigits(long n) {
+public int numDigits(ulong n) {
     // special cases:
 	if (n == 0) return 0;
 	if (n < 10) return 1;
