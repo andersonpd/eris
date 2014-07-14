@@ -32,7 +32,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
+	import eris.assertion;
 }
 
 alias xint = ExtendedInt;

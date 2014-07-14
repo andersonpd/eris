@@ -25,7 +25,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
+	import eris.assertion;
 
 	alias uint128 = FixedInt!(128, false);
 	alias int128  = FixedInt!(128, true);

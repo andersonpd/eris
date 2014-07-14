@@ -22,7 +22,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
+	import eris.assertion;
 }
 
 	public static enum ulong BASE = 1UL << 32;

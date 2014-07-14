@@ -19,7 +19,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
+	import eris.assertion;
 }
 
 	/// The base class for integer arithmetic exceptions.

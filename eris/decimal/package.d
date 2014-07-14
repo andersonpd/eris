@@ -25,17 +25,11 @@ import eris.decimal.rounding;
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
-}
-
-unittest {
-	writeln("==========================");
-	writeln("decimal..............begin");
-	writeln("==========================");
+	import eris.assertion;
 }
 
 alias xint = ExtendedInt;
-//alias dec99 = BigDecimal!(99,999);
+alias dec99 = BigDecimal!(99,999);
 alias dec9 = BigDecimal!(9,99);
 
 // special values for NaN, Inf, etc.
@@ -62,6 +56,13 @@ writefln("x2b = %s", x2b(xint("909239874203948")));
 struct BigDecimal(int PRECISION = 99, int MAX_EXPO = 9999,
 		Rounding ROUNDING_MODE = Rounding.HALF_EVEN) {
 
+static if (PRECISION == 9) {
+unittest {
+	writeln("==========================");
+	writeln("decimal..............begin");
+	writeln("==========================");
+}}
+
 alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 
 	private SV sval = SV.QNAN;		// special value: default is quiet NaN
@@ -72,7 +73,6 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 									// (unless the number is a special value)
 
 	// static fields
-//	package static Rounding rounding = Rounding.HALF_EVEN;
 	package static bool verbose = false; // for debugging
 
 	public:
@@ -106,6 +106,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	enum decimal ZERO		= decimal(SV.NONE);
 	enum decimal NEG_ZERO	= decimal(SV.NONE, true);
 
+	static if (PRECISION == 9) {
 	unittest {	// special values
 		write("-- special values...");
 		decimal num;
@@ -122,7 +123,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = NEG_INF;
 		assertStringEqual(num, "-Infinity");
 		writeln("passed");
-	}
+	}}
 
 	// common decimal numbers
 	enum decimal HALF		= decimal(5, -1);
@@ -146,13 +147,14 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		this.sval = sv;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// special value construction
 		write("-- this(special)....");
 		dec9 num = dec9(SV.INF, true);
 		assertStringEqual(num, "-Infinity");
 		assertStringEqual(num.toAbstract(), "[1,inf]");
 		writeln("passed");
-	}
+	}}
 
 	/// Creates a decimal from a boolean value.
 	/// false == 0, true == 1
@@ -164,6 +166,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		}
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// boolean construction
 		write("-- this(bool).......");
 		dec9 num = dec9(false);
@@ -171,7 +174,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = dec9(true);
 		assertStringEqual(num, "1");
 		writeln("passed");
-	}
+	}}
 
 	/// Constructs a number from a boolean sign, a xint coefficient and
 	/// an optional integer exponent.
@@ -188,6 +191,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		this.digits = numDigits(this.mant);
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// bool, xint, int construction
 		write("-- this(bool,big,int)...");
 		dec9 num;
@@ -198,7 +202,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = roundToPrecision(num);
 		assertStringEqual(num, "-Infinity");
 		writeln("passed");
-	}
+	}}
 
 	/// Constructs a decimal from a xint coefficient and an
 	/// optional integer exponent. The sign of the number is the sign
@@ -210,6 +214,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		this(sign, coefficient.abs, exponent);
 	};
 
+	static if (PRECISION == 9) {
 	unittest {	// xint, int construction
 		write("-- this(big,int)....");
 		dec9 num;
@@ -218,7 +223,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = dec9(xint(-7254));
 		assertStringEqual(num, "-7254");
 		writeln("passed");
-	}
+	}}
 
 	/// Constructs a number from a sign, a long integer coefficient and
 	/// an integer exponent.
@@ -262,6 +267,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		this(xint(coefficient), 0);
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// long value construction
 		write("-- this(long).......");
 		dec9 num;
@@ -270,13 +276,14 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = dec9(-7254L);
 		assertStringEqual(num, "-7254");
 		writeln("passed");
-	}
+	}}
 
 	// Constructs a decimal number from a string representation
 	this(const string str) {
 		this = eris.decimal.conv.toNumber!decimal(str);
 	};
 
+	static if (PRECISION == 9) {
 	unittest {	// string construction
 	// TODO: (testing) this(str): add tests for just over/under int.max, int.min
 		write("-- this(string).....");
@@ -305,7 +312,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		dec9 copy = dec9(num);
 		assertEqual(compareTotal(num, copy), 0);
 		writeln("passed");
-	}
+	}}
 
 	// TODO: (efficiency) fix for small numbers (convert to long, back to real/decimal)
 	/// Constructs a decimal number from a real value.
@@ -332,6 +339,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return decimal(this);
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// dup
 		write("-- this(decimal)....");
 		dec9 num, copy;
@@ -342,12 +350,15 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		copy = num.dup;
 		assertEqual(num, copy);
 		writeln("passed");
-	}
+	}}
 
 //--------------------------------
 // casts
 //--------------------------------
 
+ 	bool opCast(T:bool)() const {
+		return isTrue;
+	}
 // TODO: (testing) test casts to other precisions.
 
 //--------------------------------
@@ -384,6 +395,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		this = decimal(that);
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// opAssign
 		write("-- opAssign.........");
 		dec9 num;
@@ -409,7 +421,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = "123456098420234978023480";
 		assertStringEqual(num, str);
 		writeln("passed");
-	}
+	}}
 
 
 //--------------------------------
@@ -635,12 +647,12 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return HALF.dup;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {
 		write("-- constants........");
-//		assertEqual(dec99.HALF, dec99(1/2));
 		assertEqual(dec9.HALF, dec9(0.5));
 		writeln("passed");
-	}
+	}}
 
 //--------------------------------
 //	classification properties
@@ -658,6 +670,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return this.dup;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// isCanonical
 		write("-- isCanonical......");
 		dec9 num = dec9("2.50");
@@ -665,7 +678,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		dec9 copy = num.canonical;
 		assertEqual(compareTotal(num, copy), 0);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if this number is exactly one.
 	//@safe
@@ -685,6 +698,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return isFinite && !isSigned && coefficient == 1 && exponent == 0;
 	}
 
+	static if (PRECISION == 9) {
 	 unittest { // isOne
 		write("-- isOne............");
 		dec9 num;
@@ -694,7 +708,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertTrue(num.isOne);
 		assertFalse(num.isSimpleOne);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if this number is + or - zero.
 	@safe
@@ -702,6 +716,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return isFinite && coefficient == 0;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// isZero
 		write("-- isZero...........");
 		dec9 num;
@@ -712,7 +727,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = dec9("-0E+2");
 		assertTrue(num.isZero);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if this number is a quiet or signaling NaN.
 	@safe
@@ -732,6 +747,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return this.sval == SV.QNAN;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// isNaN, isQuiet, isSignaling
 		write("-- isNaN............");
 		dec9 num;
@@ -748,7 +764,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertFalse(num.isQuiet);
 		assertTrue(num.isSignaling);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if this number is + or - infinity.
 	@safe
@@ -764,6 +780,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 			&& sval != SV.SNAN;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// isFinite, isInfinite
 		write("-- isFinite.........");
 		dec9 num;
@@ -781,7 +798,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertFalse(num.isInfinite);
 		assertFalse(num.isFinite);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if this number is a NaN or infinity.
 	@safe
@@ -791,6 +808,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 			|| sval == SV.SNAN;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// isSpecial
 		write("-- isSpecial........");
 		dec9 num;
@@ -801,7 +819,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = 12378.34;
 		assertFalse(num.isSpecial);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if this number is negative. (Includes -0)
 	@safe
@@ -817,6 +835,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 
 	alias isSigned = isNegative;
 
+	static if (PRECISION == 9) {
 	unittest {	// isSigned, isNegative
 		write("-- isNegative.......");
 		dec9 num;
@@ -830,7 +849,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertTrue(num.isSigned);
 		assertTrue(num.isNegative);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if this number is subnormal.
 	@safe
@@ -848,6 +867,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return false;
 	}
 
+	static if (PRECISION == 9) {
 	unittest { // isNormal, isSubnormal
 		write("-- isNormal.........");
 		dec9 num;
@@ -867,7 +887,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertFalse(num.isSubnormal);
 		assertFalse(num.isNormal);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if the number is an integer (the fractional part is zero).
 	const bool isIntegralValued() {
@@ -884,6 +904,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return false;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// isIntegralValued
 		write("-- isIntegralValued.");
 		dec9 num;
@@ -901,7 +922,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = "21900.000E-2";
 		assertTrue(num.isIntegralValued);
 		writeln("passed");
-	}
+	}}
 
 	/// Returns true if this number is a true value.
 	/// Non-zero finite numbers are true.
@@ -919,8 +940,13 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return isNaN || isZero;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
+		assertTrue(dec9(1));
+		assert(ONE);
+		assertEqual(ONE, true);
+		assertTrue(cast(bool)ONE);
 		assertTrue(dec9("1").isTrue);
 		assertFalse(dec9("0").isTrue);
 		assertTrue(infinity.isTrue);
@@ -930,13 +956,14 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertFalse(infinity.isFalse);
 		assertTrue(nan.isFalse);
 		writeln("passed");
-	}
+	}}
 
 	@safe
 	const bool isZeroCoefficient() {
 		return !isSpecial && coefficient == 0;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// isZeroCoefficient
 		write("-- isZeroCoeff......");
 		dec9 num;
@@ -955,7 +982,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		num = dec9.INFINITY;
 		assertFalse(num.isZeroCoefficient);
 		writeln("passed");
-	}
+	}}
 
 //--------------------------------
 // comparison
@@ -990,6 +1017,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return opEquals(decimal(that));
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// comparison
 		write("-- comparison.......");
 		dec9 num1, num2;
@@ -1005,8 +1033,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertNotGreaterThan(num2, num1);
 		assertEqual(num1, num2);
 		writeln("passed");
-	}
-
+	}}
 
 //--------------------------------
 // unary arithmetic operators
@@ -1032,6 +1059,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		}
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// opUnary
 		write("-- opUnary..........");
 		dec9 num, actual, expect;
@@ -1064,7 +1092,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		actual = --num;
 		assertEqual(actual, expect);
 		writeln("passed");
-	}
+	}}
 
 //--------------------------------
 //	binary arithmetic operators
@@ -1163,6 +1191,8 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 
 	// TODO: (testing) more tests to distinguish opBin from opBinRight.
 	// TODO: (testing) need complete coverage
+
+	static if (PRECISION == 9) {
 	unittest {	// opBinary
 		write("-- opBinary.........");
 		dec9 op1, op2, actual, expect;
@@ -1191,7 +1221,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		expect = 1;
 		assertEqual(actual, expect);
 		writeln("passed");
-	}
+	}}
 
 //-----------------------------
 // operator assignment
@@ -1211,6 +1241,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return this;
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// opOpAssign
 		write("-- opOpAssign.......");
 		dec9 op1, op2, actual, expect;
@@ -1225,7 +1256,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		actual = op1;
 		assertEqual(actual, expect);
 		writeln("passed");
-	}
+	}}
 
 //-----------------------------
 // nextUp, nextDown, nextAfter
@@ -1250,6 +1281,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return nextToward(this, x, decimal.context);
 	}
 
+	static if (PRECISION == 9) {
 	unittest {	// nextUp, nextDown, nextAfter
 		write("-- next.............");
 		dec9 big, expect;
@@ -1264,7 +1296,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		expect = big.nextDown;
 		assertEqual(big.nextAfter(dec9(123.44)), expect);
 		writeln("passed");
-	}
+	}}
 
 //--------------------------------
 // decimal constants
@@ -1345,6 +1377,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	enum decimal PHI = roundString("1.6180339887498948482045868343656381177"
 		"20309179805762862135448622705260462818902449707207204189391137");
 
+	static if (PRECISION == 9) {
 	unittest {
 		write("-- constants........");
 		assertStringEqual(dec9.E,     "2.71828183");
@@ -1356,7 +1389,7 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		assertStringEqual(dec9.INV_PI,"0.318309886");
 		assertStringEqual(dec9.invPi, "0.318309886");
 		writeln("passed");
-	}
+	}}
 
 //--------------------------------
 // decimal constant boilerplate
@@ -1438,11 +1471,12 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		return copy[0..precision].idup;
 	}
 
-}	 // end struct BigDecimal
+	static if (PRECISION == 9) {
+	unittest {
+		writeln("==========================");
+		writeln("decimal................end");
+		writeln("==========================");
+	}}
 
-unittest {
-	writeln("==========================");
-	writeln("decimal................end");
-	writeln("==========================");
-}
+}	 // end struct BigDecimal
 

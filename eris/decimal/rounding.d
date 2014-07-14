@@ -28,7 +28,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
+	import eris.assertion;
 }
 
 public T roundToPrecision(T)(in T num, Context context) {

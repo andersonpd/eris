@@ -34,7 +34,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
+	import eris.assertion;
 }
 
 // BigDecimal with the same context as Dec32

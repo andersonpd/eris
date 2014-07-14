@@ -22,7 +22,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
+	import eris.assertion;
 }
 
 /// The available rounding modes. For cumulative operations use the

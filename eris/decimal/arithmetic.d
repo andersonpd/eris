@@ -30,7 +30,7 @@
 module eris.decimal.arithmetic;
 
 import eris.integer.extended;
-import eris.assertions;
+//import eris.assertion;
 import std.string;
 
 import eris.decimal;
@@ -45,7 +45,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.assertions;
+	import eris.assertion;
 }
 
 alias xcompare = eris.integer.extended.xint.compare;
