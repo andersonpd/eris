@@ -149,7 +149,7 @@ bool assertFalse(bool actual,
 
 /// Returns true if the actual value is false.
 /// Otherwise prints an error message and returns false.
-bool assertFalse(bool actual,
+bool assertFalse(T)(T actual,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(cast(bool)actual, false, file, line);
 }
