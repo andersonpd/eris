@@ -15,7 +15,6 @@
 module eris.decimal;
 
 import std.conv;
-//import std.bigint;
 import std.string;
 
 import eris.integer.extended;
@@ -26,6 +25,7 @@ import eris.decimal.rounding;
 version(unittest) {
 	import std.stdio;
 	import eris.assertion;
+	import eris.decimal.dec64;
 }
 
 alias xint = ExtendedInt;
@@ -53,8 +53,11 @@ writefln("x2b = %s", x2b(xint("909239874203948")));
 /// Specification, Version 1.70 (25 Mar 2009),
 /// http://www.speleotrove.com/decimal.
 /// This specification conforms with IEEE standard 754-2008.
+
 struct BigDecimal(int PRECISION = 99, int MAX_EXPO = 9999,
 		Rounding ROUNDING_MODE = Rounding.HALF_EVEN) {
+
+	private alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 
 static if (PRECISION == 9) {
 unittest {
@@ -63,8 +66,10 @@ unittest {
 	writeln("==========================");
 }}
 
-alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
+ 	/// Marker used to identify decimal numbers irrespective of size.
+	public enum IS_DECIMAL;
 
+	/// members
 	private SV sval = SV.QNAN;		// special value: default is quiet NaN
 	private bool signed = false;	// true if the value is negative, false otherwise.
 	private int expo = 0;			// the exponent of the decimal value
@@ -90,13 +95,6 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	enum Rounding rounding = ROUNDING_MODE;
 	/// Struct containing the precision and rounding mode.
 	enum Context context = Context(PRECISION, ROUNDING_MODE);
-
-/*	/// Marker used to identify this type irrespective of size.
-	private enum bool IS_DECIMAL = true;
-
-	private bool isDecimal(T)() {
-		return __traits(hasMember, T, "IS_DECIMAL");
-			}*/
 
 	// decimal special values
 	enum decimal NAN		= decimal(SV.QNAN);
@@ -138,7 +136,6 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 // construction
 //--------------------------------
 
-	///
 	/// Constructs a new number given a special value and an optional sign.
 	///
 	@safe
@@ -321,7 +318,31 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 		this(str);
 	}
 
-    // TODO: (testing) add unittest for real value construction
+   // TODO: (testing) add unittest for real value construction
+
+	// Constructs a decimal number from a different type of decimal.
+	public this(T)(T from) if (__traits(hasMember, T, "IS_DECIMAL")) {
+		bool sign = from.isNegative;
+		if (from.isFinite) this(from.sign, from.coefficient, from.exponent);
+		else if (from.isInfinite) 	this(SV.INF, sign);
+		else if (from.isQuiet)		this(SV.QNAN, sign);
+		else if (from.isSignaling)	this(SV.SNAN, sign);
+		else this(SV.QNAN);
+	}
+
+	static if (PRECISION == 9) {
+	unittest {
+		write("-- this(decimal)....");
+		dec9 abc = 12345;
+		dec99 def = dec99(abc);
+		assertEqual(abc, def);
+		dec9 ghi = dec99(def);
+		assertEqual(def, ghi);
+		dec9 klm = dec9(-dec99.infinity);
+		assertEqual(klm, "-Infinity");
+		assertEqual(dec9.infinity, dec99.infinity);
+		writeln("passed");
+	}}
 
 	// copy constructor
 	//@safe
@@ -359,7 +380,50 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
  	bool opCast(T:bool)() const {
 		return isTrue;
 	}
-// TODO: (testing) test casts to other precisions.
+
+ 	T opCast(T)() const
+	{
+		return T(this);
+	}
+
+	static if (PRECISION == 9) {
+	unittest {
+		write("-- opCast...........");
+		assertFalse(dec9.init);
+		dec9 abc = dec9(12,4);
+		assertTrue(abc);
+		dec99 def = cast(dec99)abc;
+		assertEqual(abc, def);
+		dec9 def2 = cast(dec99)abc;
+		assertEqual(def, def2);
+		int n = 7;
+		dec9 bdn = cast(dec9)n;
+		assertEqual(bdn, dec9(7));
+		auto tr = cast(dec9)12;
+		assertEqual(typeid(tr), typeid(bdn));
+		dec99 big = 1234567890123;
+		dec9 klm = dec9(big);
+		assertEqual(klm, big);	// klm has not been rounded.
+		assertNotEqual(abs(klm), big);	// klm has been rounded.
+		dec99 spcl = dec99.infinity(true);
+		klm = dec9(spcl);
+		assertEqual(klm, dec9("-Infinity"));
+		writeln("passed");
+	}}
+
+	static bool isDecimal(T)(T dummy) {
+		return __traits(hasMember, T, "IS_DECIMAL");
+	}
+
+	static if (PRECISION == 9) {
+	unittest {
+		write("-- isDecimal........");
+		dec9 dummy;
+		assertTrue(isDecimal(dummy));
+		assertFalse(isDecimal(4));
+		assertTrue(isDecimal(Dec64.init));
+		writeln("passed");
+	}}
 
 //--------------------------------
 // assignment
@@ -943,10 +1007,10 @@ alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
 	static if (PRECISION == 9) {
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
-		assertTrue(dec9(1));
-		assert(ONE);
-		assertEqual(ONE, true);
-		assertTrue(cast(bool)ONE);
+//		assertTrue(dec9(1));
+//		assert(ONE);
+//		assertEqual(ONE, true);
+//		assertTrue(cast(bool)ONE);
 		assertTrue(dec9("1").isTrue);
 		assertFalse(dec9("0").isTrue);
 		assertTrue(infinity.isTrue);

@@ -42,6 +42,8 @@ private alias big32 = BigDecimal!(7, 90, Rounding.HALF_UP);
 
 struct Dec32 {
 
+public enum IS_DECIMAL;
+
 public enum Context context = Context(7, Rounding.HALF_UP);
 
     /// Returns an equivalent BigDecimal number
@@ -817,13 +819,6 @@ public:
 		if (isSpecial) return 0;
 		if (coefficient > (10^^precision-1)) return precision;
 		return numDigits(this.coefficient);
-	}
-
-	/// Has no effect. Input value is ignored.
-	// TODO: should this allow clipping of digits? does big decimal do so? should it?
-	@property
-	int digits(int digs) const {
-		return digits;
 	}
 
 	/// Returns the payload of the number.

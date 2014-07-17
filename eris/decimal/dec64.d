@@ -12,7 +12,7 @@
  *	http://www.boost.org/LICENSE_1_0.txt)
 **/
 
-module decimal.dec64;
+module eris.decimal.dec64;
 
 import std.bitmanip;
 import std.conv;
@@ -41,6 +41,8 @@ version(unittest) {
 private alias big64 = BigDecimal!(16, 369, Rounding.HALF_UP);
 
 struct Dec64 {
+
+public enum IS_DECIMAL;
 
 public enum Context context = Context(17, Rounding.HALF_UP);
 
@@ -329,6 +331,12 @@ public:
 	enum Dec64 TRUE	 = ONE;
 	enum Dec64 FALSE	 = ZERO;
 
+unittest {
+	write("sizeof...");
+	Dec64 dummy;
+	writefln("sizeof(dummy) = %s", dummy.sizeof);
+	writeln("test missing");
+}
 
 
 //--------------------------------
