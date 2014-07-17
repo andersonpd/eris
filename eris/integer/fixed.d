@@ -629,7 +629,7 @@ unittest {
 		if (chars[0] != '0') {
 			parseDecimal(chars, signed);
 		}
-writefln("chars = %s", chars);
+//writefln("chars = %s", chars);
 		// Otherwise it may be hex or binary
 		chars = toLower(chars);
 		if (startsWith(chars, "0x")) {
@@ -663,22 +663,21 @@ writefln("chars = %s", chars);
 		return value;
 	}
 
-	private static uint[] parseBinary(/*ref*/ char[] chars) {
+	private static uint[] parseBinary(char[] chars) {
 		auto value = new uint[N];
-		uint charValue = 0;
 		foreach (char ch; chars) {
 			if (ch == '_') continue;
 			if (ch != '0' && ch != '1') throw
 				new ConvException("Invalid binary char: [" ~ ch ~ "]");
-			value = mulDigit(value, 2);
-
+			value = mulDigit(value, 2U);
+			value = addDigit(value, cast(uint)(ch - '0'));
 		}
 		return value;
 	}
 
 	private static uint[] parseDecimal(char[] chars, out bool signed) {
 		signed = false;
-		auto digits = new uint[N];
+		auto value = new uint[N];
 		if (SIGNED && (chars[0] == '-')) {
 			signed = true;
 			chars = chars[1..$];
@@ -691,10 +690,10 @@ writefln("chars = %s", chars);
 			if (!isDigit(ch)) {
 				throw new ConvException("Invalid decimal char: [" ~ ch ~ "]");
 			}
-			digits = mulDigit(digits, 10U);
-			digits = addDigit(digits, cast(uint)(ch - '0'));
+			value = mulDigit(value, 10U);
+			value = addDigit(value, cast(uint)(ch - '0'));
 		}
-		return digits;
+		return value;
 	}
 
 	unittest {
@@ -703,7 +702,7 @@ writefln("chars = %s", chars);
 		uint128 unum = 123;
 		assertEqual(uint128("123"), unum);
 		assertEqual(uint128("0x7B"), unum);
-		assertEqual(uint128("0b1111011"), unum);
+		assertEqual(uint128(unum), uint128("0b1111011"));
 		assertEqual(uint128("0_234_445"), 234445);
 		int128 snum = -123;
 		assertEqual(int128("-123"), snum);
