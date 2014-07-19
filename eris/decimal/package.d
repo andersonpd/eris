@@ -614,24 +614,20 @@ unittest {
 
 	/// Returns NaN
 	@safe
-	static decimal nan(ushort payload = 0) {
-		if (payload) {
-			decimal dec = NAN.dup;
-			dec.payload = payload;
-			return dec;
-		}
-		return NAN.dup;
+	static decimal nan(ushort payload = 0, bool sign = false) {
+		decimal dec = NAN.dup;
+		dec.payload = payload;
+		dec.signed = sign;
+		return dec;
 	}
 
 	/// Returns signaling NaN
 	@safe
-	static decimal snan(ushort payload = 0) {
-		if (payload) {
-			decimal dec = SNAN.dup;
-			dec.payload = payload;
-			return dec;
-		}
-		return SNAN.dup;
+	static decimal snan(ushort payload = 0, bool sign = false) {
+		decimal dec = SNAN.dup;
+		dec.payload = payload;
+		dec.signed = sign;
+		return dec;
 	}
 
 	/// Returns infinity.
@@ -878,7 +874,7 @@ unittest {
 		dec9 num;
 		num = dec9.infinity(true);
 		assertTrue(num.isSpecial);
-		num = dec9.snan(1234);
+		num = dec9.snan(1234,true);
 		assertTrue(num.isSpecial);
 		num = 12378.34;
 		assertFalse(num.isSpecial);
@@ -1022,7 +1018,7 @@ unittest {
 		writeln("passed");
 	}}
 
-	@safe
+/*	@safe
 	const bool isZeroCoefficient() {
 		return !isSpecial && coefficient == 0;
 	}
@@ -1046,7 +1042,7 @@ unittest {
 		num = dec9.INFINITY;
 		assertFalse(num.isZeroCoefficient);
 		writeln("passed");
-	}}
+	}}*/
 
 //--------------------------------
 // comparison

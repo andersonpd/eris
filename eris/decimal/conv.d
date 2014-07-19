@@ -611,7 +611,7 @@ public T toNumber(T)(string inStr) {
 	}
 	// check for NaN
 	if (startsWith(str, "nan")) {
-		num = T.nan(sign);
+		num = T.nan(0, sign);
 		// check for payload
 		if (str.length > 3) {
 			return setPayload(num, str, 3);
@@ -620,7 +620,7 @@ public T toNumber(T)(string inStr) {
 	}
 	// check for sNaN
 	if (startsWith(str, "snan")) {
-		num = T.snan(sign);
+		num = T.snan(0, sign);
 		// check for payload
 		if (str.length > 4) {
 			return setPayload(num, str, 4);
@@ -740,57 +740,28 @@ public T toNumber(T)(string inStr) {
 
 unittest {	// toNumber
 	write("-- toNumber.........");
-	dec9 big;
-	string expect, actual;
-	big = dec9("1.0");
-	expect = "1.0";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	big = dec9("-123");
-	expect = "-123";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	big = dec9("1.23E3");
-	expect = "1.23E+3";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	big = dec9("1.23E-3");
-	expect = "0.00123";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	big = dec9("1.2_3E3");
-	expect = "1.23E+3";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	// not valid for real numbers
-	big = dec9(".1");
-	expect = "0.1";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	// not valid for real numbers
-	big = dec9("1.");
-	expect = "1";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	// not valid for dec9 numbers
-	big = dec9(".");
-	expect = "NaN";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	// not valid for dec9 numbers
-	big = dec9(".E3");
-	expect = "NaN";
-	actual = big.toString();
-	assertEqual(actual, expect);
-	// not valid for dec9 numbers
-	big = dec9("+.");
-	expect = "NaN";
-	actual = big.toString();
-	assertEqual(actual, expect);
+	static struct S { string num; string val; }
+
+	static S[] tests =
+	[
+		{ "1.0",		"1.0" },
+		{ "-123",		"-123" },
+		{ "1.23E3",		"1.23E+3" },
+		{ "1.23E-3",	"0.00123" },
+		{ "1.2_3E3",	"1.23E+3" },
+		{ ".1",			"0.1" },
+		{ ".",			"NaN" },
+		{ ".E3",		"NaN" },
+		{ "+.",			"NaN" },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertStringEqualIndexed(i, dec9(s.num), s.val);
+	}
 	writeln("passed");
 }
 
-//public decPX toNumber(int P, int X)(string inStr) {
 private T setPayload(T)(T num, char[] str, int len) {
 	// if no payload, return
 	if (str.length == len) {
@@ -827,7 +798,7 @@ unittest {
 
 /// Returns an abstract string representation of a number.
 /// The abstract representation is described in the specification. (p. 9-12)
-public string toAbstract(T)(const T num) /*/+if (isDecimal!T)+/*/ {
+public string toAbstract(T)(const T num) /*if (eris.decimal.isDecimal!T)*/ {
 	if (num.isFinite) {
 		return format("[%d,%s,%d]", num.sign ? 1 : 0,
 		              to!string(num.coefficient), num.exponent);
@@ -852,21 +823,22 @@ public string toAbstract(T)(const T num) /*/+if (isDecimal!T)+/*/ {
 
 unittest {	// toAbstract
 	write("-- toAbstract.......");
-	dec9 num;
-	string str;
-	num = dec9("-inf");
-	str = "[1,inf]";
-	assertStringEqual(num.toAbstract, str);
-	num = dec9("nan");
-	str = "[0,qNaN]";
-	assertStringEqual(num.toAbstract, str);
-	num = dec9("snan1234");
-	str = "[0,sNaN1234]";
-	assertStringEqual(num.toAbstract, str);
+	static struct S { string num; string abs; }
+
+	static S[] tests =
+	[
+		{     "-inf",	"[1,inf]" },
+		{      "nan",	"[0,qNaN]" },
+		{ "snan1234",	"[0,sNaN1234]" },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, dec9(s.num).toAbstract, s.abs);
+	}
 	writeln("passed");
 }
 
-// TODO: (behavior, testing) Does exact representation really return a round-trip value?
 /// Returns a full, exact representation of a number. Similar to toAbstract,
 /// but it provides a valid string that can be converted back into a number.
 public string toExact(T)(const T num) {
@@ -895,39 +867,21 @@ public string toExact(T)(const T num) {
 
 unittest {
 	write("-- toExact..........");
-	dec9 num, copy;
-	string expect, actual;
-	assertStringEqual(num.toExact, "+NaN");
-	copy = num.toExact;
-	assertStringEqual(num.toAbstract, copy.toAbstract);
-	num = +9999999E+90;
-	actual = num.toExact;
-	expect = "+9999999E+90";
-	assertEqual(actual, expect);
-	copy = dec9(actual);
-	assertEqual(num, copy);
-	assertStringEqual(num.toAbstract, copy.toAbstract);
-	num = 1;
-	actual = num.toExact;
-	expect = "+1E+00";
-	assertEqual(actual, expect);
-	copy = dec9(actual);
-	assertEqual(num, copy);
-	assertStringEqual(num.toAbstract, copy.toAbstract);
-	num = dec9("1.000");
-	actual = num.toExact;
-	expect = "+1000E-03";
-	assertEqual(actual, expect);
-	copy = dec9(actual);
-	assertEqual(num, copy);
-	assertStringEqual(num.toAbstract, copy.toAbstract);
-	num = dec9.infinity(true);
-	actual = num.toExact;
-	expect = "-Infinity";
-	assertEqual(actual, expect);
-	copy = dec9(actual);
-	assertEqual(num, copy);
-	assertStringEqual(num.toAbstract, copy.toAbstract);
+	static string[] tests =
+	[
+		"+9999999E+90",
+		"+1E+00",
+		"+1000E-03",
+		"+NaN",
+		"-NaN102",
+		"-Infinity",
+		"-0E+00",
+	];
+
+	foreach (i, str; tests)
+	{
+		assertEqualIndexed(i, dec9(str).toExact, str);
+	}
 	writeln("passed");
 }
 

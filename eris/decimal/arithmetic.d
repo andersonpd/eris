@@ -2636,13 +2636,13 @@ unittest { // binary logical ops
 
 /// Sets the invalid-operation flag and returns a quiet NaN.
 // TODO: combine this with invalidOperand?
-private T setInvalidFlag(T)(ushort payload = 0)  {
+private T setInvalidFlag(T)(bool sign = false, ushort payload = 0)  {
 	contextFlags.setFlags(INVALID_OPERATION);
-	T result = T.nan;
-	if (payload != 0) {
-		result.payload = payload;
-	}
-	return result;
+//	T result = T.nan(payload, sign);
+//	if (payload != 0) {
+//		result.payload = payload;
+//	}
+	return T.nan(payload, sign);
 }
 
 unittest {	// setInvalidFlag
@@ -2670,7 +2670,7 @@ package T invalidOperand(T)(in T x)  {
 	// if the operand is a quiet NaN return it.
 	if (x.isQuiet) return x.dup;
 	// Otherwise change the signalling NaN to a quiet NaN.
-	if (x.isSignaling) return T.nan(x.payload);
+	if (x.isSignaling) return T.nan(x.payload, x.sign);
 	// if the operand is neither quiet nor signaling something else is wrong
 	// so return NaN.
 	return T.nan;
@@ -2689,8 +2689,8 @@ package T invalidOperands(T)(in T x, in T y)  {
 	contextFlags.setFlags(INVALID_OPERATION);
 	// if either operand is signaling return a quiet NaN.
 	// NOTE: sign is ignored.
-	if (x.isSignaling) return T.nan(x.payload);
-	if (y.isSignaling) return T.nan(y.payload);
+	if (x.isSignaling) return T.nan(x.payload, x.sign);
+	if (y.isSignaling) return T.nan(y.payload, y.sign);
 	// if the operand is a quiet NaN return it.
 	if (x.isQuiet) return x.dup;
 	if (y.isQuiet) return y.dup;

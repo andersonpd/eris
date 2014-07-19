@@ -127,7 +127,7 @@ unittest {	// roundToPrecision
 	after = roundToPrecision(before, 3);
 	assertStringEqual(after.toAbstract(), "[0,125,2]");
 //	xint test = "18690473486004564289165545643685440097";
-//	long  count = countDigits(test);
+//	long  count = reduceDigits(test);
 //	roundToPrecision(test);
 		// TODO: (testing) test for subnormal as below...
 /*	Dec32 a = Dec32(0.1);
@@ -372,14 +372,14 @@ unittest {	// increment
 /// Returns -1, 1, or 0 if the remainder is less than, more than,
 /// or exactly half the least significant digit of the shortened coefficient.
 /// Exactly half is a five followed by zero or more zero digits.
-// TODO: (efficiency) calls firstDigit and then numDigits: combine these calls.
 public int testFive(in xint x) {
-	int first = firstDigit(x);
+	int num = numDigits(x);
+	xint tens = BIG_TEN^^(num-1);
+	int first = (x / tens).toInt;
 	if (first < 5) return -1;
 	if (first > 5) return +1;
-	xint tens = BIG_TEN^^(numDigits(x)-1);
-	xint zeros = x % BIG_TEN^^(numDigits(x)-1);
-	return (zeros != 0) ? 1 : 0;
+	xint zeros = x % tens;
+	return zeros ? 1 : 0;
 }
 
 unittest {	// testFive
@@ -394,14 +394,14 @@ unittest {	// testFive
 	writeln("passed");
 }
 
-/// Increments the number by 1.
+/*/// Increments the number by 1.
 /// Re-calculates the number of digits -- the increment may have caused
 /// an increase in the number of digits, i.e., input number was all 9s.
 private void increment(T)(ref T x, ref uint digits) {
 	x++;
 	// TODO: (efficiency) there should be a smarter way to do this: x > pow10(digits)?
 	digits = numDigits(x);
-}
+}*/
 
 //-----------------------------
 // useful constants
@@ -416,10 +416,10 @@ private enum xint QUINTILLION  = xint(1_000_000_000_000_000_000);
 
 /// An array of unsigned long integers with values of
 /// powers of ten from 10^^0 to 10^^18
-public enum ulong[19] TENS = [10L^^0,
-		10L^^1,  10L^^2,  10L^^3,  10L^^4,  10L^^5,  10L^^6,
-		10L^^7,  10L^^8,  10L^^9,  10L^^10, 10L^^11, 10L^^12,
-		10L^^13, 10L^^14, 10L^^15, 10L^^16, 10L^^17, 10L^^18];
+public enum ulong[19] TENS = [10UL^^0,
+		10UL^^1,  10UL^^2,  10UL^^3,  10UL^^4,  10UL^^5,  10UL^^6,
+		10UL^^7,  10UL^^8,  10UL^^9,  10UL^^10, 10UL^^11, 10UL^^12,
+		10UL^^13, 10UL^^14, 10UL^^15, 10UL^^16, 10UL^^17, 10UL^^18];
 
 /// An array of unsigned long integers with values of
 /// powers of five from 5^^0 to 5^^26
@@ -447,7 +447,7 @@ public int numDigits(in xint x) {
     // special cases
 	if (x == 0) return 0;
 	int count = 0;
-	long n = countDigits(x, count);
+	long n = reduceDigits(x, count);
 	return count + numDigits(n);
 }
 
@@ -480,7 +480,8 @@ public int numDigits(ulong n) {
 	return min;
 }
 
-unittest {	// numDigits(ulong)
+/*unittest {	// numDigits(ulong)
+
 	write("-- numDigits(ulong).");
 	ulong num, expect;
 	uint digits;
@@ -503,62 +504,38 @@ unittest {	// numDigits(ulong)
 	assertEqual(num, expect);
 	assertEqual(digits, 4);
 	writeln("passed");
-}
+}*/
 
-unittest {	// numDigits
-	long n;
-	n = 7;
-	int expect = 1;
-	int actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 13;
-	expect = 2;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 999;
-	expect = 3;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 9999;
-	expect = 4;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 25987;
-	expect = 5;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 2008617;
-	expect = 7;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 1234567890;
-	expect = 10;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 10000000000;
-	expect = 11;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 123456789012345;
-	expect = 15;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 1234567890123456;
-	expect = 16;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = 123456789012345678;
-	expect = 18;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
-	n = long.max;
-	expect = 19;
-	actual = numDigits(n);
-	assertEqual(actual, expect);
+unittest // numDigits
+{
+	static struct S { ulong n; int d; }
+
+	static S[] tests =
+	[
+		{                  7,  1 },
+		{                 13,  2 },
+		{                999,  3 },
+		{               9999,  4 },
+		{              25978,  5 },
+		{            2008617,  7 },
+		{         1234567890, 10 },
+		{        10000000000, 11 },
+		{    123456789012345, 15 },
+		{   1234567890123456, 16 },
+		{ 123456789012345678, 18 },
+		{           long.max, 19 },
+		{          ulong.max, 19 },
+		{          ulong.min,  0 },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, numDigits(s.n), s.d);
+	}
 }
 
 @safe
-public long countDigits(in xint x) {
+public long reduceDigits(in xint x) {
 	xint big = x.dup;
 	while (big > QUINTILLION) {
 		big /= QUINTILLION;
@@ -567,16 +544,15 @@ public long countDigits(in xint x) {
 }
 
 unittest {
-	write("countDigits...");
+	write("reduceDigits...");
 	xint x = "18690473486004564289165545643685440097";
-//	countDigits(x);
-writefln("countDigits(x) = %s", countDigits(x));
+	ulong r = reduceDigits(x);
+	assertEqual(r, 243729412295012673);
 	writeln("test missing");
 }
 
-// TODO: (language) These functions need better names
 @safe
-public long countDigits(in xint x, out int count) {
+public long reduceDigits(in xint x, out int count) {
 	count = 0;
 	xint big = x.dup;
 	while (big > QUINTILLION) {
@@ -588,7 +564,7 @@ public long countDigits(in xint x, out int count) {
 
 /// Returns the first digit of the argument.
 public int firstDigit(in xint x) {
-	return firstDigit(countDigits(x));
+	return firstDigit(reduceDigits(x));
 }
 
 unittest {	// firstDigit(xint)
@@ -606,8 +582,8 @@ unittest {	// firstDigit(xint)
 public int firstDigit(long n) { //, int maxValue = 19) {
 	if (n == 0) return 0;
 	if (n < 10) return cast(int) n;
-	int d = numDigits(n); //, maxValue);
-	return cast(int)(n/TENS[d-1]);
+	int digits = numDigits(n); //, maxValue);
+	return cast(int)(n/TENS[digits-1]);
 }
 
 unittest {	// firstDigit

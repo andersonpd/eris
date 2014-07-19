@@ -817,7 +817,7 @@ unittest {
  * Decimal version of std.math.pow.
  * Required by General Decimal Arithmetic Specification
  */
-public Decimal pow(T)(T x, Decimal y) {
+public T pow(T)(T x, T y) {
 	return power(x,y);
 }
 
@@ -832,7 +832,7 @@ unittest {
  * Required by General Decimal Arithmetic Specification
  */
 public T power(T)(T x, T y) {
-	return exp(x*ln(y));
+	return exp(x*log(y));
 }
 
 unittest {

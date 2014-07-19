@@ -38,7 +38,7 @@ version(unittest) {
 }
 
 // BigDecimal with the same context as Dec32
-private alias big64 = BigDecimal!(16, 369, Rounding.HALF_UP);
+private alias Big64 = BigDecimal!(16, 369, Rounding.HALF_UP);
 
 struct Dec64 {
 
@@ -48,16 +48,16 @@ public enum Context context = Context(17, Rounding.HALF_UP);
 
     /// Returns an equivalent BigDecimal number
     @property
-	public big64 toBigDecimal() const {
+	public Big64 toBigDecimal() const {
 		if (isFinite) {
-			return big64(sign, coefficient, exponent);
+			return Big64(sign, coefficient, exponent);
 		}
 		if (isInfinite) {
-			return big64.infinity(sign);
+			return Big64.infinity(sign);
 		}
 		// number is a NaN
-		big64 dc;
-		dc = isQuiet ? big64.nan(payload) : big64.snan(payload);
+		Big64 dc;
+		dc = isQuiet ? Big64.nan(payload, sign) : Big64.snan(payload, sign);
 		dc.sign = sign;
 		return dc;
 	}
@@ -66,7 +66,7 @@ public enum Context context = Context(17, Rounding.HALF_UP);
 
 	unittest {
 		write("-- toBigDecimal.....");
-		big64 x;
+		Big64 x;
 	//	writefln("x = %s", x);
 		Dec64 a = PI;
 	//writefln("a = %s", a);
@@ -74,7 +74,7 @@ public enum Context context = Context(17, Rounding.HALF_UP);
 	//	writefln("x = %s", x);
 		x = a.toBigDecimal;
 	//	writefln("x = %s", x);
-		big64 d = a; //writefln("a = %s", a);
+		Big64 d = a; //writefln("a = %s", a);
 	//writefln("d = %s", d);
 		writeln("passed");
 	}
@@ -376,17 +376,19 @@ unittest {
 		this = value ? ONE : ZERO;
 	}
 
+/* 	bool opCast(T:bool)() const {
+		return isTrue;
+	}*/
+
 	unittest {
 		write("-- this(bool).......");
-		Dec64 dc;
-		dc = Dec64(false);
-	//	assertEqual(dc, 1);	// TODO: doesn't work
-		assertEqual(dc, ZERO);
-	//	assertFalse(dc);	// TODO: doesn't work
-	//	writefln("dc = %s", dc);
-		dc = Dec64(true);
-		assertEqual(dc, ONE);
-	//writefln("dc = %s", dc);
+		Dec64 t, f;
+		t = Dec64(true);
+		assertTrue(t);
+		assertEqual(t, ONE);
+		f = Dec64(false);
+		assertFalse(f);
+		assertEqual(f, ZERO);
 		writeln("passed");
 	}
 
@@ -444,9 +446,9 @@ unittest {
 	}
 
 	/// Creates a Dec64 from a BigDecimal
-	public this(in big64 arg) {
+	public this(in Big64 arg) {
 
-		big64 dc = plus(arg);
+		Big64 dc = plus(arg);
 
 		// if finite, copy and return the copy
 		if (dc.isFinite) {
@@ -475,9 +477,9 @@ unittest {
 		this = nan;
 	}
 
-	unittest {	// this(big64)
+	unittest {	// this(Big64)
 		write("-- this(BigDecimal).");
-		big64 dec = 0;
+		Big64 dec = 0;
 		Dec64 num = dec;
 		assertStringEqual(dec,num.toString);
 		dec = 1;
@@ -501,7 +503,7 @@ unittest {
 
 	/// Creates a Dec64 from a string.
 	public this(string str) {
-		big64 dc = big64(str);
+		Big64 dc = Big64(str);
 		this(dc);
 	}
 
@@ -754,7 +756,7 @@ public:
 	unittest {	// coefficient
 		write("-- coefficient......");
 		Dec64 num;
-		big64 dec;
+		Big64 dec;
 		assertEqual(num.coefficient, 0);
 		num = 9.998743;
 		assertEqual(num.coefficient, 9998742999999999);
@@ -762,7 +764,7 @@ public:
 		assertEqual(num.coefficient, 9999213);
 		num = Dec64(-125);
 		assertEqual(num.coefficient, 125);
-		dec = big64(-29999999);
+		dec = Big64(-29999999);
 		num = Dec64(-299999999999999999L);
 		assertEqual(num.coefficient, 3000000000000000);
 		num = Dec64(-999999999999999999);
@@ -1091,20 +1093,15 @@ public:
 
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
-		assertTrue(Dec64("1").isTrue);
-		assertFalse(Dec64("0").isTrue);
-		assertTrue(Dec64.infinity.isTrue);
-		assertFalse(Dec64.nan.isTrue);
-
-		assertTrue(Dec64("0").isFalse);
-		assertFalse(Dec64("1").isFalse);
-		assertFalse(Dec64.infinity.isFalse);
-		assertTrue(Dec64.nan.isFalse);
+		assertTrue(Dec64.one);
+		assertFalse(Dec64.zero);
+		assertTrue(Dec64.infinity);
+		assertFalse(Dec64.nan);
 		writeln("passed");
 	}
 
+/*
 	/// Returns true if the coefficient of this number is zero.
-	// TODO: (language) what is the purpose of this function?
 	public bool isZeroCoefficient() const {
 		return !isSpecial && coefficient == 0;
 	}
@@ -1128,16 +1125,17 @@ public:
 		assertFalse(num.isZeroCoefficient);
 		writeln("passed");
 	}
+*/
 
 	/// Returns true if the number is subnormal.
-	/// NOTE: zero is not subnormal.
+	/// NOTE: zero is neither normal nor subnormal.
 	public bool isSubnormal() const {
 		if (isZero || isSpecial) return false;
 		return adjustedExponent < minExpo;
 	}
 
 	/// Returns true if the number is normal.
-	/// NOTE: zero is not normal.
+	/// NOTE: zero is neither normal nor subnormal.
 	public bool isNormal() const {
 		if (isZero || isSpecial) return false;
 		return adjustedExponent >= minExpo;
@@ -1184,7 +1182,7 @@ public:
 		}
 		if (this > Dec64(int.max) || (isInfinite && !isSigned)) return int.max;
 		if (this < Dec64(int.min) || (isInfinite &&  isSigned)) return int.min;
-		Dec64 temp = roundToIntegralExact!big64(this);
+		Dec64 temp = roundToIntegralExact!Big64(this);
 		int n = cast(int)temp.coefficient;
 		return signed ? -n : n;
 	}
@@ -1213,7 +1211,7 @@ public:
 		}
 		if (this > long.max || (isInfinite && !isSigned)) return long.max;
 		if (this < long.min || (isInfinite &&  isSigned)) return long.min;
-		Dec64 temp = Dec64(roundToIntegralExact!big64(this));
+		Dec64 temp = Dec64(roundToIntegralExact!Big64(this));
 		n = temp.coefficient;
 		return signed ? -n : n;
 	}
@@ -1340,7 +1338,7 @@ public:
 	/// Returns -1, 0 or 1, if the number is less than, equal to or
 	/// greater than the argument, respectively.
 	int opCmp(T:Dec64)(in T that) const {
-		return compare!big64(this, that);
+		return compare!Big64(this, that);
 	}
 
 	/// Returns -1, 0 or 1, if the number is less than, equal to or
@@ -1357,7 +1355,7 @@ public:
 			if (this.isQuiet) return false;
 			// let the main routine handle the signaling NaN
 		}
-		return equals!big64(this, that);
+		return equals!Big64(this, that);
 	}
 
 	 /// Returns true if the number is equal to the specified number.
@@ -1421,14 +1419,14 @@ public:
 
 	private Dec64 opUnary(string op)() {
 		static if (op == "+") {
-			return Dec64(plus!big64(this));
+			return Dec64(plus!Big64(this));
 		} else static if (op == "-") {
-			return Dec64(minus!big64(this));
+			return Dec64(minus!Big64(this));
 		} else static if (op == "++") {
-			this = Dec64(add!big64(this, 1));
+			this = Dec64(add!Big64(this, 1));
 			return this;
 		} else static if (op == "--") {
-			this = Dec64(sub!big64(this, 1));
+			this = Dec64(sub!Big64(this, 1));
 			return this;
 		}
 	}
@@ -1478,21 +1476,21 @@ public:
 	T opBinary(string op, T:Dec64)(in T that) const
 	{
 		static if (op == "+") {
-			return Dec64(add!big64(this, that));
+			return Dec64(add!Big64(this, that));
 		} else static if (op == "-") {
-			return Dec64(sub!big64(this, that));
+			return Dec64(sub!Big64(this, that));
 		} else static if (op == "*") {
-			return Dec64(mul!big64(this, that));
+			return Dec64(mul!Big64(this, that));
 		} else static if (op == "/") {
-			return Dec64(div!big64(this, that));
+			return Dec64(div!Big64(this, that));
 		} else static if (op == "%") {
-			return Dec64(remainder!big64(this, that));
+			return Dec64(remainder!Big64(this, that));
 		} else static if (op == "&") {
-			return Dec64(and!big64(this, that));
+			return Dec64(and!Big64(this, that));
 		} else static if (op == "|") {
-			return Dec64(or!big64(this, that));
+			return Dec64(or!Big64(this, that));
 		} else static if (op == "^") {
-			return Dec64(xor!big64(this, that));
+			return Dec64(xor!Big64(this, that));
 		}
 	}
 

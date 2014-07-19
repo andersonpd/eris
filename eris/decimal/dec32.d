@@ -12,7 +12,7 @@
  *	http://www.boost.org/LICENSE_1_0.txt)
 **/
 
-module decimal.dec32;
+module eris.decimal.dec32;
 
 import std.bitmanip;
 import std.conv;
@@ -38,7 +38,7 @@ version(unittest) {
 }
 
 // BigDecimal with the same context as Dec32
-private alias big32 = BigDecimal!(7, 90, Rounding.HALF_UP);
+private alias Big32 = BigDecimal!(7, 90, Rounding.HALF_UP);
 
 struct Dec32 {
 
@@ -48,16 +48,16 @@ public enum Context context = Context(7, Rounding.HALF_UP);
 
     /// Returns an equivalent BigDecimal number
     @property
-	public big32 toBigDecimal() const {
+	public Big32 toBigDecimal() const {
 		if (isFinite) {
-			return big32(sign, coefficient, exponent);
+			return Big32(sign, coefficient, exponent);
 		}
 		if (isInfinite) {
-			return big32.infinity(sign);
+			return Big32.infinity(sign);
 		}
 		// number is a NaN
-		big32 dc;
-		dc = isQuiet ? big32.nan(payload) : big32.snan(payload);
+		Big32 dc;
+		dc = isQuiet ? Big32.nan(payload, sign) : Big32.snan(payload, sign);
 		dc.sign = sign;
 		return dc;
 	}
@@ -66,7 +66,7 @@ public enum Context context = Context(7, Rounding.HALF_UP);
 
 	unittest {
 		write("-- toBigDecimal.....");
-		big32 x;
+		Big32 x;
 	//	writefln("x = %s", x);
 		Dec32 a = PI;
 	//writefln("a = %s", a);
@@ -74,7 +74,7 @@ public enum Context context = Context(7, Rounding.HALF_UP);
 	//	writefln("x = %s", x);
 		x = a.toBigDecimal;
 	//	writefln("x = %s", x);
-		big32 d = a; //writefln("a = %s", a);
+		Big32 d = a; //writefln("a = %s", a);
 	//writefln("d = %s", d);
 		writeln("passed");
 	}
@@ -375,15 +375,13 @@ public:
 
 	unittest {
 		write("-- this(bool).......");
-		Dec32 dc;
-		dc = Dec32(false);
-	//	assertEqual(dc, 1);	// TODO: doesn't work
-		assertEqual(dc, ZERO);
-	//	assertFalse(dc);	// TODO: doesn't work
-	//	writefln("dc = %s", dc);
-		dc = Dec32(true);
-		assertEqual(dc, ONE);
-	//writefln("dc = %s", dc);
+		Dec32 t, f;
+		t = Dec32(true);
+		assertTrue(t);
+		assertEqual(t, ONE);
+		f = Dec32(false);
+		assertFalse(f);
+		assertEqual(f, ZERO);
 		writeln("passed");
 	}
 
@@ -441,9 +439,9 @@ public:
 	}
 
 	/// Creates a Dec32 from a BigDecimal
-	public this(in big32 arg) {
+	public this(in Big32 arg) {
 
-		big32 dc = plus(arg);
+		Big32 dc = plus(arg);
 
 		// if finite, copy and return the copy
 		if (dc.isFinite) {
@@ -472,9 +470,9 @@ public:
 		this = nan;
 	}
 
-	unittest {	// this(big32)
+	unittest {	// this(Big32)
 		write("-- this(BigDecimal).");
-		big32 dec = 0;
+		Big32 dec = 0;
 		Dec32 num = dec;
 		assertStringEqual(dec,num.toString);
 		dec = 1;
@@ -498,7 +496,7 @@ public:
 
 	/// Creates a Dec32 from a string.
 	public this(string str) {
-		big32 dc = big32(str);
+		Big32 dc = Big32(str);
 		this(dc);
 	}
 
@@ -548,24 +546,6 @@ public:
 	/// Returns a mutable copy
 	public Dec32 dup() const {
 		return Dec32(this);
-	}
-
-	/// Returns a mutable copy
-	public Dec32 copy() const {
-		return dup;
-	}
-
-	/// Returns a mutable copy
-	public Dec32 copyNegate() const {
-		Dec32 copy = dup;
-		copy.sign = !sign;
-		return copy;
-	}
-
-	public Dec32 copyAbs() const  {
-		Dec32 copy = dup;
-		copy.sign = false;
-		return copy;
 	}
 
 //--------------------------------
@@ -748,7 +728,7 @@ public:
 	unittest {	// coefficient
 		write("-- coefficient......");
 		Dec32 num;
-		big32 dec;
+		Big32 dec;
 		assertEqual(num.coefficient, 0);
 //		num = 9.998743;
 //		assertEqual(num.coefficient, 9998743);
@@ -756,7 +736,7 @@ public:
 //		assertEqual(num.coefficient, 9999213);
 		num = Dec32(-125);
 		assertEqual(num.coefficient, 125);
-		dec = big32(-29999999);
+		dec = Big32(-29999999);
 		num = Dec32(-29999999);
 //writefln("dec = %s", dec.toExact);
 //writefln("num = %s", num.toExact);
@@ -1085,20 +1065,15 @@ public:
 
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
-		assertTrue(Dec32("1").isTrue);
-		assertFalse(Dec32("0").isTrue);
-		assertTrue(Dec32.infinity.isTrue);
-		assertFalse(Dec32.nan.isTrue);
-
-		assertTrue(Dec32("0").isFalse);
-		assertFalse(Dec32("1").isFalse);
-		assertFalse(Dec32.infinity.isFalse);
-		assertTrue(Dec32.nan.isFalse);
+		assertTrue(Dec32.one);
+		assertFalse(Dec32.zero);
+		assertTrue(Dec32.infinity);
+		assertFalse(Dec32.nan);
 		writeln("passed");
 	}
 
+/*
 	/// Returns true if the coefficient of this number is zero.
-	// TODO: (language) what is the purpose of this function?
 	public bool isZeroCoefficient() const {
 		return !isSpecial && coefficient == 0;
 	}
@@ -1122,16 +1097,17 @@ public:
 		assertFalse(num.isZeroCoefficient);
 		writeln("passed");
 	}
+*/
 
 	/// Returns true if the number is subnormal.
-	/// NOTE: zero is not subnormal.
+	/// NOTE: zero is neither normal nor subnormal.
 	public bool isSubnormal() const {
 		if (isZero || isSpecial) return false;
 		return adjustedExponent < minExpo;
 	}
 
 	/// Returns true if the number is normal.
-	/// NOTE: zero is not normal.
+	/// NOTE: zero is neither normal nor subnormal.
 	public bool isNormal() const {
 		if (isZero || isSpecial) return false;
 		return adjustedExponent >= minExpo;
@@ -1178,7 +1154,7 @@ public:
 		}
 		if (this > Dec32(int.max) || (isInfinite && !isSigned)) return int.max;
 		if (this < Dec32(int.min) || (isInfinite &&  isSigned)) return int.min;
-		Dec32 temp = roundToIntegralExact!big32(this);
+		Dec32 temp = roundToIntegralExact!Big32(this);
 		int n = temp.coefficient;
 		return signed ? -n : n;
 	}
@@ -1207,7 +1183,7 @@ public:
 		}
 		if (this > long.max || (isInfinite && !isSigned)) return long.max;
 		if (this < long.min || (isInfinite &&  isSigned)) return long.min;
-		Dec32 temp = Dec32(roundToIntegralExact!big32(this));
+		Dec32 temp = Dec32(roundToIntegralExact!Big32(this));
 		n = temp.coefficient;
 		return signed ? -n : n;
 	}
@@ -1334,7 +1310,7 @@ public:
 	/// Returns -1, 0 or 1, if the number is less than, equal to or
 	/// greater than the argument, respectively.
 	int opCmp(T:Dec32)(in T that) const {
-		return compare!big32(this, that);
+		return compare!Big32(this, that);
 	}
 
 	/// Returns -1, 0 or 1, if the number is less than, equal to or
@@ -1351,7 +1327,7 @@ public:
 			if (this.isQuiet) return false;
 			// let the main routine handle the signaling NaN
 		}
-		return equals!big32(this, that);
+		return equals!Big32(this, that);
 	}
 
 	 /// Returns true if the number is equal to the specified number.
@@ -1415,14 +1391,14 @@ public:
 
 	private Dec32 opUnary(string op)() {
 		static if (op == "+") {
-			return Dec32(plus!big32(this));
+			return Dec32(plus!Big32(this));
 		} else static if (op == "-") {
-			return Dec32(minus!big32(this));
+			return Dec32(minus!Big32(this));
 		} else static if (op == "++") {
-			this = Dec32(add!big32(this, 1));
+			this = Dec32(add!Big32(this, 1));
 			return this;
 		} else static if (op == "--") {
-			this = Dec32(sub!big32(this, 1));
+			this = Dec32(sub!Big32(this, 1));
 			return this;
 		}
 	}
@@ -1472,21 +1448,21 @@ public:
 	T opBinary(string op, T:Dec32)(in T that) const
 	{
 		static if (op == "+") {
-			return Dec32(add!big32(this, that));
+			return Dec32(add!Big32(this, that));
 		} else static if (op == "-") {
-			return Dec32(sub!big32(this, that));
+			return Dec32(sub!Big32(this, that));
 		} else static if (op == "*") {
-			return Dec32(mul!big32(this, that));
+			return Dec32(mul!Big32(this, that));
 		} else static if (op == "/") {
-			return Dec32(div!big32(this, that));
+			return Dec32(div!Big32(this, that));
 		} else static if (op == "%") {
-			return Dec32(remainder!big32(this, that));
+			return Dec32(remainder!Big32(this, that));
 		} else static if (op == "&") {
-			return Dec32(and!big32(this, that));
+			return Dec32(and!Big32(this, that));
 		} else static if (op == "|") {
-			return Dec32(or!big32(this, that));
+			return Dec32(or!Big32(this, that));
 		} else static if (op == "^") {
-			return Dec32(xor!big32(this, that));
+			return Dec32(xor!Big32(this, that));
 		}
 	}
 
@@ -1583,13 +1559,91 @@ public:
 		writeln("passed");
 	}
 
+//-----------------------------
+// arithmetic functions
+//-----------------------------
+
+	/// Returns a mutable copy
+	public Dec32 copy(Dec32 x) {
+		return x.dup;
+	}
+
+	/// Returns a mutable copy
+	public Dec32 copyNegate(Dec32 x) {
+		Dec32 copy = x.dup;
+		copy.sign = !x.sign;
+		return copy;
+	}
+
+	public Dec32 copyAbs(Dec32 x) {
+		Dec32 copy = x.dup;
+		copy.sign = false;
+		return copy;
+	}
+
+	public Dec32 copySign(Dec32 x, Dec32 y) {
+		Dec32 copy = x.dup;
+		copy.sign = y.sign;
+		return copy;
+	}
+
+	public static Dec32 fma(Dec32 x, Dec32 y, Dec32 z) {
+		return Dec32(eris.decimal.arithmetic.fma!Big32(x,y,z));
+	}
+
+
+	public static Dec32 exp(Dec32 x) {
+		return Dec32(eris.decimal.math.exp!Big32(x));
+	}
+
+	public static Dec32 log(Dec32 x) {
+		return Dec32(eris.decimal.math.log!Big32(x));
+	}
+
+	public static Dec32 log10(Dec32 x) {
+		return Dec32(eris.decimal.math.log10!Big32(x));
+	}
+
+	public static Dec32 sqrt(Dec32 x) {
+		return Dec32(eris.decimal.math.sqrt!Big32(x));
+	}
+
+	public static Dec32 pow(Dec32 x, Dec32 y) {
+		return Dec32(eris.decimal.math.pow!Big32(x,y));
+	}
+
+	unittest {
+	write("arithmetic functions...");
+	Dec32 x,y,z;
+	x = "888565290";
+	y = "1557.96930";
+	z = "-86087.7578";
+writefln("x = %s", x);
+writefln("y = %s", y);
+writefln("fma(x,y,z) = %s", fma(x,y,z).toExact);
+writefln("log(x) = %s", log(x));
+// FIXTHIS: exp(log(x)) => divison by zero error
+writefln("exp(x) = %s", exp(Dec32(3)));
+writefln("log10(x) = %s", log10(x));
+writefln("sqrt(x) = %s", sqrt(x));
+// FIXTHIS: wrong value
+// TODO: when this is working add ^^ to opBinary
+writefln("pow(x,Dec32(2)) = %s", pow(x,Dec32(2)));
+
+
+
+	writeln("test missing");
+}
+
 /*	///	Returns the BigInt product of the coefficients.
 	/// (Used in arithemtic multiply.)
 	public static xint bigmul(const Dec32 arg1, const Dec32 arg2) {
 		xint big = xint(arg1.coefficient);
 		return big * arg2.coefficient;
 	}*/
- }	// end Dec32 struct
+
+
+}	// end Dec32 struct
 
 unittest { // footer
 	writeln("==========================");
