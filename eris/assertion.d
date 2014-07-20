@@ -63,14 +63,6 @@ bool assertStringNotEqual(T,U)(in T actual, in U expected,
 /// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
 /// Otherwise prints an error message and returns false.
-bool assertStringEqualIndexed(T,U:string)(int index, in T actual, in U expected,
-		string file = __FILE__, int line = __LINE__ ) {
-	return assertEqualIndexed(index, actual.toString, expected, file, line);
-}
-
-/// Returns true if the string representation of the actual value
-/// equals the string representation of the expected value.
-/// Otherwise prints an error message and returns false.
 bool assertStringEqual(T,U)(in T actual, in U expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(actual.toString, expected.toString, file, line);
@@ -114,6 +106,14 @@ bool assertStringEqual(T,U:bool)(in T actual, in U expected,
 bool assertStringEqual(T,U:string)(in T actual, in U expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(actual.toString, expected, file, line);
+}
+
+/// Returns true if the string representation of the actual value
+/// equals the string representation of the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertStringEqualIndexed(T,U:string)(int index, in T actual, in U expected,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertEqualIndexed(index, actual.toString, expected, file, line);
 }
 
 /// Returns true if the string representation of the actual value

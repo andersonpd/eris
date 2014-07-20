@@ -54,17 +54,56 @@ T to(T:string)(const long n) {
 	return format("%d", n);
 }
 
+//alias sinker = scope void delegate(const(char)[]);
+
+/// Returns a string representing the value of the number, formatted as
+/// specified by the formatString.
+public string toString(T)(in T num, string formatString = "")
+		/+if (isDecimal!T)+/ {
+
+    auto f = singleSpec!char(formatString.dup);
+	string str = "";
+	if (num.isSigned)   str = "-";
+	else if (f.flPlus)  str = "+";
+	else if (f.flSpace) str = " ";
+
+    str ~= formatDecimal!T(num, f.spec, f.precision);
+	// add trailing zeros
+	if (f.flHash && str.indexOf('.' < 0)) {
+		str ~= ".0";
+	}
+	// adjust width
+	str = setWidth(str, f.width, f.flZero, f.flDash);
+	return str;
+}
+
+// TODO: (testing) more unit tests
+unittest {
+	write("-- toString.........");
+	string expect, actual;
+	dec9 num = 2;
+	actual = toString(num, "%9.6e"); //3.3g41");
+	expect = "    2e+00";
+	assertEqual(actual, expect);
+	actual = toString!dec9(num, "%-9.6e"); //3.3g41");
+	expect = "00002e+00";
+	assertEqual(actual, expect);
+	actual = toString!dec9(num, "%9.6e"); //3.3g41");
+	expect = "    2e+00";
+	assertEqual(actual, expect);
+	writeln("passed");
+}
+
 //--------------------------------
 //  formatting
 //--------------------------------
 
 /// Converts a decimal number to a string
 /// using "scientific" notation, per the spec.
-public string sciForm(T)(const T num) {
+public string sciForm(T)(in T num) {
 
 	if (num.isSpecial) {
-		string str = toSpecialString!T(num);
-		return num.isSigned ? "-" ~ str : str;
+		return specialForm!T(num);
 	}
 
 	char[] mant = to!string(num.coefficient).dup;
@@ -105,36 +144,35 @@ public string sciForm(T)(const T num) {
 };  // end sciForm
 
 unittest {	// sciForm
-	write("-- toSciString......");
-	dec9 num = dec9(123);
-	assertStringEqual(sciForm(num), "123");
-	assertStringEqual(num.toAbstract(), "[0,123,0]");
-	num = dec9(-123, 0);
-	assertStringEqual(sciForm(num), "-123");
-	assertStringEqual(num.toAbstract(), "[1,123,0]");
-	num = dec9(123, 1);
-	assertStringEqual(sciForm(num), "1.23E+3");
-	assertStringEqual(num.toAbstract(), "[0,123,1]");
-	num = dec9(123, 3);
-	assertStringEqual(sciForm(num), "1.23E+5");
-	assertStringEqual(num.toAbstract(), "[0,123,3]");
-	num = dec9(123, -1);
-	assertStringEqual(sciForm(num), "12.3");
-	assertStringEqual(num.toAbstract(), "[0,123,-1]");
-	num = dec9("inf");
-	assertStringEqual(sciForm(num), "Infinity");
-	assertStringEqual(num.toAbstract(), "[0,inf]");
+	write("-- sciForm..........");
+
+	static struct S { string num; string val; }
+
+	static S[] tests =
+	[
+		{ "123",		"123" },
+		{ "-123",		"-123" },
+		{ "12.3E1",		"123" },
+		{ "123E1",		"1.23E+3" },
+		{ "123E3",		"1.23E+5" },
+		{ "123E-1",		"12.3" },
+		{ "inf",		"Infinity" },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, sciForm(dec9(s.num)), s.val);
+	}
 	writeln("passed");
 }
 
 
 /// Converts a decimal number to a string
 /// using "engineering" notation, per the spec.
-public string engForm(T)(const T num) /+if (isDecimal!T)+/ {
+public string engForm(T)(in T num) /+if (isDecimal!T)+/ {
 
 	if (num.isSpecial) {
-		string str = toSpecialString!T(num);
-		return num.isSigned ? "-" ~ str : str;
+		return specialForm!T(num);
 	}
 
 	char[] mant = to!string(num.coefficient).dup;
@@ -199,34 +237,37 @@ public string engForm(T)(const T num) /+if (isDecimal!T)+/ {
 }  // end engForm()
 
 unittest {
-	write("-- toEngString......");
-	string str = "1.23E+3";
-	dec9 dec = dec9(str);
-	assertStringEqual(engForm(dec), str);
-	str = "123E+3";
-	dec = dec9(str);
-	assertStringEqual(engForm(dec), str);
-	str = "12.3E-9";
-	dec = dec9(str);
-	assertStringEqual(engForm(dec), str);
-	str = "-123E-12";
-	dec = dec9(str);
-	assertStringEqual(engForm(dec), str);
+	write("-- engForm..........");
+
+	static string[] tests =
+	[
+		"1.23E+3",
+		"1.23E-9",
+		"-1.23E-12",
+		"9.999999E+96",
+		"1.000",
+		"NaN",
+		"-NaN102",
+		"-Infinity",
+		"-0",
+	];
+
+	foreach (i, str; tests)
+	{
+		assertEqualIndexed(i, engForm(dec9(str)), str);
+	}
 	writeln("passed");
 }
 
-/// Returns a string representation of a special value.
-/// If the number is not a special value an empty string is returned.
-/// NOTE: The sign of the number is not included in the string.
-private string toSpecialString(T)(const T num,
+private string specialForm(T)(in T num,
 		bool shortForm = false, bool lower = false, bool upper = false) {
 
-	string str = "";
+	string str = num.sign ? "-" : "";
 	if (num.isInfinite) {
-		str = shortForm ? "Inf" : "Infinity";
+		str ~= shortForm ? "Inf" : "Infinity";
 	}
 	else if (num.isNaN) {
-		str = !shortForm && num.isSignaling ? "sNaN" : "NaN";
+		str ~= num.isSignaling ? "sNaN" : "NaN";
 		if (num.payload) {
 			str ~= to!string(num.payload);
 		}
@@ -237,24 +278,39 @@ private string toSpecialString(T)(const T num,
 }
 
 unittest {
-	write("-- toSpecialString..");
-	dec9 num;
-	string expect, actual;
-	num = dec9("inf");
-	actual = toSpecialString(num);
-	expect = "Infinity";
-	assertEqual(actual, expect);
-	actual = toSpecialString(num, true);
-	expect = "Inf";
-	assertEqual(actual, expect);
+	write("-- specialForm......");
+
+	static string[] tests =
+	[
+		"NaN",
+		"-sNaN102",
+		"-Infinity",
+	];
+
+	foreach (i, str; tests)
+	{
+		assertEqualIndexed(i, dec9(str).specialForm, str);
+	}
+	tests =
+	[
+		"Inf",
+		"-Inf",
+	];
+
+	foreach (i, str; tests)
+	{
+		assertEqualIndexed(i, dec9(str).specialForm(true), str);
+	}
 	writeln("passed");
 }
 
 /// Converts a decimal number to a string in decimal format (xxx.xxx).
 /// NOTE: The sign of the number is not included in the string.
-private string decimalForm(T)
-	(const T number, const int precision = 6) {
+private string decimalForm(T)(in T number, int precision = 6) {
 
+	if (number.isSpecial) {
+		return specialForm(number);
+	}
 	T num = number.dup;
 	// check if rounding is needed:
 	int diff = num.exponent + precision;
@@ -264,83 +320,77 @@ private string decimalForm(T)
 	}
 
 	// convert the coefficient to a string
-	char[] mant = to!string(num.coefficient).dup;
+	char[] str = to!string(num.coefficient).dup;
 	auto expo = num.exponent;
 	auto sign = num.isSigned;
 	if (expo >= 0) {
 		if (expo > 0) {
 			// add zeros up to the dec9 point
-			mant ~= replicate("0", expo);
+			str ~= replicate("0", expo);
 		}
 		if (precision) {
 			// add zeros trailing the dec9 point
-			mant ~= "." ~ replicate("0", precision);
+			str ~= "." ~ replicate("0", precision);
 		}
 	}
 	else { // (expo < 0)
 		int point = -expo;
 		// if coefficient is too small, pad with zeros on the left
-		if (point > mant.length) {
-			mant = rightJustify(mant, point, '0');
+		if (point > str.length) {
+			str = rightJustify(str, point, '0');
 			}
 		// if no chars precede the dec9 point, prefix a zero
-		if (point == mant.length) {
-			mant = "0." ~ mant;
+		if (point == str.length) {
+			str = "0." ~ str;
 		}
 		// otherwise insert a dec9 point
 		else {
-			insertInPlace(mant, mant.length - point, ".");
+			insertInPlace(str, str.length - point, ".");
 		}
 		// if result is less than precision, add zeros
 		if (point < precision) {
-			mant ~= replicate("0", precision - point);
+			str ~= replicate("0", precision - point);
 		}
 	}
-	return mant.idup;
-//	return sign ? ("-" ~ mant).idup : mant.idup;
+	return sign ? ("-" ~ str).idup : str.idup;
 }
 
 unittest {
-	write("-- toDecimalForm....");
-	dec9 num;
-	string expect, actual;
-	expect = "123.456789";
-	num = "123.4567890123";
-	actual = decimalForm(num);
-	assertEqual(actual, expect);
-	expect = "123.456790";
-	num = "123.456789500";
-	actual = decimalForm(num);
-	assertEqual(actual, expect);
-	num = 125;
-	expect = "125.000";
-	actual = decimalForm(num, 3);
-	assertEqual(actual, expect);
-	num = 125E5;
-	expect = "12500000";
-	actual = decimalForm(num, 0);
-	assertEqual(actual, expect);
-	num = 1.25;
-	expect = "1.25";
-	actual = decimalForm(num, 2);
-	assertEqual(actual, expect);
-	num = 125E-5;
-	expect = "0.001250";
-	actual = decimalForm(num, 6);
-	assertEqual(actual, expect);
+	write("-- decimalForm......");
+
+	static struct S { string num; int precision; string val; }
+
+	static S[] tests =
+	[
+		{ "125",	3,	"125.000" },
+		{ "-125",	3,	"-125.000" },
+		{ "125E5",	0,	"12500000" },
+		{ "1.25",	2,	"1.25" },
+		{ "125E-5",	6,	"0.001250" },
+		{ "-0",		6,	"-0.000000" },
+		{ "Inf",	0,	"Infinity" },
+		{ "-NaN",	4,	"-NaN" },
+		{ "123.4567890123",	6,	"123.456789" },
+		{ "123.4567895123",	6,	"123.456790" },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, decimalForm(dec9(s.num), s.precision), s.val);
+	}
 	writeln("passed");
 }
 
 
 /// Converts a decimal number to a string using exponential notation.
-private string exponentForm(T)(const T number, const int precision = 6,
+private string exponentForm(T)(in T number, int precision = 6,
 	const bool lowerCase = false, const bool padExpo = true) /+if (isDecimal!T)+/ {
 
-	T num = number.dup;
-	if (T.precision > precision + 1) {
-		int numPrecision = precision + 1;
-		num = roundToPrecision(num, numPrecision, T.rounding);
+	if (number.isSpecial) {
+		return specialForm(number);
 	}
+	T num = number.dup;
+	num = roundToPrecision(num, precision + 1);
 	char[] mant = to!string(num.coefficient).dup;
 	auto expo = num.exponent;
 	auto sign = num.isSigned;
@@ -359,57 +409,42 @@ private string exponentForm(T)(const T number, const int precision = 6,
 }  // end exponentForm
 
 unittest {
-	write("-- toExponentForm...");
-	dec9 num;
-	string expect, actual;
-	num = dec9("123.4567890123");
-	actual = exponentForm!dec9(num);
-	expect = "1.234568E+02";
-	assertEqual(actual, expect);
-	num = dec9("123.456789500");
-	actual = exponentForm!dec9(num);
-	assertEqual(actual, expect);
-	num = dec9(125);
-	expect = "1.25E+02";
-	actual = exponentForm(num);
-	assertEqual(actual, expect);
-	expect = "1.25e+2";
-	actual = exponentForm(num, 6, true, false);
-	assertEqual(actual, expect);
-	num = dec9(125E5);
-	expect = "1.25E+07";
-	actual = exponentForm(num,2);
-	assertEqual(actual, expect);
-	num = dec9(1.25);
-	expect = "1.25E+00";
-	actual = exponentForm(num);
-	assertEqual(actual, expect);
-	num = dec9(125E-5);
-	expect = "1.25E-03";
-	actual = exponentForm(num);
-	assertEqual(actual, expect);
+	write("-- exponentForm.....");
+
+	static struct S { string num; int precision; string val; }
+
+	static S[] tests =
+	[
+		{ "125",	3,	"1.25E+02" },
+		{ "-125",	3,	"-1.25E+02" },
+		{ "125E5",	4,	"1.25E+07" },
+		{ "125E-5",	6,	"1.25E-03" },
+		{ "Inf",	0,	"Infinity" },
+		{ "-NaN",	4,	"-NaN" },
+		{ "1.25",	1,	"1.2E+00" },
+		{ "1.35",	1,	"1.4E+00" },
+		{ "123.4567890123",	6,	"1.234568E+02" },
+		{ "123.456789500",	6,	"1.234568E+02" },
+		{ "123.4567895123",	8,	"1.23456790E+02" },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, exponentForm(dec9(s.num), s.precision), s.val);
+	}
 	writeln("passed");
 }
 
-private void writeTo(T)(const T num, scope void delegate(const(char)[]) sink,
-	const char formatChar, const int precision) /+if (isDecimal!T)+/ {
-}
-
-unittest {
-	write("writeTo...");
-	writeln("test missing");
-}
-
-/// toString(num, width, precision, expo)
-private string formatDecimal(T)(const T num,
-	const char formatChar, const int precision) /+if (isDecimal!T)+/ {
+/// Returns a string representing the number, formatted as specified.
+private string formatDecimal(T)(in T num,
+	char formatChar, int precision) /+if (isDecimal!T)+/ {
 
 	bool lowerCase = std.uni.isLower(formatChar);
 	bool upperCase = std.uni.isUpper(formatChar);
 
 	// special values
 	if (num.isSpecial) {
-		return toSpecialString!T(num, false, lowerCase, upperCase);
+		return specialForm!T(num, false, lowerCase, upperCase);
 	}
 
 	switch (std.uni.toUpper(formatChar)) {
@@ -428,48 +463,6 @@ private string formatDecimal(T)(const T num,
 	}
 	return exponentForm(num, precision, lowerCase, true);
 }
-
-/// Returns the string with the prefix inserted at the front. If the
-/// prefix string is empty, returns the original string.
-private string addPrefix(string str, string prefix) {
-	if (prefix == "") {
-		return str;
-	}
-	return prefix ~ str;
-}
-
-/*
-/// Returns the string with a prefix inserted at the front.
-/// The prefix character is based on the value of the flags.
-/// If none of the flags are set, the original string is returned.
-private string addPrefix(string str, bool minus, bool plus, bool space) {
-
-	if (!minus && !plus && !space) return str;
-
-	string prefix;
-	if      (minus) prefix = "-";
-	else if (plus) prefix = "+";
-	else if (space) prefix = " ";
-	return prefix ~ str;
-}
-
-unittest {	//addPrefix
-	string str, expect, actual;
-	str = "100.54";
-	expect = "100.54";
-	actual = addPrefix(str, "");
-	assertEqual(actual, expect);
-	assert(actual is expect);
-	expect = "-100.54";
-	actual = addPrefix(str, "-");
-	assertEqual(actual, expect);
-	expect = " 100.54";
-	actual = addPrefix(str, " ");
-	assertEqual(actual, expect);
-	expect = "+100.54";
-	actual = addPrefix(str, "+");
-	assertEqual(actual, expect);
-}*/
 
 /// Returns a string that is at least as long as the specified width. If the
 /// string is already greater than or equal to the specified width the original
@@ -511,10 +504,10 @@ unittest { // setWidth
 	writeln("passed");
 }
 
-private void sink(const(char)[] str) {
-    auto app = std.array.appender!(string)();
-	app.put(str);
-}
+//private void sink(const(char)[] str) {
+//    auto app = std.array.appender!(string)();
+//	app.put(str);
+//}
 
 /*	public string toString(string fmt = "%s") {
 		import std.exception : assumeUnique;
@@ -541,56 +534,96 @@ private void sink(const(char)[] str) {
 		}
 	}*/
 
-/// Returns a string representing the value of the number, formatted as
-/// specified by the formatString.
-public string toString(T)(const T num, string formatString = "")
-		/+if (isDecimal!T)+/ {
 
-    auto a = std.array.appender!(const(char)[])();
-	void sink(const(char)[] s) {
-		a.put(s);
+/// Returns an abstract string representation of a number.
+/// The abstract representation is described in the specification. (p. 9-12)
+public string toAbstract(T)(in T num) /*if (eris.decimal.isDecimal!T)*/ {
+	if (num.isFinite) {
+		return format("[%d,%s,%d]", num.sign ? 1 : 0,
+		              to!string(num.coefficient), num.exponent);
 	}
-	writeTo!T(num, &sink, formatString);
-    auto f = FormatSpec!char(formatString);
-    f.writeUpToNextSpec(a);
-    string str = formatDecimal!T(num, f.spec, f.precision);
-	// add trailing zeros
-	if (f.flHash && str.indexOf('.' < 0)) {
-		str ~= ".0";
+	if (num.isInfinite) {
+		return format("[%d,%s]", num.sign ? 1 : 0, "inf");
 	}
-	// add prefix
-	string prefix;
-	if (num.isSigned)   prefix = "-";
-	else if (f.flPlus)  prefix = "+";
-	else if (f.flSpace) prefix = " ";
-	else prefix = "";
-	str = addPrefix(str, prefix);
-	// adjust width
-	str = setWidth(str, f.width, f.flZero, f.flDash);
-	return str;
+	if (num.isQuiet) {
+		if (num.payload) {
+			return format("[%d,%s%d]", num.sign ? 1 : 0, "qNaN", num.payload);
+		}
+		return format("[%d,%s]", num.sign ? 1 : 0, "qNaN");
+	}
+	if (num.isSignaling) {
+		if (num.payload) {
+			return format("[%d,%s%d]", num.sign ? 1 : 0, "sNaN", num.payload);
+		}
+		return format("[%d,%s]", num.sign ? 1 : 0, "sNaN");
+	}
+	return "[0,qNAN]";
 }
 
-unittest {
-	write("toString...");
-	string expect, actual;
-	dec9 num = 2;
-	actual = toString!dec9(num, "%9.6e"); //3.3g41");
-	actual = toString!dec9(num, "%-9.6e"); //3.3g41");
-	actual = toString!dec9(num, "%9.6e"); //3.3g41");
-	expect = "    2e+00";
-	assertEqual(actual, expect);
+unittest {	// toAbstract
+	write("-- toAbstract.......");
+	static struct S { string num; string abs; }
+
+	static S[] tests =
+	[
+		{     "-inf",	"[1,inf]" },
+		{      "nan",	"[0,qNaN]" },
+		{ "snan1234",	"[0,sNaN1234]" },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, dec9(s.num).toAbstract, s.abs);
+	}
 	writeln("passed");
 }
 
+/// Returns a full, exact representation of a number. Similar to toAbstract,
+/// but it provides a valid string that can be converted back into a number.
+public string toExact(T)(in T num) {
+	if (num.isFinite) {
+		return format("%s%sE%s%02d", num.sign ? "-" : "+",
+		              to!string(num.coefficient),
+		              num.exponent < 0 ? "-" : "+", std.math.abs(num.exponent));
+	}
+	if (num.isInfinite) {
+		return format("%s%s", num.sign ? "-" : "+", "Infinity");
+	}
+	if (num.isQuiet) {
+		if (num.payload) {
+			return format("%s%s%d", num.sign ? "-" : "+", "NaN", num.payload);
+		}
+		return format("%s%s", num.sign ? "-" : "+", "NaN");
+	}
+	if (num.isSignaling) {
+		if (num.payload) {
+			return format("%s%s%d", num.sign ? "-" : "+", "sNaN", num.payload);
+		}
+		return format("%s%s", num.sign ? "-" : "+", "sNaN");
+	}
+	return "+NaN";
+}
 
-// TODO: (language) Doesn't work yet. Uncertain how to merge the string versions
-// with the sink versions.
-/// Converts a decimal number to a string representation.
-void writeTo(T)(const T num, scope void delegate(const(char)[]) sink,
-		string fmt = "") /+if (isDecimal!T)+/ {
+unittest {
+	write("-- toExact..........");
 
+	static string[] tests =
+	[
+		"+9999999E+90",
+		"+1E+00",
+		"+1000E-03",
+		"+NaN",
+		"-NaN102",
+		"-Infinity",
+		"-0E+00",
+	];
 
-};  // end writeTo
+	foreach (i, str; tests)
+	{
+		assertEqualIndexed(i, dec9(str).toExact, str);
+	}
+	writeln("passed");
+}
 
 /// Converts a string into a Decimal. This departs from the specification
 /// in that the coefficient string may contain underscores.
@@ -796,94 +829,6 @@ unittest {
 	writeln("test missing");
 }
 
-/// Returns an abstract string representation of a number.
-/// The abstract representation is described in the specification. (p. 9-12)
-public string toAbstract(T)(const T num) /*if (eris.decimal.isDecimal!T)*/ {
-	if (num.isFinite) {
-		return format("[%d,%s,%d]", num.sign ? 1 : 0,
-		              to!string(num.coefficient), num.exponent);
-	}
-	if (num.isInfinite) {
-		return format("[%d,%s]", num.sign ? 1 : 0, "inf");
-	}
-	if (num.isQuiet) {
-		if (num.payload) {
-			return format("[%d,%s%d]", num.sign ? 1 : 0, "qNaN", num.payload);
-		}
-		return format("[%d,%s]", num.sign ? 1 : 0, "qNaN");
-	}
-	if (num.isSignaling) {
-		if (num.payload) {
-			return format("[%d,%s%d]", num.sign ? 1 : 0, "sNaN", num.payload);
-		}
-		return format("[%d,%s]", num.sign ? 1 : 0, "sNaN");
-	}
-	return "[0,qNAN]";
-}
-
-unittest {	// toAbstract
-	write("-- toAbstract.......");
-	static struct S { string num; string abs; }
-
-	static S[] tests =
-	[
-		{     "-inf",	"[1,inf]" },
-		{      "nan",	"[0,qNaN]" },
-		{ "snan1234",	"[0,sNaN1234]" },
-	];
-
-	foreach (i, s; tests)
-	{
-		assertEqualIndexed(i, dec9(s.num).toAbstract, s.abs);
-	}
-	writeln("passed");
-}
-
-/// Returns a full, exact representation of a number. Similar to toAbstract,
-/// but it provides a valid string that can be converted back into a number.
-public string toExact(T)(const T num) {
-	if (num.isFinite) {
-		return format("%s%sE%s%02d", num.sign ? "-" : "+",
-		              to!string(num.coefficient),
-		              num.exponent < 0 ? "-" : "+", std.math.abs(num.exponent));
-	}
-	if (num.isInfinite) {
-		return format("%s%s", num.sign ? "-" : "+", "Infinity");
-	}
-	if (num.isQuiet) {
-		if (num.payload) {
-			return format("%s%s%d", num.sign ? "-" : "+", "NaN", num.payload);
-		}
-		return format("%s%s", num.sign ? "-" : "+", "NaN");
-	}
-	if (num.isSignaling) {
-		if (num.payload) {
-			return format("%s%s%d", num.sign ? "-" : "+", "sNaN", num.payload);
-		}
-		return format("%s%s", num.sign ? "-" : "+", "sNaN");
-	}
-	return "+NaN";
-}
-
-unittest {
-	write("-- toExact..........");
-	static string[] tests =
-	[
-		"+9999999E+90",
-		"+1E+00",
-		"+1000E-03",
-		"+NaN",
-		"-NaN102",
-		"-Infinity",
-		"-0E+00",
-	];
-
-	foreach (i, str; tests)
-	{
-		assertEqualIndexed(i, dec9(str).toExact, str);
-	}
-	writeln("passed");
-}
 
 unittest {
 	writeln("==========================");
