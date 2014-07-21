@@ -20,7 +20,6 @@ import std.string;
 import std.format;
 
 import eris.decimal;
-//import eris.decimal.arithmetic: copyAbs;
 import eris.decimal.context;
 import eris.decimal.rounding;
 import eris.integer.extended;
@@ -35,6 +34,8 @@ version(unittest) {
 	import std.stdio;
 	import eris.assertion;
 }
+
+public enum DEFAULT_PRECISION = 6;
 
 //--------------------------------
 //   to!string conversions
@@ -60,21 +61,24 @@ private T to(T:string)(const long n) {
 public string toString(T)(in T num, string fmStr = "%S")
 		/+if (isDecimal!T)+/ {
 
+	// TODO: (behavior) is singleSpec okay?
     auto fm = singleSpec!char(fmStr.dup);
 	string str = "";
 	if (num.isSigned)   str = "-";
 	else if (fm.flPlus)  str = "+";
 	else if (fm.flSpace) str = " ";
-	auto precision = (fm.precision == fm.UNSPECIFIED) ? 6 : fm.precision;
+	bool noPrecision = (fm.precision == fm.UNSPECIFIED);
+	// if precision is unspecified it defaults to 6
+	int precision = noPrecision ? DEFAULT_PRECISION : fm.precision;
 	str ~= formatDecimal!T(num, fm.spec, precision);
 	// add trailing zeros
 	if (fm.flHash && str.indexOf('.' < 0)) {
 		str ~= ".0";
 	}
-	// if precision is specified, zero flag is ignored
-	auto flZero = (fm.precision == fm.UNSPECIFIED) ? fm.flZero : false;
+	// if precision is unspecified the zero flag is ignored
+	bool zero = noPrecision ? fm.flZero : false;
 	// adjust width
-	str = setWidth(str, fm.width, fm.flDash, flZero);
+	str = setWidth(str, fm.width, fm.flDash, zero);
 	return str;
 }
 
@@ -353,7 +357,7 @@ unittest  // specialForm
 }
 
 /// Converts a decimal number to a string in decimal format (xxx.xxx).
-private string decimalForm(T)(in T number, int precision = 6) {
+private string decimalForm(T)(in T number, int precision = DEFAULT_PRECISION) {
 
 	if (number.isSpecial) {
 		return specialForm(number);
@@ -432,7 +436,7 @@ unittest // decimalForm
 
 
 /// Converts a decimal number to a string using exponential notation.
-private string exponentForm(T)(in T number, int precision = 6,
+private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
 	const bool lowerCase = false, const bool padExpo = true) /+if (isDecimal!T)+/ {
 
 	if (number.isSpecial) {
@@ -547,39 +551,6 @@ unittest // setWidth
 	assertEqual(setWidth(str,  8, false, true), "0010E+05");
 	writeln("passed");
 }
-
-//alias sinker = void delegate(const(char)[]);
-
-//private void sink(const(char)[] str) {
-//    auto app = std.array.appender!(string)();
-//	app.put(str);
-//}
-
-/*	public string toString(string fmt = "%s") {
-		import std.exception : assumeUnique;
-		char[] buf;
-		buf.reserve(100);
-		toString((const(char)[] s) { buf ~= s; }, fmt);
-		return assumeUnique(buf);
-	}
-
-	public void toString(scope void delegate(const(char)[]) sink,
-		string formatString) const {
-
-		auto f = singleSpec!char(formatString.dup);
-		switch (f.spec) {
-			case 's':
-			case 'd': formatDecimal(sink, f);
-						break;
-			case 'x':
-			case 'X': formatHex(sink);
-						break;
-			case 'b': formatBinary(sink);
-						break;
-			default: throw new FormatException("Format specifier not recognized %" ~ f.spec);
-		}
-	}*/
-
 
 /// Returns an abstract string representation of a number.
 /// The abstract representation is described in the specification. (p. 9-12)
