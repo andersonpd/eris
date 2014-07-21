@@ -166,9 +166,10 @@ unittest {	// rounding
 template Constant(string name)
 {
 const char[] Constant =
-	"/// Returns the value of the constant at the specified precision.\n" ~
-   	"public T " ~ name ~ "(T)(int precision = T.precision) {
-		Context context = Context(precision);
+	"/// Returns the value of the constant at the specified precision.
+   	public T " ~ name ~ "(T)(int precision = T.precision) if (isDecimal!T)
+	{
+		Context context = Context(precision, T.maxExpo, T.rounding);
 		static T value;
 		static int lastPrecision = 0;
 		if (precision == lastPrecision) return value;
@@ -186,12 +187,13 @@ template UnaryFunction(string name)
 const char[] UnaryFunction =
 
 	"/// Returns the value of the function at the specified precision.
-   	public T " ~ name ~ "(T)(T x, int precision = T.precision) {
+   	public T " ~ name ~ "(T)(T x, int precision = T.precision) if (isDecimal!T)
+	{
 		if (x.isNaN) {
 			contextFlags.setFlags(INVALID_OPERATION);
 			return T.nan;
 		}
-		Context context = Context(precision, Rounding.HALF_EVEN);
+		Context context = Context(precision, T.maxExpo, Rounding.HALF_EVEN);
 		return " ~ name ~ "!T(x, context);
 	}
 
@@ -217,13 +219,15 @@ const char[] UnaryFunction =
 template BinaryFunction(string name)
 {
 const char[] BinaryFunction =
-	"/// Returns the value of the function at the specified precision.\n" ~
-   	"public T " ~ name ~ "(T)(T x, T y, int precision = T.precision) {
+	"/// Returns the value of the function at the specified precision.
+   	public T " ~ name ~ "(T)(T x, T y, int precision = T.precision)
+	if (isDecimal!T)
+	{
 		if (x.isNaN || y.isNaN) {
 			contextFlags.setFlags(INVALID_OPERATION);
 			return T.nan;
 		}
-		Context context = Context(precision, Rounding.HALF_EVEN);
+		Context context = Context(precision, T.maxExpo, Rounding.HALF_EVEN);
 		return " ~ name ~ "!T(x, y, context);
 	}";
 }
@@ -234,7 +238,7 @@ const char[] BinaryFunction =
 
 /// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
 private Context guard(Context context, int guardDigits = 2) {
-	return Context(context.precision + guardDigits, Rounding.HALF_EVEN);
+	return Context(context.precision + guardDigits, context.maxExpo, Rounding.HALF_EVEN);
 }
 
 /// Calculates the value of pi to the specified precision.
@@ -576,7 +580,8 @@ unittest {
 mixin (UnaryFunction!("exp"));
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-package T exp(T)(T x, Context inContext) {
+package T exp(T)(T x, Context inContext)
+{
 	if (x.isInfinite) {
 		return x.isNegative ? T.zero : x;
 	}
@@ -908,7 +913,7 @@ public T sin(T)(T x, int precision = T.precision) {
 		return T.nan;
 	}
 	// TODO: (efficiency) setting the rounding to half-even is redundant.
-	auto context = Context(precision, Rounding.HALF_EVEN);
+	auto context = Context(precision, T.maxExpo, Rounding.HALF_EVEN);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
 	switch(quadrant) {
@@ -956,7 +961,7 @@ public T cos(T)(T x, int precision = T.precision) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
 	}
-	auto context = Context(precision, Rounding.HALF_EVEN);
+	auto context = Context(precision, T.maxExpo, Rounding.HALF_EVEN);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
 	switch(quadrant) {
@@ -998,7 +1003,7 @@ unittest {
 }
 
 public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision) {
-	auto context = Context(precision, Rounding.HALF_EVEN);
+	auto context = Context(precision, T.maxExpo, Rounding.HALF_EVEN);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
 	sincos(red, sine, cosine, context);
@@ -1076,7 +1081,7 @@ public T tan(T)(T x, int precision = T.precision) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
 	}
-	auto context = Context(precision, Rounding.HALF_EVEN);
+	auto context = Context(precision, T.maxExpo, Rounding.HALF_EVEN);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
 	T sine;

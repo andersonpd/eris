@@ -44,7 +44,7 @@ struct Dec64 {
 
 public enum IS_DECIMAL;
 
-public enum Context context = Context(17, Rounding.HALF_UP);
+public enum Context context = Context(16, 369, Rounding.HALF_UP);
 
     /// Returns an equivalent BigDecimal number
     @property

@@ -60,23 +60,14 @@ public enum : ubyte {
 
 ///	Decimal arithmetic operations are governed by their context.
 /// The context specifies the precision (number of decimal digits)
-/// and the rounding mode in place for the operation.
+/// the maximum exponent value and the rounding mode in place for the operation.
 ///	The result of most operations will be rounded to the context precision
 /// using the context rounding mode
 public struct Context
 {
 	public immutable int precision;
+	public immutable int maxExpo;
 	public immutable Rounding rounding;
-
-	public this(int precision, Rounding rounding) {
-		this.precision = precision;
-		this.rounding = rounding;
-	}
-
-	public this(int precision) {
-		this.precision = precision;
-		this.rounding = Rounding.HALF_EVEN;
-	}
 }
 
 /// "The exceptional conditions are grouped into signals,

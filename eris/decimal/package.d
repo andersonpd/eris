@@ -94,7 +94,7 @@ unittest {
 	/// Rounding mode.
 	enum Rounding rounding = ROUNDING_MODE;
 	/// Struct containing the precision and rounding mode.
-	enum Context context = Context(PRECISION, ROUNDING_MODE);
+	enum Context context = Context(PRECISION, MAX_EXPO, ROUNDING_MODE);
 
 	// decimal special values
 	enum decimal NAN		= decimal(SV.QNAN);
@@ -483,17 +483,18 @@ unittest {
 		writeln("passed");
 	}}
 
+/*
 	static bool isDecimal(T)(T dummy) {
 		return __traits(hasMember, T, "IS_DECIMAL");
 	}
-
+*/
 	static if (PRECISION == 9) {
 	unittest {
 		write("-- isDecimal........");
 		dec9 dummy;
-		assertTrue(isDecimal(dummy));
-		assertFalse(isDecimal(4));
-		assertTrue(isDecimal(Dec64.init));
+		assertTrue(isDecimal!dec9);
+		assertFalse(isDecimal!int);
+		assertTrue(isDecimal!Dec64);
 		writeln("passed");
 	}}
 
@@ -1611,4 +1612,11 @@ unittest {
 	}}
 
 }	 // end struct BigDecimal
+
+/// Returns true if the parameter is a type of decimal number.
+public bool isDecimal(T)() {
+		return __traits(hasMember, T, "IS_DECIMAL");
+	}
+
+
 

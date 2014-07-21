@@ -58,9 +58,8 @@ private T to(T:string)(const long n) {
 
 /// Returns a string representing the value of the number, formatted as
 /// specified by the formatString.
-public string toString(T)(in T num, string fmStr = "%S")
-		/+if (isDecimal!T)+/ {
-
+public string toString(T)(in T num, string fmStr = "%S") if (isDecimal!T)
+{
 	// TODO: (behavior) is singleSpec okay?
     auto fm = singleSpec!char(fmStr.dup);
 	string str = "";
@@ -148,8 +147,8 @@ unittest  // toString
 
 /// Converts a decimal number to a string
 /// using "scientific" notation, per the spec.
-public string sciForm(T)(in T num) {
-
+public string sciForm(T)(in T num) if (isDecimal!T)
+{
 	if (num.isSpecial) {
 		return specialForm!T(num);
 	}
@@ -218,8 +217,8 @@ unittest // sciForm
 
 /// Converts a decimal number to a string
 /// using "engineering" notation, per the spec.
-public string engForm(T)(in T num) /+if (isDecimal!T)+/ {
-
+public string engForm(T)(in T num) if (isDecimal!T)
+{
 	if (num.isSpecial) {
 		return specialForm!T(num);
 	}
@@ -309,8 +308,9 @@ unittest // engForm
 	writeln("passed");
 }
 
-private string specialForm(T)(in T num,
-		bool shortForm = false, bool lower = false, bool upper = false) {
+private string specialForm(T)(in T num, bool shortForm = false,
+	bool lower = false, bool upper = false) if (isDecimal!T)
+{
 
 	string str = num.sign ? "-" : "";
 	if (num.isInfinite) {
@@ -357,8 +357,9 @@ unittest  // specialForm
 }
 
 /// Converts a decimal number to a string in decimal format (xxx.xxx).
-private string decimalForm(T)(in T number, int precision = DEFAULT_PRECISION) {
-
+private string decimalForm(T)(in T number,
+	int precision = DEFAULT_PRECISION) if (isDecimal!T)
+{
 	if (number.isSpecial) {
 		return specialForm(number);
 	}
@@ -437,7 +438,8 @@ unittest // decimalForm
 
 /// Converts a decimal number to a string using exponential notation.
 private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
-	const bool lowerCase = false, const bool padExpo = true) /+if (isDecimal!T)+/ {
+	const bool lowerCase = false, const bool padExpo = true) if (isDecimal!T)
+{
 
 	if (number.isSpecial) {
 		return specialForm(number);
@@ -491,8 +493,8 @@ unittest	// exponentForm
 
 /// Returns a string representing the number, formatted as specified.
 private string formatDecimal(T)(in T num,
-	char formatChar, int precision) /+if (isDecimal!T)+/ {
-
+	char formatChar, int precision) if (isDecimal!T)
+{
 	bool lowerCase = std.uni.isLower(formatChar);
 	bool upperCase = std.uni.isUpper(formatChar);
 
@@ -554,7 +556,8 @@ unittest // setWidth
 
 /// Returns an abstract string representation of a number.
 /// The abstract representation is described in the specification. (p. 9-12)
-public string toAbstract(T)(in T num) /*if (eris.decimal.isDecimal!T)*/ {
+public string toAbstract(T)(in T num) if (isDecimal!T)
+{
 	if (num.isFinite) {
 		return format("[%d,%s,%d]", num.sign ? 1 : 0,
 		              to!string(num.coefficient), num.exponent);
@@ -598,7 +601,8 @@ unittest // toAbstract
 
 /// Returns a full, exact representation of a number. Similar to toAbstract,
 /// but it provides a valid string that can be converted back into a number.
-public string toExact(T)(in T num) {
+public string toExact(T)(in T num) if (isDecimal!T)
+{
 	if (num.isFinite) {
 		return format("%s%sE%s%02d", num.sign ? "-" : "+",
 		              to!string(num.coefficient),
@@ -648,7 +652,8 @@ unittest // toExact
 /// specification in that the coefficient string may contain underscores.
 /// A leading or trailing "." is allowed by the specification even though
 /// it is not valid as a D language real number.
-public T toNumber(T)(string inStr) {
+public T toNumber(T)(string inStr) if (isDecimal!T)
+{
 	T num;
 	bool sign = false;
 	// strip, copy, tolower
@@ -815,7 +820,7 @@ unittest // toNumber
 	writeln("passed");
 }
 
-private T setPayload(T)(T num, char[] str, int len)
+private T setPayload(T)(T num, char[] str, int len) if (isDecimal!T)
 {
 	// if finite number or infinity, return
 	if (!num.isNaN) return num;

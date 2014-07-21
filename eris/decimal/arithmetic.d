@@ -30,7 +30,6 @@
 module eris.decimal.arithmetic;
 
 import eris.integer.extended;
-//import eris.assertion;
 import std.string;
 
 import eris.decimal;
@@ -59,7 +58,8 @@ alias xcompare = eris.integer.extended.xint.compare;
 	/// The sign of any NaN values is ignored in the classification.
 	/// The argument is not rounded and no flags are changed.
 	/// Implements the 'class' function in the specification. (p. 42)
-	public string classify(T)(T x)  {
+	public string classify(T)(T x) if (isDecimal!T)
+	{
 		if (x.isFinite) {
 			if (x.isZero) 	 { return x.sign ? "-Zero" : "+Zero"; }
 			if (x.isNormal)	 { return x.sign ? "-Normal" : "+Normal"; }
@@ -170,7 +170,7 @@ unittest {	// copy
 /// limiting the resulting exponent)".
 /// May set the INVALID_OPERATION and DIVISION_BY_ZERO flags.
 /// Implements the 'logb' function in the specification. (p. 47)
-public int ilogb(T)(T x)
+public int ilogb(T)(T x) if (isDecimal!T)
 {
 	if (operandIsInvalid!T(x)) {
 		return 0;
@@ -193,8 +193,8 @@ public int ilogb(T)(T x)
 /// limiting the resulting exponent)".
 /// May set the INVALID_OPERATION and DIVISION_BY_ZERO flags.
 /// Implements the 'logb' function in the specification. (p. 47)
-public T logb(T)(T x) {
-
+public T logb(T)(T x) if (isDecimal!T)
+{
 	if (x.isNaN) return invalidOperand(x);
 
 	if (x.isInfinite) return T.infinity;
@@ -229,8 +229,8 @@ unittest {
 /// The result may overflow or underflow.
 /// Flags: INVALID_OPERATION, UNDERFLOW, OVERFLOW.
 /// Implements the 'scaleb' function in the specification. (p. 48)
-public T scaleb(T)(T x, T y)  {
-
+public T scaleb(T)(T x, T y) if (isDecimal!T)
+{
 	if (x.isNaN || y.isNaN) return invalidOperands(x,y);
 
 	if (x.isInfinite) return x;
@@ -271,7 +271,9 @@ unittest {	// scaleb
 /// "This operation was called 'normalize' prior to
 /// version 1.68 of the specification." (p. 37)
 /// Flags: INVALID_OPERATION
-public T reduce(T)(in T x, Context context = T.context)  {
+public T reduce(T)(in T x,
+		Context context = T.context) if (isDecimal!T)
+{
 	// TODO: (language) remove constness from x.
 	// special cases
 	if (operandIsInvalid(x)) return x.dup;
@@ -296,7 +298,9 @@ public T reduce(T)(in T x, Context context = T.context)  {
 }
 
 // just a wrapper
-public T normalize(T)(in T x, Context context = T.context)  {
+public T normalize(T)(in T x,
+		Context context = T.context) if (isDecimal!T)
+{
 	return reduce(x, context);
 }
 
@@ -326,7 +330,9 @@ unittest {	// reduce
 /// use the 'copyAbs' function.
 /// Implements the 'abs' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION
-public T abs(T)(T x, Context context = T.context)  {
+public T abs(T)(T x,
+		Context context = T.context) if (isDecimal!T)
+{
 	if (x.isNaN) return invalidOperand(x);
 	return roundToPrecision(x.copyAbs, context);
 }
@@ -349,7 +355,8 @@ unittest {	// abs
 /// Returns -1, 0, or 1
 /// if the argument is negative, zero, or positive, respectively.
 /// The sign of zero is ignored. Returns 0 for +0 or -0.
-public int sgn(T)(T x)  {
+public int sgn(T)(T x) if (isDecimal!T)
+{
 	if (x.isZero) return 0;
 	return x.isNegative ? -1 : 1;
 }
@@ -384,7 +391,9 @@ public int sgn(T:xint)(T x) {
 /// To copy without rounding or setting flags use the 'copy' function.
 /// Implements the 'plus' function in the specification. (p. 33)
 /// Flags: INVALID_OPERATION
-public T plus(T)(in T x, Context context = T.context)  {
+public T plus(T)(in T x,
+		Context context = T.context) if (isDecimal!T)
+{
 	if (operandIsInvalid!T(x)) return x.dup;
 	return roundToPrecision(x, context);
 }
@@ -395,7 +404,9 @@ public T plus(T)(in T x, Context context = T.context)  {
 /// To copy without rounding or setting flags use the 'copyNegate' function.
 /// Implements the 'minus' function in the specification. (p. 37)
 /// Flags: INVALID_OPERATION
-public T minus(T)(in T x, Context context = T.context) {
+public T minus(T)(in T x,
+		Context context = T.context) if (isDecimal!T)
+{
 	if (operandIsInvalid!T(x)) return x.dup;
 	return roundToPrecision(x.copyNegate, context);
 }
@@ -432,7 +443,9 @@ unittest {	// plus
 /// the argument.
 /// Implements the 'next-plus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
-public T nextPlus(T)(in T x, Context context = T.context) {
+public T nextPlus(T)(in T x,
+		Context context = T.context) if (isDecimal!T)
+{
 
 	if (x.isNaN) return invalidOperand(x);
 
@@ -461,7 +474,9 @@ public T nextPlus(T)(in T x, Context context = T.context) {
 /// the argument.
 /// Implements the 'next-minus' function in the specification. (p. 34)
 /// Flags: INVALID_OPERATION
-public T nextMinus(T)(in T x, Context context = T.context) {
+public T nextMinus(T)(in T x,
+		Context context = T.context) if (isDecimal!T)
+{
 
 	if (x.isNaN) return invalidOperand(x);
 
@@ -490,7 +505,9 @@ public T nextMinus(T)(in T x, Context context = T.context) {
 /// in the direction of the second operand.
 /// Implements the 'next-toward' function in the specification. (p. 34-35)
 /// Flags: INVALID_OPERATION
-public T nextToward(T)(in T x, in T y, Context context = T.context) {
+public T nextToward(T)(in T x, in T y,
+		Context context = T.context) if (isDecimal!T)
+{
 
 	T nan;
 	if (operationIsInvalid(x, y, nan)) return nan;
@@ -549,7 +566,9 @@ unittest {
 /// less than, equal to, or greater than the first operand.
 /// Implements the 'compare' function in the specification. (p. 27)
 /// Flags: INVALID_OPERATION
-public int compare(T)(in T x, in T y, Context context = T.context) {
+public int compare(T)(in T x, in T y,
+		Context context = T.context) if (isDecimal!T)
+{
 
 	// any operation with a signaling NaN is invalid.
 	// if both are signaling, return as if x > y.
@@ -653,8 +672,9 @@ unittest {	// compare
 /// Zeros are equal regardless of sign.
 /// A decimal NaN is not equal to itself (this != this).
 /// Flags: INVALID_OPERATION
-public bool equals(T)(in T x, in T y, Context context = T.context) {
-
+public bool equals(T)(in T x, in T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	// any operation with a signaling NaN is invalid.
 	if (x.isSignaling || y.isSignaling) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -726,7 +746,8 @@ unittest {	// equals
 /// Returns true if the operands are equal to the specified precision. Special
 /// values are handled as in the equals() function. This function allows
 /// comparison at precision values other than the context precision.
-public bool precisionEquals(T)(T x, T y, int precision) {
+public bool precisionEquals(T)(T x, T y, int precision) if (isDecimal!T)
+{
 	auto context = Context(precision);
 	return (equals(x, y, context));
 }
@@ -751,7 +772,7 @@ public bool assertPrecisionEqual(T)(T actual, T expected, int precision,
 /// Otherwise prints an error message and returns false.
 public bool assertPrecisionEqual(T)(T actual, string expected, int precision,
 		string file = __FILE__, int line = __LINE__ ) {
-	auto context = Context(precision);
+	auto context = Context(precision, T.maxExpo, T.rounding);
 	if (equals(T(expected), actual, context))	{
 		return true;
 	}
@@ -769,7 +790,9 @@ public bool assertPrecisionEqual(T)(T actual, string expected, int precision,
 /// This operation may set the invalid-operation flag.
 /// Implements the 'compare-signal' function in the specification. (p. 27)
 /// Flags: INVALID_OPERATION
-public int compareSignal(T) (T x, T y, Context context = T.context) {
+public int compareSignal(T) (T x, T y,
+		Context context = T.context) if (isDecimal!T)
+{
 
 	// any operation with NaN is invalid.
 	// if both are NaN, return as if x > y.
@@ -813,8 +836,8 @@ unittest {
 /// Returns 0 if the numbers are equal and have the same representation.
 /// Implements the 'compare-total' function in the specification. (p. 42-43)
 /// Flags: NONE.
-public int compareTotal(T)(T x, T y)  {
-
+public int compareTotal(T)(T x, T y) if (isDecimal!T)
+{
 	if (x.isFinite && y.isFinite
 		&& x.sign == y.sign
 		&& x.exponent == y.exponent
@@ -914,7 +937,8 @@ public int compareTotal(T)(T x, T y)  {
 /// Implements the 'compare-total-magnitude' function in the specification.
 /// (p. 43)
 /// Flags: NONE.
-int compareTotalMagnitude(T)(T x, T y)  {
+int compareTotalMagnitude(T)(T x, T y) if (isDecimal!T)
+{
 	return compareTotal(x.copyAbs, y.copyAbs);
 }
 
@@ -942,7 +966,8 @@ unittest {	// compareTotal
 /// both operands are NaN or Infinity, respectively.
 /// No context flags are set.
 /// Implements the 'same-quantum' function in the specification. (p. 48)
-public bool sameQuantum(T)(T x, T y)  {
+public bool sameQuantum(T)(T x, T y) if (isDecimal!T)
+{
 	if (x.isNaN || y.isNaN) {
 		return x.isNaN && y.isNaN;
 	}
@@ -977,8 +1002,9 @@ unittest {	// sameQuantum
 /// The returned number will be rounded to the current context.
 /// Implements the 'max' function in the specification. (p. 32)
 /// Flags: INVALID_OPERATION, ROUNDED.
-public T max(T)(T x, T y, Context context = T.context)  {
-
+public T max(T)(T x, T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	// if both are NaNs or either is an sNan, return NaN.
 	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -1038,9 +1064,10 @@ unittest {	// max
 /// as the 'max' function if the signs of the operands are ignored.
 /// Implements the 'max-magnitude' function in the specification. (p. 32)
 /// Flags: NONE.
-public T maxMagnitude(T)(T x, T y, Context context = T.context) {
+public T maxMagnitude(T)(T x, T y,
+		Context context = T.context) if (isDecimal!T)
+{
 // FIXTHIS: special values...
-
 	// both positive
 	if (x >= 0 && y >= 0) {
 		return max(x, y, context);
@@ -1081,8 +1108,9 @@ unittest {	// max
 /// 4) Otherwise, they are indistinguishable; the first is returned.
 /// Implements the 'min' function in the specification. (p. 32-33)
 /// Flags: INVALID OPERATION, ROUNDED.
-public T min(T)(T x, T y, Context context = T.context)  {
-
+public T min(T)(T x, T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	// if both are NaNs or either is an sNan, return NaN.
 	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -1142,7 +1170,9 @@ unittest {
 /// as the 'max' function if the signs of the operands are ignored.
 /// Implements the 'min-magnitude' function in the specification. (p. 33)
 /// Flags: INVALID OPERATION, ROUNDED.
-public T minMagnitude(T)(T x, T y, Context context = T.context)  {
+public T minMagnitude(T)(T x, T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	return min(copyAbs!T(x), copyAbs!T(y), context);
 }
 
@@ -1178,8 +1208,8 @@ unittest {
 // TODO: (behavior, language) these don't work because we don't want to truncate the coefficient.
 // shl is okay, but shr isn't.
 public T shl(T)(const T arg, const int n,
-		const Rounding rounding = T.rounding)  {
-
+		const Rounding rounding = T.rounding) if (isDecimal!T)
+{
 	T result = T.nan;
 	if (operandIsInvalid(arg, result)) {
 		return result;
@@ -1250,7 +1280,9 @@ public bool isOdd(const ExtendedInt big) {
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T)(T x, T y, Context context = T.context)  {
+public T shift(T)(T x, T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	// check for NaN
 	if (x.isNaN) return invalidOperand(x);
 	if (y.isNaN) return invalidOperand(y);
@@ -1269,7 +1301,9 @@ public T shift(T)(T x, T y, Context context = T.context)  {
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T)(T x, int n, Context context = T.context)  {
+public T shift(T)(T x, int n,
+		Context context = T.context) if (isDecimal!T)
+{
 
 	// check for NaN
 	if (x.isNaN) return invalidOperand(x);
@@ -1335,7 +1369,9 @@ unittest {
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T)(T x, T y, Context context = T.context)  {
+public T rotate(T)(T x, T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	if (x.isNaN) return invalidOperand(x);
 	if (y.isNaN) return invalidOperand(y);
 	if (y.exponent != 0) return invalidOperand(y);
@@ -1353,7 +1389,9 @@ public T rotate(T)(T x, T y, Context context = T.context)  {
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T)(T x, int n, Context context = T.context)  {
+public T rotate(T)(T x, int n,
+		Context context = T.context) if (isDecimal!T)
+{
 
 	// check for NaN
 	if (x.isNaN) return invalidOperand(x);
@@ -1454,8 +1492,8 @@ unittest {
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
 public T add(T)(in T x, in T y,
-		Context context = T.context)  {
-
+		Context context = T.context) if (isDecimal!T)
+{
 	T nan;
 	if (operationIsInvalid(x, y, nan)) {
 		return nan;
@@ -1527,7 +1565,9 @@ public T add(T)(in T x, in T y,
 /// the 'add' function as if the long value were converted to a decimal number.
 /// The result may be rounded and context flags may be set.
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T add(T)(in T x, long n, Context context = T.context)  {
+public T add(T)(in T x, long n,
+		Context context = T.context) if (isDecimal!T)
+{
 	return add(x, T(n), context);
 }
 
@@ -1628,7 +1668,8 @@ unittest {	// add, addLOng
 /// The result may be rounded and context flags may be set.
 /// Implements the 'subtract' function in the specification. (p. 26)
 public T sub(T) (in T x, in T y,
-		Context context = T.context) {
+		Context context = T.context) if (isDecimal!T)
+{
 	return add(x, y.copyNegate, context);
 }	 // end sub(x, y)
 
@@ -1636,7 +1677,9 @@ public T sub(T) (in T x, in T y,
 /// Subtracts a long value from a decimal number.
 /// The result is identical to that of the 'subtract' function
 /// as if the long value were converted to a decimal number.
-public T sub(T,U:long) (in T x, in U n,	Context context = T.context)  {
+public T sub(T,U:long) (in T x, in U n,
+		Context context = T.context) if (isDecimal!T)
+{
 	return add(x, -n, context);
 }	 // end sub(x, n)
 
@@ -1660,8 +1703,9 @@ unittest {
 /// Multiplies the two operands.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'multiply' function in the specification. (p. 33-34)
-public T mul(T)(in T x, in T y, Context context = T.context)  {
-
+public T mul(T)(in T x, in T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	// if invalid, return NaN
 	if (x.isNaN || y.isNaN) return invalidOperands(x,y);
 
@@ -1697,8 +1741,9 @@ public T mul(T)(in T x, in T y, Context context = T.context)  {
 /// The result may be rounded and context flags may be set.
 /// Not a required function, but useful because it avoids
 /// an unnecessary conversion to a decimal when multiplying by an integer.
-public T mul(T)(in T x, long n, Context context = T.context) {
-
+public T mul(T)(in T x, long n,
+		Context context = T.context) if (isDecimal!T)
+{
 	// if invalid, return NaN
 	if (x.isNaN) return invalidOperand(x);
 
@@ -1753,8 +1798,9 @@ unittest {	// mul
 
 /// Squares the argument and returns the xx.
 /// The result may be rounded and context flags may be set.
-public T sqr(T)(T x, Context context = T.context)  {
-
+public T sqr(T)(T x,
+		Context context = T.context) if (isDecimal!T)
+{
 	// if operand is invalid, return NaN
 	if (x.isNaN) {
 		return invalidOperand(x);
@@ -1781,8 +1827,9 @@ public T sqr(T)(T x, Context context = T.context)  {
 /// The result may be rounded and context flags may be set.
 /// Implements the 'fused-multiply-add' function in the specification. (p. 30)
 public T fma(T)(in T x, in T y, in T z,
-		Context context = T.context)  {
-	T xy = mul(x, y, Context(context.precision, Rounding.NONE));
+		Context context = T.context) if (isDecimal!T)
+{
+	T xy = mul(x, y, Context(context.precision, T.maxExpo, Rounding.NONE));
 	return add(xy, z, context);
 }
 
@@ -1807,8 +1854,9 @@ unittest {	// fma
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T)(in T x, in T y, Context context = T.context)  {
-
+public T div(T)(in T x, in T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	// check for NaN and division by zero
 	T nan;
 	if (divisionIsInvalid(x, y, nan)) {
@@ -1849,8 +1897,9 @@ public T div(T)(in T x, in T y, Context context = T.context)  {
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T)(T x, long n, Context context = T.context)  {
-
+public T div(T)(T x, long n,
+		Context context = T.context) if (isDecimal!T)
+{
 	// check for NaN and division by zero
 	T nan;
 	if (divisionIsInvalid(x, T(n), nan)) {
@@ -2046,7 +2095,7 @@ public T remainder(T)(const T arg1, const T arg2,
 		return quotient;
 	}
 	quotient = divideInteger!T(arg1, arg2,);
-	T remainder = arg1 - mul!T(arg2, quotient, Context(precision, Rounding.NONE));
+	T remainder = arg1 - mul!T(arg2, quotient, Context(precision, T.maxExpo, Rounding.NONE));
 	return remainder;
 }
 
@@ -2155,21 +2204,22 @@ unittest {
 /// The returned value is rounded to the current precision.
 /// This operation may set the invalid-operation flag.
 /// Implements the 'quantize' function in the specification. (p. 36-37)
-public T quantize(T)(const T arg1, const T arg2, Context context = T.context) {
-
+public T quantize(T)(const T x, const T y,
+		Context context = T.context) if (isDecimal!T)
+{
 	T nan;
-	if (operationIsInvalid(arg1, arg2, nan)) return nan;
+	if (operationIsInvalid(x, y, nan)) return nan;
 
 	// if one operand is infinite and the other is not...
-	if (arg1.isInfinite != arg2.isInfinite()) {
+	if (x.isInfinite != y.isInfinite()) {
 		return setInvalidFlag!T;
 	}
 	// if both arguments are infinite
-	if (arg1.isInfinite() && arg2.isInfinite()) {
-		return arg1.dup;
+	if (x.isInfinite() && y.isInfinite()) {
+		return x.dup;
 	}
-	T result = arg1.dup;
-	int diff = arg1.exponent - arg2.exponent;
+	T result = x.dup;
+	int diff = x.exponent - y.exponent;
 
 	if (diff == 0) {
 		return result;
@@ -2179,17 +2229,17 @@ public T quantize(T)(const T arg1, const T arg2, Context context = T.context) {
 	if (diff > 0) {
 		result.coefficient = shiftLeft(result.coefficient, diff/*, precision*/);
 		result.digits = result.digits + diff;
-		result.exponent = arg2.exponent;
+		result.exponent = y.exponent;
 		if (result.digits > T.precision) {
 			result = T.nan;
 		}
 		return result;
 	}
 	else {
-		int precision = (-diff > arg1.digits) ? 0 : arg1.digits + diff;
+		int precision = (-diff > x.digits) ? 0 : x.digits + diff;
 		result = roundToPrecision(result, precision, context.rounding);
-		result.exponent = arg2.exponent;
-		if (result.isZero && arg1.isSigned) {
+		result.exponent = y.exponent;
+		if (result.isZero && x.isSigned) {
 			result.sign = true;
 		}
 		return result;
@@ -2483,15 +2533,16 @@ unittest {	// inverse
 //--------------------------------
 
 /// called by opBinary.
-private T opLogical(string op, T)(const T arg1, const T arg2/*,
-		const DecimalContext context = T.context*/) /*if(isDecimal!T)*/ {
+private T opLogical(string op, T)(const T x, const T y)
+		if (isDecimal!T)
+{
 	int precision = T.precision;
 	string str1;
-	if (!isLogicalOperand(arg1, str1)) {
+	if (!isLogicalOperand(x, str1)) {
 		return setInvalidFlag!T;
 	}
 	string str2;
-	if (!isLogicalOperand(arg2, str2)) {
+	if (!isLogicalOperand(y, str2)) {
 		return setInvalidFlag!T;
 	}
 	static if (op == "and") {
@@ -2508,31 +2559,31 @@ private T opLogical(string op, T)(const T arg1, const T arg2/*,
 
 /// Performs a logical 'and' of the arguments and returns the result
 /// Implements the 'and' function in the specification. (p. 41)
-public T and(T)(const T arg1, const T arg2/*,
+public T and(T)(const T x, const T y/*,
 		const DecimalContext context = T.context*/)  {
-	return opLogical!("and", T)(arg1, arg2/*, context*/);
+	return opLogical!("and", T)(x, y/*, context*/);
 }
 
 /// Performs a logical 'and' of the (string) arguments and returns the result
-T and(T: string)(const T arg1, const T arg2) {
+T and(T: string)(const T x, const T y) {
 	string str1, str2;
 	int length, diff;
-	if (arg1.length > arg2.length) {
-		length = arg2.length;
-		diff = arg1.length - arg2.length;
-		str2 = arg1;
-		str1 = rightJustify(arg2, arg1.length, '0');
+	if (x.length > y.length) {
+		length = y.length;
+		diff = x.length - y.length;
+		str2 = x;
+		str1 = rightJustify(y, x.length, '0');
 	}
-	else if (arg1.length < arg2.length) {
-		length = arg1.length;
-		diff = arg2.length - arg1.length;
-		str1 = rightJustify(arg1, arg2.length, '0');
-		str2 = arg2;
+	else if (x.length < y.length) {
+		length = x.length;
+		diff = y.length - x.length;
+		str1 = rightJustify(x, y.length, '0');
+		str2 = y;
 	} else {
-		length = arg1.length;
+		length = x.length;
 		diff = 0;
-		str1 = arg1;
-		str2 = arg2;
+		str1 = x;
+		str2 = y;
 	}
 	char[] result = new char[length];
 	for(int i = 0; i < length; i++) {
@@ -2547,28 +2598,28 @@ T and(T: string)(const T arg1, const T arg2) {
 
 /// Performs a logical 'or' of the arguments and returns the result
 /// Implements the 'or' function in the specification. (p. 47)
-public T or(T)(const T arg1, const T arg2/*,
+public T or(T)(const T x, const T y/*,
 		const DecimalContext context = T.context*/)  {
-	return opLogical!("or", T)(arg1, arg2/*, context*/);
+	return opLogical!("or", T)(x, y/*, context*/);
 }
 
 /// Performs a logical 'or' of the (string) arguments and returns the result
-T or(T: string)(const T arg1, const T arg2) {
+T or(T: string)(const T x, const T y) {
 	string str1, str2;
 	int length;
-	if (arg1.length > arg2.length) {
-		length = arg1.length;
-		str1 = arg1;
-		str2 = rightJustify(arg2, arg1.length, '0');
+	if (x.length > y.length) {
+		length = x.length;
+		str1 = x;
+		str2 = rightJustify(y, x.length, '0');
 	}
-	if (arg1.length < arg2.length) {
-		length = arg2.length;
-		str1 = rightJustify(arg1, arg2.length, '0');
-		str2 = arg2;
+	if (x.length < y.length) {
+		length = y.length;
+		str1 = rightJustify(x, y.length, '0');
+		str2 = y;
 	} else {
-		length = arg1.length;
-		str1 = arg1;
-		str2 = arg2;
+		length = x.length;
+		str1 = x;
+		str2 = y;
 	}
 	char[] result = new char[length];
 	for(int i = 0; i < length; i++) {
@@ -2583,29 +2634,29 @@ T or(T: string)(const T arg1, const T arg2) {
 
 /// Performs a logical 'xor' of the arguments and returns the result
 /// Implements the 'xor' function in the specification. (p. 49)
-public T xor(T)(const T arg1, const T arg2/*,
+public T xor(T)(const T x, const T y/*,
 		const DecimalContext context = T.context*/)  {
-	return opLogical!("xor", T)(arg1, arg2/*, context*/);
+	return opLogical!("xor", T)(x, y/*, context*/);
 }
 
 /// Performs a logical 'xor' of the (string) arguments
 /// and returns the result.
-T xor(T: string)(const T arg1, const T arg2) {
+T xor(T: string)(const T x, const T y) {
 	string str1, str2;
 	int length;
-	if (arg1.length > arg2.length) {
-		length = arg1.length;
-		str1 = arg1;
-		str2 = rightJustify(arg2, arg1.length, '0');
+	if (x.length > y.length) {
+		length = x.length;
+		str1 = x;
+		str2 = rightJustify(y, x.length, '0');
 	}
-	if (arg1.length < arg2.length) {
-		length = arg2.length;
-		str1 = rightJustify(arg1, arg2.length, '0');
-		str2 = arg2;
+	if (x.length < y.length) {
+		length = y.length;
+		str1 = rightJustify(x, y.length, '0');
+		str2 = y;
 	} else {
-		length = arg1.length;
-		str1 = arg1;
-		str2 = arg2;
+		length = x.length;
+		str1 = x;
+		str2 = y;
 	}
 	char[] result = new char[length];
 	for(int i = 0; i < length; i++) {
