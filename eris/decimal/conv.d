@@ -20,6 +20,7 @@ import std.string;
 import std.format;
 
 import eris.decimal;
+import eris.decimal.arithmetic: copyAbs;
 import eris.decimal.context;
 import eris.decimal.rounding;
 import eris.integer.extended;
@@ -40,7 +41,7 @@ version(unittest) {
 //--------------------------------
 
 /// to!string(xint).
-T to(T:string)(const xint num) {
+private T to(T:string)(const xint num) {
 	string outbuff = "";
 	void sink(const(char)[] s) {
 		outbuff ~= s;
@@ -50,47 +51,90 @@ T to(T:string)(const xint num) {
 }
 
 /// to!string(int).
-T to(T:string)(const long n) {
+private T to(T:string)(const long n) {
 	return format("%d", n);
 }
 
-//alias sinker = scope void delegate(const(char)[]);
-
 /// Returns a string representing the value of the number, formatted as
 /// specified by the formatString.
-public string toString(T)(in T num, string formatString = "")
+public string toString(T)(in T num, string fmStr = "%S")
 		/+if (isDecimal!T)+/ {
 
-    auto f = singleSpec!char(formatString.dup);
+    auto fm = singleSpec!char(fmStr.dup);
 	string str = "";
 	if (num.isSigned)   str = "-";
-	else if (f.flPlus)  str = "+";
-	else if (f.flSpace) str = " ";
-
-    str ~= formatDecimal!T(num, f.spec, f.precision);
+	else if (fm.flPlus)  str = "+";
+	else if (fm.flSpace) str = " ";
+	auto precision = (fm.precision == fm.UNSPECIFIED) ? 6 : fm.precision;
+	str ~= formatDecimal!T(num, fm.spec, precision);
 	// add trailing zeros
-	if (f.flHash && str.indexOf('.' < 0)) {
+	if (fm.flHash && str.indexOf('.' < 0)) {
 		str ~= ".0";
 	}
+	// if precision is specified, zero flag is ignored
+	auto flZero = (fm.precision == fm.UNSPECIFIED) ? fm.flZero : false;
 	// adjust width
-	str = setWidth(str, f.width, f.flZero, f.flDash);
+	str = setWidth(str, fm.width, fm.flDash, flZero);
 	return str;
 }
 
-// TODO: (testing) more unit tests
-unittest {
+unittest  // toString
+{
 	write("-- toString.........");
-	string expect, actual;
-	dec9 num = 2;
-	actual = toString(num, "%9.6e"); //3.3g41");
-	expect = "    2e+00";
-	assertEqual(actual, expect);
-	actual = toString!dec9(num, "%-9.6e"); //3.3g41");
-	expect = "00002e+00";
-	assertEqual(actual, expect);
-	actual = toString!dec9(num, "%9.6e"); //3.3g41");
-	expect = "    2e+00";
-	assertEqual(actual, expect);
+
+	static struct S { string num; string fmt; string val; }
+
+	static S[] tests =
+	[
+		// default format is scientific form
+		{ "123",		"%s",	"123" },
+		{ "-123",		"%S",	"-123" },
+		{ "12.3E1",		"%S",	"123" },
+		{ "123E1",		"%S",	"1.23E+3" },
+		{ "123E3",		"%S",	"1.23E+5" },
+		{ "123E-1",		"%S",	"12.3" },
+		{ "50E-7",		"%S",	"0.0000050" },
+		{ "5E-7",		"%S",	"5E-7" },
+		{ "12.3456789",	"%S",	"12.3456789" },
+		{ "12.34567",	"%s",	"12.34567" },
+		{ "12.345",		"%S",	"12.345"   },
+		// exponential form
+		{ "12.3456789",	"%E",	"1.234568E+01" },
+		{ "12.34567",	"%E",	"1.234567E+01" },
+		{ "12.345",		"%E",	"1.2345E+01"   },
+		// decimal form
+		{ "12.3456789",	"%F",	"12.345679" },
+		{ "12.34567",	"%F",	"12.345670" },
+		{ "12.345",		"%F",	"12.345000" },
+		// decimal or exponential. note change in meaning of precision
+		{ "12.3456789",	"%G",	"1.234568E+01" },
+		{ "12.34567",	"%G",	"1.234567E+01" },
+		{ "12.345",		"%G",	"12.345000"    },
+		// width
+		{ "12.34567",	"%12.4G",	"  1.2346E+01" },
+		{ "12.345",		"%12G",	"   12.345000" },
+		// flags
+		{ "12.34567",	"% G",		" 1.234567E+01"},
+		{ "12.345",		"%+G",		"+12.345000"   },
+		{ "12.345",		"%-12G",	"12.345000   " },
+		{ "12.34567",	"%-12.4G",	"1.2346E+01  " },
+		{ "12.345",		"%012G",	"00012.345000" },
+		// zero flag ignored if precision is specified
+		{ "12.345",		 "%012.4G",	"     12.3450" },
+		// zero flag ignored if infinity or nan
+		{ "Inf",		 "%012.4G",	"    INFINITY" },
+		{ "NaN",		 "%012.4g",	"         nan" },
+		// if hash, print trailing zeros.
+		{ "1234567.89",	 "%.0G",	"1234568" },
+		{ "1234567.89",	 "%.0F",	"1234568" },
+		{ "1234567",	 "%.0F",	"1234567" },
+		{ "123",		 "%#.0F",	"123.0" },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, toString(dec9(s.num), s.fmt), s.val);
+	}
 	writeln("passed");
 }
 
@@ -111,25 +155,25 @@ public string sciForm(T)(in T num) {
 	bool signed = num.isSigned;
 
 	int adjx = expo + mant.length - 1;
-	// if the exponent is small use dec9 notation
+	// if the exponent is small use decimal notation
 	if (expo <= 0 && adjx >= -6) {
-		// if the exponent is not zero, insert a dec9 point
+		// if the exponent is not zero, insert a decimal point
 		if (expo != 0) {
 			int point = std.math.abs(expo);
 			// if the coefficient is too small, pad with zeroes
 			if (point > mant.length) {
 				mant = rightJustify(mant, point, '0');
 			}
-			// if no chars precede the dec9 point, prefix a zero
+			// if no chars precede the decimal point, prefix a zero
 			if (point == mant.length) {
 				mant = "0." ~ mant;
 			}
-			// otherwise insert the dec9 point into the string
+			// otherwise insert the decimal point into the string
 			else {
 				insertInPlace(mant, mant.length - point, ".");
 			}
 		}
-		return signed ? ("-" ~ mant).idup : mant.idup;
+		return signed ? ("-" ~ mant).dup : mant.dup;
 	}
 	// if the exponent is large enough use exponential notation
 	if (mant.length > 1) {
@@ -139,11 +183,12 @@ public string sciForm(T)(in T num) {
 	if (adjx >= 0) {
 		xstr = "+" ~ xstr;
 	}
-	string str = (mant ~ "E" ~ xstr).idup;
+	string str = (mant ~ "E" ~ xstr).dup;
 	return signed ? "-" ~ str : str;
 };  // end sciForm
 
-unittest {	// sciForm
+unittest // sciForm
+{
 	write("-- sciForm..........");
 
 	static struct S { string num; string val; }
@@ -236,7 +281,8 @@ public string engForm(T)(in T num) /+if (isDecimal!T)+/ {
 	return signed ? "-" ~ str : str;
 }  // end engForm()
 
-unittest {
+unittest // engForm
+{
 	write("-- engForm..........");
 
 	static string[] tests =
@@ -277,7 +323,8 @@ private string specialForm(T)(in T num,
 	return str;
 }
 
-unittest {
+unittest  // specialForm
+{
 	write("-- specialForm......");
 
 	static string[] tests =
@@ -291,6 +338,7 @@ unittest {
 	{
 		assertEqualIndexed(i, dec9(str).specialForm, str);
 	}
+
 	tests =
 	[
 		"Inf",
@@ -305,7 +353,6 @@ unittest {
 }
 
 /// Converts a decimal number to a string in decimal format (xxx.xxx).
-/// NOTE: The sign of the number is not included in the string.
 private string decimalForm(T)(in T number, int precision = 6) {
 
 	if (number.isSpecial) {
@@ -355,13 +402,15 @@ private string decimalForm(T)(in T number, int precision = 6) {
 	return sign ? ("-" ~ str).idup : str.idup;
 }
 
-unittest {
+unittest // decimalForm
+{
 	write("-- decimalForm......");
 
 	static struct S { string num; int precision; string val; }
 
 	static S[] tests =
 	[
+		{ "12.345",	6,	"12.345000" },
 		{ "125",	3,	"125.000" },
 		{ "-125",	3,	"-125.000" },
 		{ "125E5",	0,	"12500000" },
@@ -408,7 +457,8 @@ private string exponentForm(T)(in T number, int precision = 6,
 	return sign ? "-" ~ str : str;
 }  // end exponentForm
 
-unittest {
+unittest	// exponentForm
+{
 	write("-- exponentForm.....");
 
 	static struct S { string num; int precision; string val; }
@@ -458,6 +508,9 @@ private string formatDecimal(T)(in T num,
 			break;
 		case 'E':
 			break;
+		case 'S':
+			return sciForm(num.copyAbs);
+			break;
 		default:
 			break;
 	}
@@ -472,7 +525,6 @@ private string setWidth(string str, int width,
 		bool justifyLeft = false, bool padZero = false) {
 
 	if (str.length >= std.math.abs(width)) return str;
-
 	char fillChar = padZero ? '0' : ' ';
 	if (width < 0) {
 		justifyLeft = true;
@@ -485,24 +537,18 @@ private string setWidth(string str, int width,
 	return rightJustify!string(str, width, fillChar);
 }
 
-unittest { // setWidth
+unittest // setWidth
+{
 	write("-- setWidth.........");
-	string str, expect, actual;
-	str = "10E+05";
-	expect = "  10E+05";
-	actual = setWidth(str, 8);
-	assertEqual(actual, expect);
-	expect = "10E+05  ";
-	actual = setWidth(str, 8, true);
-	assertEqual(actual, expect);
-	expect = "10E+05  ";
-	actual = setWidth(str, -8);
-	assertEqual(actual, expect);
-	expect = "0010E+05";
-	actual = setWidth(str, 8, false, true);
-	assertEqual(actual, expect);
+	auto str = "10E+05";
+	assertEqual(setWidth(str,  8),			"  10E+05");
+	assertEqual(setWidth(str, -8), 			"10E+05  ");
+	assertEqual(setWidth(str,  8, true), 	"10E+05  ");
+	assertEqual(setWidth(str,  8, false, true), "0010E+05");
 	writeln("passed");
 }
+
+//alias sinker = void delegate(const(char)[]);
 
 //private void sink(const(char)[] str) {
 //    auto app = std.array.appender!(string)();
@@ -560,7 +606,8 @@ public string toAbstract(T)(in T num) /*if (eris.decimal.isDecimal!T)*/ {
 	return "[0,qNAN]";
 }
 
-unittest {	// toAbstract
+unittest // toAbstract
+{
 	write("-- toAbstract.......");
 	static struct S { string num; string abs; }
 
@@ -604,7 +651,8 @@ public string toExact(T)(in T num) {
 	return "+NaN";
 }
 
-unittest {
+unittest // toExact
+{
 	write("-- toExact..........");
 
 	static string[] tests =
@@ -625,8 +673,8 @@ unittest {
 	writeln("passed");
 }
 
-/// Converts a string into a Decimal. This departs from the specification
-/// in that the coefficient string may contain underscores.
+/// Converts a string into a decimal number. This departs from the
+/// specification in that the coefficient string may contain underscores.
 /// A leading or trailing "." is allowed by the specification even though
 /// it is not valid as a D language real number.
 public T toNumber(T)(string inStr) {
@@ -771,7 +819,8 @@ public T toNumber(T)(string inStr) {
 	return num;
 }
 
-unittest {	// toNumber
+unittest // toNumber
+{
 	write("-- toNumber.........");
 	static struct S { string num; string val; }
 
@@ -795,12 +844,13 @@ unittest {	// toNumber
 	writeln("passed");
 }
 
-private T setPayload(T)(T num, char[] str, int len) {
+private T setPayload(T)(T num, char[] str, int len)
+{
+	// if finite number or infinity, return
+	if (!num.isNaN) return num;
 	// if no payload, return
-	if (str.length == len) {
-			return num;
-	}
-	// get payload
+	if (str.length == len) return num;
+	// otherwise, get payload string
 	str = str[len..$];
 	// trim leading zeros
 	while(str[0] == '0' && str.length > 1) {
@@ -824,9 +874,25 @@ private T setPayload(T)(T num, char[] str, int len) {
 	return num;
 }
 
-unittest {
-	write("setPayload...");
-	writeln("test missing");
+unittest // setPayload
+{
+	write("-- setPayload.......");
+	static struct S { string num; string val; }
+
+	static S[] tests =
+	[
+		{ "NaN167",		"NaN167" },
+		// invalid payload is ignored
+		{ "SNAN135ee",		"sNaN" },
+		// leading zeros in payload are excised
+		{ "-snan0170",		"-sNaN170" },
+	];
+
+	foreach (i, s; tests)
+	{
+		assertStringEqualIndexed(i, dec9(s.num), s.val);
+	}
+	writeln("passed");
 }
 
 
