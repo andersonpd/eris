@@ -16,7 +16,7 @@ module eris.decimal.rounding;
 
 import eris.decimal;
 import eris.decimal.context;
-import eris.decimal.arithmetic: copyNegate;
+//import eris.decimal.arithmetic: copyNegate;
 import eris.integer.extended;
 
 

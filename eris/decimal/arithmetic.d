@@ -88,6 +88,7 @@ alias xcompare = eris.integer.extended.xint.compare;
 		writeln("passed");
 	}
 
+/+
 //--------------------------------
 // copy functions
 //--------------------------------
@@ -159,6 +160,7 @@ unittest {	// copy
 	assertZero(compareTotal(copySign(arg1, arg2),expect));
 	writeln("passed");
 }
++/
 
 /// Returns the truncated base 10 logarithm of the argument.
 /// "...The integer which is the exponent of the magnitude
@@ -478,8 +480,8 @@ public T nextMinus(T)(in T x, Context context = T.context) {
 	}
 	T y = T(1L, adjustedExpo);
 	y = sub!T(x, y, context);	// TODO: (behavior) are the flags set/not set correctly?
-		if (y < copyNegate(T.max)) {
-		y = copyNegate(T.infinity);
+		if (y < T.max.copyNegate) {
+		y = T.infinity.copyNegate;
 	}
 	return y;
 }
@@ -497,7 +499,7 @@ public T nextToward(T)(in T x, in T y, Context context = T.context) {
 	int comp = compare(x, y, context);
 	if (comp < 0) return nextPlus(x, context);
 	if (comp > 0) return nextMinus(x, context);
-	return roundToPrecision(copySign(x,y), context);
+	return roundToPrecision(x.copySign(y), context);
 }
 
 unittest {
@@ -1627,7 +1629,7 @@ unittest {	// add, addLOng
 /// Implements the 'subtract' function in the specification. (p. 26)
 public T sub(T) (in T x, in T y,
 		Context context = T.context) {
-	return add(x, copyNegate(y), context);
+	return add(x, y.copyNegate, context);
 }	 // end sub(x, y)
 
 

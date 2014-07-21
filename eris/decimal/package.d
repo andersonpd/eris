@@ -346,7 +346,7 @@ unittest {
 
 	// copy constructor
 	//@safe
-	this(const decimal that) {
+	public this(const decimal that) {
 		this.signed = that.signed;
 		this.sval	= that.sval;
 		this.digits = that.digits;
@@ -354,9 +354,13 @@ unittest {
 		this.mant	= that.mant.dup;
 	};
 
+//--------------------------------
+// copy functions
+//--------------------------------
+
 	/// dup property
 	//@safe
-	const decimal dup() {
+	public decimal dup() const {
 		return decimal(this);
 	}
 
@@ -372,6 +376,74 @@ unittest {
 		assertEqual(num, copy);
 		writeln("passed");
 	}}
+
+	/// Returns a copy of the operand.
+	/// The copy is unaffected by context and is quiet -- no flags are changed.
+	/// Implements the 'copy' function in the specification. (p. 43)
+	//@safe
+	public decimal copy() const {
+		return dup;
+	}
+
+	/// Returns a copy of the operand with a positive sign.
+	/// The copy is unaffected by context and is quiet -- no flags are changed.
+	/// Implements the 'copy-abs' function in the specification. (p. 44)
+	//@safe
+	public decimal copyAbs() const  {
+		decimal copy = dup;
+		copy.sign = false;
+		return copy;
+	}
+
+	/// Returns a copy of the operand with the sign inverted.
+	/// The copy is unaffected by context and is quiet -- no flags are changed.
+	/// Implements the 'copy-negate' function in the specification. (p. 44)
+	//@safe
+	public decimal copyNegate() const {
+		decimal copy = dup;
+		copy.sign = !sign;
+		return copy;
+	}
+
+	/// Returns a copy of the first operand with the sign of the second operand.
+	/// The copy is unaffected by context and is quiet -- no flags are changed.
+	/// Implements the 'copy-sign' function in the specification. (p. 44)
+	//@safe
+	public decimal copySign()(in decimal x) const {
+		decimal copy = dup;
+		copy.sign = x.sign;
+		return copy;
+	}
+
+	unittest {	// copy
+		write("-- copy.............");
+		dec9 arg, expect;
+		arg = dec9("2.1");
+		expect = dec9("2.1");
+		assertZero(compareTotal(arg.copy,expect));
+		arg = dec9("-1.00");
+		expect = dec9("-1.00");
+		assertZero(compareTotal(arg.copy,expect));
+		// copyAbs
+		arg = 2.1;
+		expect = 2.1;
+		assertZero(compareTotal(arg.copyAbs,expect));
+		arg = dec9("-1.00");
+		expect = dec9("1.00");
+		assertZero(compareTotal(arg.copyAbs,expect));
+		// copyNegate
+		arg	= dec9("101.5");
+		expect = dec9("-101.5");
+		assertZero(compareTotal(arg.copyNegate,expect));
+		// copySign
+		dec9 arg1, arg2;
+		arg1 = 1.50; arg2 = 7.33; expect = 1.50;
+		assertZero(compareTotal(arg1.copySign(arg2),expect));
+		arg2 = -7.33;
+		expect = -1.50;
+		assertZero(compareTotal(arg1.copySign(arg2),expect));
+		writeln("passed");
+	}
 
 //--------------------------------
 // casts

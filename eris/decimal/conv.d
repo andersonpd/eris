@@ -20,7 +20,7 @@ import std.string;
 import std.format;
 
 import eris.decimal;
-import eris.decimal.arithmetic: copyAbs;
+//import eris.decimal.arithmetic: copyAbs;
 import eris.decimal.context;
 import eris.decimal.rounding;
 import eris.integer.extended;
