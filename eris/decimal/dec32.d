@@ -37,15 +37,17 @@ version(unittest) {
 	import eris.assertion;
 }
 
+public enum Context CONTEXT_32 = Context(7, 90, Rounding.HALF_UP);
+
 // BigDecimal with the same context as Dec32
-private alias Big32 = BigDecimal!(7, 90, Rounding.HALF_UP);
+private alias Big32 = BigDecimal!(CONTEXT_32);
 
 struct Dec32 {
 
 public enum IS_DECIMAL;
 
 // TODO: (language) replace this values with constants
-public enum Context context = Context(7, 90, Rounding.HALF_UP);
+public enum Context context = CONTEXT_32;
 
     /// Returns an equivalent BigDecimal number
     @property

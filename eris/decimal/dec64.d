@@ -37,8 +37,9 @@ version(unittest) {
 	import eris.assertion;
 }
 
-// BigDecimal with the same context as Dec32
-private alias Big64 = BigDecimal!(16, 369, Rounding.HALF_UP);
+public enum Context context64 = Context(16, 369, Rounding.HALF_UP);
+// BigDecimal with the same context as Dec64
+private alias Big64 = BigDecimal!(context64);
 
 struct Dec64 {
 

@@ -97,7 +97,9 @@ public int toInt(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
 /// the maximum (minimum) long value the maximum (minimum) value is returned.
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
-public long toLong(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
+public long toLong(T)(T x,
+		Rounding mode = Rounding.HALF_EVEN) if (isDecimal!T)
+{
 	if (x.isNaN) return 0;	// TODO: (behavior) should throw.
 	if (x.isInfinite) return x.isNegative ? long.min : long.max;
 	return toBigInt(x, mode).toLong;
@@ -243,7 +245,8 @@ private Context guard(Context context, int guardDigits = 2) {
 
 /// Calculates the value of pi to the specified precision.
 mixin (Constant!("pi"));
-package T pi(T)(Context inContext) {
+package T pi(T)(Context inContext) if (isDecimal!T)
+{
 	// TODO: (behavior) if only 2 guard digits are used, function doesn't return
 	auto context = guard(inContext, 3);
 	// AGM algorithm
@@ -275,7 +278,8 @@ unittest {
 }
 
 mixin (Constant!("pi_2"));
-package T pi_2(T)(Context inContext) {
+package T pi_2(T)(Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	T halfPi = mul(pi!T(context), T.half, context);
 	return roundToPrecision(halfPi, inContext);
@@ -291,7 +295,8 @@ unittest {
 mixin (Constant!("invPi"));
 // TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
 /// Calculates the value of 1/pi in the specified context.
-package T invPi(T)(Context inContext) {
+package T invPi(T)(Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.one, pi!T(context), context);
 	return roundToPrecision(alpha, inContext);
@@ -307,7 +312,8 @@ unittest {
 
 mixin (Constant!("e"));
 /// Returns the value of e in the specified context.
-package T e(T)(Context inContext) {
+package T e(T)(Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	// initialize Taylor series.
 	long n = 2;
@@ -330,22 +336,26 @@ unittest {
 }
 
 mixin (Constant!("ln10"));
-package enum T ln10(T)(Context context) {
+package enum T ln10(T)(Context context) if (isDecimal!T)
+{
 	return log(T.TEN, context, false);
 }
 
 mixin (Constant!("ln2"));
-package enum T ln2(T)(Context context) {
+package enum T ln2(T)(Context context) if (isDecimal!T)
+{
 	return log(T.TWO, context, false);
 }
 
 mixin (Constant!("log2_e"));
-package enum T log2_e(T)(Context context) {
+package enum T log2_e(T)(Context context) if (isDecimal!T)
+{
 	return div(T.one, log(T.TWO, context, false), context);
 }
 
 mixin (Constant!("log2_10"));
-package enum T log2_10(T)(Context inContext) {
+package enum T log2_10(T)(Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	T log2T = div(log(T.TEN, context, false), log(T.TWO, context, false), context);
 	return roundToPrecision(log2T, inContext);
@@ -364,22 +374,26 @@ package enum T log2_10(T)(Context context) {
 }*/
 
 mixin (Constant!("sqrt2"));
-package enum T sqrt2(T)(Context context) {
+package enum T sqrt2(T)(Context context) if (isDecimal!T)
+{
 	return sqrt(T.TWO, context);
 }
 
 mixin (Constant!("sqrt1_2"));
-package enum T sqrt1_2(T)(Context context) {
+package enum T sqrt1_2(T)(Context context) if (isDecimal!T)
+{
 	return sqrt(T.HALF, context);
 }
 
 mixin (Constant!("phi"));
-package enum T phi(T)(Context context) {
+package enum T phi(T)(Context context) if (isDecimal!T)
+{
 	return mul(add(T(1) , sqrt(T(5), context), context), T.half, context);
 }
 
 mixin (Constant!("invSqrtPi"));
-package enum T invSqrtPi(T)(Context inContext) {
+package enum T invSqrtPi(T)(Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.one, sqrt(pi!T(context), context), context);
 	return roundToPrecision(alpha, inContext);
@@ -424,8 +438,8 @@ mixin (UnaryFunction!("reciprocal"));
 mixin (UnaryFunction!("invSqrt"));
 mixin (UnaryFunction!("sqrt"));
 
-package T reciprocal(T)(T x, Context inContext) {
-
+package T reciprocal(T)(T x, Context inContext) if (isDecimal!T)
+{
 	// special values
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
@@ -474,7 +488,8 @@ unittest {	// reciprocal
 	writeln("passed");
 }
 
-public T invSqrt(T)(T x, Context inContext) {
+public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
+{
 	// special values
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
@@ -527,7 +542,8 @@ unittest {
 
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
-public T sqrt(T)(T x, Context context) {
+public T sqrt(T)(T x, Context context) if (isDecimal!T)
+{
 	// special values
 	if (x.isNegative) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -580,7 +596,7 @@ unittest {
 mixin (UnaryFunction!("exp"));
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-package T exp(T)(T x, Context inContext)
+package T exp(T)(T x, Context inContext) if (isDecimal!T)
 {
 	if (x.isInfinite) {
 		return x.isNegative ? T.zero : x;
@@ -639,7 +655,8 @@ mixin (UnaryFunction!("expm1"));
 /// expm1(x) will be more accurate than exp(x) - 1 for x << 1.
 /// Decimal version of std.math function.
 /// Reference: Beebe, Nelson H. F., "Computation of expm1(x) = exp(x) - 1".
-public T expm1(T)(T x, Context inContext) {
+public T expm1(T)(T x, Context inContext) if (isDecimal!T)
+{
 	// special values
 	if (x.isZero) return x;
 	if (x.isInfinite) return x.isNegative ? -T.one : T.infinity;
@@ -697,7 +714,9 @@ mixin (UnaryFunction!("log2"));
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 // TODO: efficiency) see Natural Logarithm, Wikipedia.
-package T log(T)(T x, Context inContext, bool reduceArg = true) {
+package T log(T)(T x, Context inContext,
+		bool reduceArg = true) if (isDecimal!T)
+{
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return -T.infinity;
@@ -748,7 +767,8 @@ unittest {
  * Decimal version of std.math function.
  */
 // TODO: (behavior) use bounds like expm1?
-public T log1p(T)(T x, Context inContext) {
+public T log1p(T)(T x, Context inContext) if (isDecimal!T)
+{
 	T term = x;
 	T pwr  = x;
 	T sum  = T.zero;
@@ -774,7 +794,8 @@ unittest {
 
 /// Decimal version of std.math.log10.
 /// Required by General Decimal Arithmetic Specification
-public T log10(T)(T x, Context inContext) {
+public T log10(T)(T x, Context inContext) if (isDecimal!T)
+{
 	if (x.isZero) {
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return T.infinity;
@@ -805,7 +826,8 @@ unittest {
  * Decimal version of std.math.log2.
  * Required by General Decimal Arithmetic Specification
  */
-public T log2(T)(T x, Context inContext) {
+public T log2(T)(T x, Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	T lg2 = div(log(x, context), ln2!T(context), context);
 	return roundToPrecision(lg2, inContext);
@@ -822,8 +844,9 @@ unittest {
  * Decimal version of std.math.pow.
  * Required by General Decimal Arithmetic Specification
  */
-public T pow(T)(T x, T y) {
-	return power(x,y);
+public T pow(T)(T x, T y) if (isDecimal!T)
+{
+	return power!T(x,y);
 }
 
 unittest {
@@ -836,7 +859,9 @@ unittest {
  * power.
  * Required by General Decimal Arithmetic Specification
  */
-public T power(T)(T x, T y) {
+ // TODO: (behavior) add context
+public T power(T)(T x, T y) if (isDecimal!T)
+{
 	return exp(x*log(y));
 }
 
@@ -849,7 +874,7 @@ mixin (BinaryFunction!("hypot"));
 
 /// Returns the square root of the sum of the squares in the specified context.
 /// Decimal version of std.math function.
-public T hypot(T)(T x, T y, Context context)
+public T hypot(T)(T x, T y, Context context) if (isDecimal!T)
 {
 	// special values
 	if (x.isInfinite || y.isInfinite) return T.infinity();
@@ -895,7 +920,9 @@ unittest {
 //o 0 <= pi/4 and sets the quadrant.
 // TODO: for very large angles (> 10^^4) adjust internal precision to ensure
 // remainder is accurate.
-package T reduceAngle(T)(T x, out int quadrant, Context inContext) {
+package T reduceAngle(T)(T x, out int quadrant,
+		Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	T c = mul(invPi!T(context), 2, context);
 	x = mul(x, c, context);
@@ -907,7 +934,8 @@ package T reduceAngle(T)(T x, out int quadrant, Context inContext) {
 }
 
 /// Decimal version of std.math function.
-public T sin(T)(T x, int precision = T.precision) {
+public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
+{
 	if (x.isNaN) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
@@ -927,7 +955,8 @@ public T sin(T)(T x, int precision = T.precision) {
 
 // Decimal version of std.math function.
 // Precondition: x is in 1st quadrant.
-package T sin(T)(T x, Context inContext) {
+package T sin(T)(T x, Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	T sum = 0;
 	int n = 1;
@@ -956,7 +985,8 @@ unittest {
 }
 
 /// Decimal version of std.math function.
-public T cos(T)(T x, int precision = T.precision) {
+public T cos(T)(T x, int precision = T.precision) if (isDecimal!T)
+{
 	if (x.isNaN) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
@@ -1032,7 +1062,9 @@ public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision
  *
  */
 // TODO: (behavior) context, angle reduction
-public void sincos(T)(T x, out T sine, out T cosine, Context inContext) {
+public void sincos(T)(T x, out T sine, out T cosine,
+		Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	T csum, cterm, cx;
 	T ssum, sterm, sx;
@@ -1068,7 +1100,8 @@ unittest {
  *
  */
 // TODO: (efficiency) compare tan1 with tan.
-public T tan1(T)(T x) {
+public T tan1(T)(T x) if (isDecimal!T)
+{
 	T sine;
 	T cosine;
 	sincos(x, sine, cosine);
@@ -1106,7 +1139,8 @@ unittest {
 }
 
 /// Calculates the value of pi in the specified context.
-package T arctan(T)(T x, Context inContext = T.context) {
+package T arctan(T)(T x, Context inContext = T.context) if (isDecimal!T)
+{
 	auto context = guard(inContext, 3);
 	int k = 1;
 	sqrt1_2!T(context);
@@ -1136,7 +1170,8 @@ package T arctan(T)(T x, Context inContext = T.context) {
 
 /// Decimal version of std.math function.
 // TODO: (behavior) convert to std unary function.
-public T asin(T)(T x) {
+public T asin(T)(T x) if (isDecimal!T)
+{
 	T result = 2 * atan!T(x/(1+sqrt(1-sqr(x)))); //^^2)));
 	return result;
 }
@@ -1151,7 +1186,8 @@ unittest {
 
 /// Decimal version of std.math function.
 // TODO: (behavior) convert to std unary function.
-public T acos(T)(T x) {
+public T acos(T)(T x) if (isDecimal!T)
+{
 	T result = 2 * atan(sqrt(1-sqr(x))/(1 + x));
 	return result;
 }
@@ -1168,7 +1204,8 @@ mixin (UnaryFunction!("atan"));
 
 /// Returns the arctangent of the argument in the specified context.
 /// Algorithm uses Taylor's theorem for arctangent.
-public T atan(T)(T x, Context inContext) {
+public T atan(T)(T x, Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext, 3);
 	long k = 1;
 	// reduce the input angle
@@ -1209,7 +1246,8 @@ unittest {
  * Decimal version of std.math function.
  *
  */
-public dec9 atan2(T)(T y, dec9 x) {
+public dec9 atan2(T)(T y, dec9 x) if (isDecimal!T)
+{
 	dec9 result;
 	return result;
 }
@@ -1229,7 +1267,8 @@ mixin (UnaryFunction!("tanh"));
 //mixin (UnaryFunction!("atanh"));
 
 /// Decimal version of std.math function.
-public T sinh(T)(T x, Context inContext) {
+public T sinh(T)(T x, Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	long n = 1;
 	T sum = 0;
@@ -1250,9 +1289,10 @@ public T sinh(T)(T x, Context inContext) {
 
 /// Decimal version of std.math function.
 // TODO: why does this perform so poorly?
-public T sinh1(T)(T x) {
+public T sinh1(T)(T x) if (isDecimal!T)
+{
 	return (exp(x) - exp(-x))*T.half;
-	}
+}
 
 
 unittest {
@@ -1266,7 +1306,8 @@ unittest {
  * Decimal version of std.math function.
  *
  */
-public T cosh(T)(T x, Context inContext) {
+public T cosh(T)(T x, Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	long n = 0;
 	T sum = 0;
@@ -1294,7 +1335,8 @@ unittest {
  * Decimal version of std.math function.
  *
  */
-public T tanh(T)(T x, Context inContext) {
+public T tanh(T)(T x, Context inContext) if (isDecimal!T)
+{
 	auto context = guard(inContext);
 	T tan = div(sinh(x, context), cosh(x, context), context);
 	return roundToPrecision(tan, inContext);
@@ -1311,7 +1353,8 @@ mixin (UnaryFunction!("acosh"));
 mixin (UnaryFunction!("atanh"));
 
 /// Decimal version of std.math function.
-public T asinh(T)(T x, Context inContext) {
+public T asinh(T)(T x, Context inContext) if (isDecimal!T)
+{
 	// TODO: (behavior) special values
 	auto context = guard(inContext);
 	T arg = add(x, sqrt(add(sqr(x, context), T.one, context), context), context);
@@ -1328,7 +1371,8 @@ unittest {
  * Decimal version of std.math function.
  *
  */
-public T acosh(T)(T x, Context inContext) {
+public T acosh(T)(T x, Context inContext) if (isDecimal!T)
+{
 	// TODO: (behavior) special values
 	auto context = guard(inContext);
 	T sqp = sqrt(add(x, T.one, context));
@@ -1347,7 +1391,8 @@ unittest {
  * Decimal version of std.math function.
  *
  */
-public T atanh(T)(T x, Context inContext) {
+public T atanh(T)(T x, Context inContext) if (isDecimal!T)
+{
 	// TODO: (behavior) special values
 	auto context = guard(inContext);
 	T sqp = add(x, T.one, context);

@@ -29,8 +29,13 @@ version(unittest) {
 }
 
 alias xint = ExtendedInt;
-alias dec99 = BigDecimal!(99,999);
-alias dec9 = BigDecimal!(9,99);
+
+public enum Context DEFAULT_CONTEXT = Context(99, 9999, Rounding.HALF_EVEN);
+public enum Context TEST_CONTEXT    = Context(9, 99, Rounding.HALF_EVEN);
+public enum Context CONTEXT_99      = Context(99, 999, Rounding.HALF_EVEN);
+
+alias dec9  = BigDecimal!(TEST_CONTEXT);
+alias dec99 = BigDecimal!(CONTEXT_99);
 
 // special values for NaN, Inf, etc.
 private enum SV { NONE, INF, QNAN, SNAN };
@@ -54,17 +59,18 @@ writefln("x2b = %s", x2b(xint("909239874203948")));
 /// http://www.speleotrove.com/decimal.
 /// This specification conforms with IEEE standard 754-2008.
 
-struct BigDecimal(int PRECISION = 99, int MAX_EXPO = 9999,
-		Rounding ROUNDING_MODE = Rounding.HALF_EVEN) {
+struct BigDecimal(immutable Context _context = DEFAULT_CONTEXT)
+{
 
-	private alias decimal = BigDecimal!(PRECISION, MAX_EXPO, ROUNDING_MODE);
-
-static if (PRECISION == 9) {
+static if (context.precision == 9) {
 unittest {
 	writeln("==========================");
 	writeln("decimal..............begin");
 	writeln("==========================");
 }}
+
+	/// Struct containing the precision and rounding mode.
+	enum Context context = _context;
 
  	/// Marker used to identify decimal numbers irrespective of size.
 	public enum IS_DECIMAL;
@@ -82,19 +88,19 @@ unittest {
 
 	public:
 	/// Maximum length of the coefficient in decimal digits.
-	enum int precision = PRECISION;
+	enum int precision = context.precision;
 	/// Maximum value of the exponent.
-	enum int maxExpo = MAX_EXPO;
+	enum int maxExpo = context.maxExpo;
 	/// Maximum value of the adjusted exponent.
-	enum int maxAdjustedExpo = MAX_EXPO - (PRECISION - 1);
+	enum int maxAdjustedExpo = maxExpo - (precision - 1);
 	/// Smallest normalized exponent.
-	enum int minExpo = 1 - MAX_EXPO;
+	enum int minExpo = 1 - maxExpo;
 	/// Smallest non-normalized exponent.
-	enum int tinyExpo = 2 - MAX_EXPO - PRECISION;
+	enum int tinyExpo = 2 - maxExpo - precision;
 	/// Rounding mode.
-	enum Rounding rounding = ROUNDING_MODE;
-	/// Struct containing the precision and rounding mode.
-	enum Context context = Context(PRECISION, MAX_EXPO, ROUNDING_MODE);
+	enum Rounding rounding = context.rounding;
+
+	private alias decimal = BigDecimal!(context);
 
 	// decimal special values
 	enum decimal NAN		= decimal(SV.QNAN);
@@ -104,7 +110,7 @@ unittest {
 	enum decimal ZERO		= decimal(SV.NONE);
 	enum decimal NEG_ZERO	= decimal(SV.NONE, true);
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// special values
 		write("-- special values...");
 		decimal num;
@@ -144,7 +150,7 @@ unittest {
 		this.sval = sv;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// special value construction
 		write("-- this(special)....");
 		dec9 num = dec9(SV.INF, true);
@@ -163,7 +169,7 @@ unittest {
 		}
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// boolean construction
 		write("-- this(bool).......");
 		dec9 num = dec9(false);
@@ -188,7 +194,7 @@ unittest {
 		this.digits = numDigits(this.mant);
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// bool, xint, int construction
 		write("-- this(bool,big,int)...");
 		dec9 num;
@@ -211,7 +217,7 @@ unittest {
 		this(sign, coefficient.abs, exponent);
 	};
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// xint, int construction
 		write("-- this(big,int)....");
 		dec9 num;
@@ -264,7 +270,7 @@ unittest {
 		this(xint(coefficient), 0);
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// long value construction
 		write("-- this(long).......");
 		dec9 num;
@@ -280,7 +286,7 @@ unittest {
 		this = eris.decimal.conv.toNumber!decimal(str);
 	};
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// string construction
 	// TODO: (testing) this(str): add tests for just over/under int.max, int.min
 		write("-- this(string).....");
@@ -330,7 +336,7 @@ unittest {
 		else this(SV.QNAN);
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {
 		write("-- this(decimal)....");
 		dec9 abc = 12345;
@@ -364,7 +370,7 @@ unittest {
 		return decimal(this);
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// dup
 		write("-- this(decimal)....");
 		dec9 num, copy;
@@ -458,7 +464,7 @@ unittest {
 		return T(this);
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {
 		write("-- opCast...........");
 		assertFalse(dec9.init);
@@ -488,7 +494,7 @@ unittest {
 		return __traits(hasMember, T, "IS_DECIMAL");
 	}
 */
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {
 		write("-- isDecimal........");
 		dec9 dummy;
@@ -532,7 +538,7 @@ unittest {
 		this = decimal(that);
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// opAssign
 		write("-- opAssign.........");
 		dec9 num;
@@ -743,8 +749,8 @@ unittest {
 	enum decimal min = decimal(1, tinyExpo);
 
 	/// Returns the smallest available increment to 1.0 in this context
-	static enum decimal epsilon(in Context context = decimal.context) {
-		return decimal(1, -context.precision);}
+	static enum decimal epsilon(in Context inContext = context) {
+		return decimal(1, -inContext.precision);}
 
 	/// Returns the radix, which is always ten for decimal numbers.
 	@safe
@@ -780,7 +786,7 @@ unittest {
 		return HALF.dup;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {
 		write("-- constants........");
 		assertEqual(dec9.HALF, dec9(0.5));
@@ -803,7 +809,7 @@ unittest {
 		return this.dup;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// isCanonical
 		write("-- isCanonical......");
 		dec9 num = dec9("2.50");
@@ -831,7 +837,7 @@ unittest {
 		return isFinite && !isSigned && coefficient == 1 && exponent == 0;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	 unittest { // isOne
 		write("-- isOne............");
 		dec9 num;
@@ -849,7 +855,7 @@ unittest {
 		return isFinite && coefficient == 0;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// isZero
 		write("-- isZero...........");
 		dec9 num;
@@ -880,7 +886,7 @@ unittest {
 		return this.sval == SV.QNAN;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// isNaN, isQuiet, isSignaling
 		write("-- isNaN............");
 		dec9 num;
@@ -913,7 +919,7 @@ unittest {
 			&& sval != SV.SNAN;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// isFinite, isInfinite
 		write("-- isFinite.........");
 		dec9 num;
@@ -941,7 +947,7 @@ unittest {
 			|| sval == SV.SNAN;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// isSpecial
 		write("-- isSpecial........");
 		dec9 num;
@@ -968,7 +974,7 @@ unittest {
 
 	alias isSigned = isNegative;
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// isSigned, isNegative
 		write("-- isNegative.......");
 		dec9 num;
@@ -1000,7 +1006,7 @@ unittest {
 		return false;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest { // isNormal, isSubnormal
 		write("-- isNormal.........");
 		dec9 num;
@@ -1037,7 +1043,7 @@ unittest {
 		return false;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// isIntegralValued
 		write("-- isIntegralValued.");
 		dec9 num;
@@ -1073,7 +1079,7 @@ unittest {
 		return isNaN || isZero;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
 //		assertTrue(dec9(1));
@@ -1096,7 +1102,7 @@ unittest {
 		return !isSpecial && coefficient == 0;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// isZeroCoefficient
 		write("-- isZeroCoeff......");
 		dec9 num;
@@ -1150,7 +1156,7 @@ unittest {
 		return opEquals(decimal(that));
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// comparison
 		write("-- comparison.......");
 		dec9 num1, num2;
@@ -1192,7 +1198,7 @@ unittest {
 		}
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// opUnary
 		write("-- opUnary..........");
 		dec9 num, actual, expect;
@@ -1325,7 +1331,7 @@ unittest {
 	// TODO: (testing) more tests to distinguish opBin from opBinRight.
 	// TODO: (testing) need complete coverage
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// opBinary
 		write("-- opBinary.........");
 		dec9 op1, op2, actual, expect;
@@ -1374,7 +1380,7 @@ unittest {
 		return this;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// opOpAssign
 		write("-- opOpAssign.......");
 		dec9 op1, op2, actual, expect;
@@ -1414,7 +1420,7 @@ unittest {
 		return nextToward(this, x, decimal.context);
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {	// nextUp, nextDown, nextAfter
 		write("-- next.............");
 		dec9 big, expect;
@@ -1510,7 +1516,7 @@ unittest {
 	enum decimal PHI = roundString("1.6180339887498948482045868343656381177"
 		"20309179805762862135448622705260462818902449707207204189391137");
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {
 		write("-- constants........");
 		assertStringEqual(dec9.E,     "2.71828183");
@@ -1604,7 +1610,7 @@ unittest {
 		return copy[0..precision].idup;
 	}
 
-	static if (PRECISION == 9) {
+	static if (precision == 9) {
 	unittest {
 		writeln("==========================");
 		writeln("decimal................end");
