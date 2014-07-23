@@ -111,21 +111,26 @@ unittest {
 	enum decimal NEG_ZERO	= decimal(SV.NONE, true);
 
 	static if (precision == 9) {
-	unittest {	// special values
+	unittest // decimal special values
+	{
 		write("-- special values...");
-		decimal num;
-		num = NAN;
-		assertStringEqual(num, "NaN");
-		num = SNAN;
-		assertStringEqual(num, "sNaN");
-		num = ZERO;
-		assertStringEqual(num, "0");
-		num = NEG_ZERO;
-		assertStringEqual(num, "-0");
-		num = INFINITY;
-		assertStringEqual(num, "Infinity");
-		num = NEG_INF;
-		assertStringEqual(num, "-Infinity");
+
+		static struct S { dec9 num; string val; }
+
+		static S[] tests =
+		[
+			{ NAN,		"NaN" },
+			{ SNAN,		"sNaN" },
+			{ ZERO,		"0" },
+			{ NEG_ZERO,	"-0" },
+			{ INFINITY,	"Infinity" },
+			{ NEG_INF,	"-Infinity" },
+		];
+
+		foreach (i, s; tests)
+		{
+			assertStringEqualIndexed(i, s.num, s.val);
+		}
 		writeln("passed");
 	}}
 
@@ -149,15 +154,6 @@ unittest {
 		this.signed = sign;
 		this.sval = sv;
 	}
-
-	static if (precision == 9) {
-	unittest {	// special value construction
-		write("-- this(special)....");
-		dec9 num = dec9(SV.INF, true);
-		assertStringEqual(num, "-Infinity");
-		assertStringEqual(num.toAbstract(), "[1,inf]");
-		writeln("passed");
-	}}
 
 	/// Creates a decimal from a boolean value.
 	/// false == 0, true == 1
@@ -288,32 +284,44 @@ unittest {
 
 	static if (precision == 9) {
 	unittest {	// string construction
-	// TODO: (testing) this(str): add tests for just over/under int.max, int.min
 		write("-- this(string).....");
 		dec9 num;
-		num = dec9("7254E94");
-		assertStringEqual(num, "7.254E+97");
-		num = dec9("7254.005");
-		assertStringEqual(num, "7254.005");
-		string str;
-		num = dec9(1, 12334, -5);
-		str = "-0.12334";
-		assertStringEqual(num,str);
-		num = dec9(-23456, 10);
-		str = "-2.3456E+14";
-		assertStringEqual(num,str);
-		num = dec9(234568901234);
-		str = "234568901234";
-		assertStringEqual(num,str);
-		num = dec9("123.457E+29");
-		str = "1.23457E+31";
-		assertStringEqual(num,str);
 		num = std.math.E;
-		str = "2.71828183";
+		string str = "2.71828183";
 		assertStringEqual(num,str);
-		num = std.math.std.math.LOG2;
+		num = std.math.LOG2;
 		dec9 copy = dec9(num);
 		assertEqual(compareTotal(num, copy), 0);
+		writeln("passed");
+	}}
+
+	static if (precision == 9) {
+	unittest // string construction
+	{
+		write("-- this(string).....");
+
+		static struct S { string num; string val; }
+
+		static S[] tests =
+		[
+			{ "7254E94",		"7.254E+97" },
+			{ "7254.005",		"7254.005" },
+			{ "-2.3456E+14",	"-2.3456E+14" },
+			{ "-0.1234",		"-0.1234" },
+			{ "234568901234",	"234568901234" },
+			{ "123.457E+29",	"1.23457E+31" },
+			{ "2.71828183",		"2.71828183" },
+			{ "2147483646",		"2147483646" },
+			{ "2147483648",		"2147483648" },
+			{ "-2147483647",	"-2147483647" },
+			{ "-2147483649",	"-2147483649" },
+			{ "inf",			"Infinity" },
+		];
+
+		foreach (i, s; tests)
+		{
+			assertEqualIndexed(i, dec9(s.num), s.val);
+		}
 		writeln("passed");
 	}}
 
@@ -324,10 +332,40 @@ unittest {
 		this(str);
 	}
 
+	static if (precision == 9) {
+	unittest // string construction
+	{
+		write("-- this(real).......");
+
+		static struct S { real num; string val; }
+
+		static S[] tests =
+		[
+			{ 7254E94,		"7.254E+97" },
+			{ 7254.005,		"7254.005" },
+			{ -2.3456E+14,	"-2.3456E+14" },
+			{ -0.1234,		"-0.1234" },
+			{ 234568901234,	"234568901234" },
+			{ 123.457E+29,	"1.23457E+31" },
+			{ 2.71828183,		"2.71828183" },
+			{ 2147483646,		"2147483646" },
+			{ 2147483648,		"2147483648" },
+			{ -2147483647,	"-2147483647" },
+			{ -2147483649,	"-2147483649" },
+			{ real.infinity,			"Infinity" },
+		];
+
+		foreach (i, s; tests)
+		{
+			assertEqualIndexed(i, dec9(s.num), s.val);
+		}
+		writeln("passed");
+	}}
+
    // TODO: (testing) add unittest for real value construction
 
 	// Constructs a decimal number from a different type of decimal.
-	public this(T)(T from) if (__traits(hasMember, T, "IS_DECIMAL")) {
+	public this(T)(T from) if (isDecimal!T) {
 		bool sign = from.isNegative;
 		if (from.isFinite) this(from.sign, from.coefficient, from.exponent);
 		else if (from.isInfinite) 	this(SV.INF, sign);
@@ -374,7 +412,9 @@ unittest {
 	unittest {	// dup
 		write("-- this(decimal)....");
 		dec9 num, copy;
-		num = std.math.std.math.LOG2;
+		num = std.math.LOG2;
+		num = std.math.PI;
+		num = std.math.LOG2;
 		copy = dec9(num);
 		assertZero(compareTotal(num, copy));
 		num = dec9(std.math.PI);
@@ -486,21 +526,6 @@ unittest {
 		dec99 spcl = dec99.infinity(true);
 		klm = dec9(spcl);
 		assertEqual(klm, dec9("-Infinity"));
-		writeln("passed");
-	}}
-
-/*
-	static bool isDecimal(T)(T dummy) {
-		return __traits(hasMember, T, "IS_DECIMAL");
-	}
-*/
-	static if (precision == 9) {
-	unittest {
-		write("-- isDecimal........");
-		dec9 dummy;
-		assertTrue(isDecimal!dec9);
-		assertFalse(isDecimal!int);
-		assertTrue(isDecimal!Dec64);
 		writeln("passed");
 	}}
 
@@ -1239,7 +1264,7 @@ unittest {
 
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
-	const decimal opBinary(string op, T:decimal)(in T x)
+	decimal opBinary(string op, T:decimal)(in T x) const
 	{
 		static if (op == "+") {
 			return add(this, x);
@@ -1267,39 +1292,115 @@ unittest {
 		}
 	}
 
-	/// Returns the result of performing the specified
-	/// binary operation on this number and the argument.
-	const decimal opBinary(string op, T:long)(T x)
-	{
-		static if (op == "+") {
-			return add(this, x, decimal.context);
-		}
-		else static if (op == "-") {
-			return sub(this, x, decimal.context);
-		}
-		else static if (op == "*") {
-			return mul(this, x, decimal.context);
-		}
-		else static if (op == "/") {
-			return div(this, x, decimal.context);
-		}
-		else static if (op == "%") {
-			return remainder(this, decimal(x), decimal.context);
-		}
-		else static if (op == "&") {
-			return and(this, decimal(x), decimal.context);
-		}
-		else static if (op == "|") {
-			return or(this, decimal(x), decimal.context);
-		}
-		else static if (op == "^") {
-			return xor(this, decimal(x), decimal.context);
-		}
-	}
+	static if (precision == 9) {
+	unittest {	// opBinary
+		write("-- opBinary.........");
+		dec9 op1, op2, actual, expect;
+		op1 = 4;
+		op2 = 8;
+		actual = op1 + op2;
+		expect = 12;
+		assertEqual(actual, expect);
+		actual = op1 - op2;
+		expect = -4;
+		assertEqual(actual, expect);
+		actual = op2 - op1;
+		expect = 4;
+		assertEqual(actual, expect);
+		actual = op1 * op2;
+		expect = 32;
+		assertEqual(actual, expect);
+		op1 = 5;
+		op2 = 2;
+		actual = op1 / op2;
+		expect = 2.5;
+		assertEqual(actual, expect);
+		actual = op2 / op1;
+		expect = 0.4;
+		assertEqual(actual, expect);
+		op1 = 10;
+		op2 = 3;
+		actual = op1 % op2;
+		expect = 1;
+		assertEqual(actual, expect);
+		actual = op2 % op1;
+		expect = 3;
+		assertEqual(actual, expect);
+		op1 = "00011010";
+		op2 = "10001110";
+		actual = op1 & op2;
+		expect = "1010";
+		assertEqual(actual, expect);
+		actual = op1 | op2;
+		expect = "10011110";
+		assertEqual(actual, expect);
+		actual = op1 ^ op2;
+		expect = "10010100";
+		assertEqual(actual, expect);
+		writeln("passed");
+	}}
 
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
-	const decimal opBinaryRight(string op, T:long)(in T x)
+	decimal opBinary(string op, T)(T x) const
+	{
+		return opBinary!op(decimal(x));
+	}
+
+	static if (precision == 9) {
+	unittest {	// opBinary
+		write("-- opBinary.........");
+        float op1;
+//        long op1;
+		dec9  op2, actual, expect;
+		op1 = 4;
+		op2 = 8;
+		actual = op1 + op2;
+		expect = 12;
+		assertEqual(actual, expect);
+		actual = op1 - op2;
+		expect = -4;
+		assertEqual(actual, expect);
+		actual = op2 - op1;
+		expect = 4;
+		assertEqual(actual, expect);
+		actual = op1 * op2;
+		expect = 32;
+		assertEqual(actual, expect);
+/*		op1 = 5;
+		op2 = 2;
+		actual = op1 / op2;
+		expect = 2.5;
+		assertEqual(actual, expect);
+		actual = op2 / op1;
+		expect = 0.4;
+		assertEqual(actual, expect);
+		op1 = 10;
+		op2 = 3;
+		actual = op1 % op2;
+		expect = 1;
+		assertEqual(actual, expect);
+		actual = op2 % op1;
+		expect = 3;
+		assertEqual(actual, expect);
+		op1 = "00011010";
+		op2 = "10001110";
+		actual = op1 & op2;
+		expect = "1010";
+		assertEqual(actual, expect);
+		actual = op1 | op2;
+		expect = "10011110";
+		assertEqual(actual, expect);
+		actual = op1 ^ op2;
+		expect = "10010100";
+		assertEqual(actual, expect);
+*/
+		writeln("passed");
+	}}
+
+	/// Returns the result of performing the specified
+	/// binary operation on this number and the argument.
+	decimal opBinaryRight(string op, T)(in T x) const
 	{
 		static if (op == "+") {
 			return add(this, x, decimal.context);
@@ -1326,41 +1427,6 @@ unittest {
 			return xor(this, decimal(x), rounding);
 		}
 	}
-
-
-	// TODO: (testing) more tests to distinguish opBin from opBinRight.
-	// TODO: (testing) need complete coverage
-
-	static if (precision == 9) {
-	unittest {	// opBinary
-		write("-- opBinary.........");
-		dec9 op1, op2, actual, expect;
-		op1 = 4;
-		op2 = 8;
-		actual = op1 + op2;
-		expect = 12;
-		assertEqual(actual, expect);
-		actual = op1 - op2;
-		expect = -4;
-		assertEqual(actual, expect);
-		actual = op2 - op1;
-		expect = 4;
-		assertEqual(actual, expect);
-		actual = op1 * op2;
-		expect = 32;
-		assertEqual(actual, expect);
-		op1 = 5;
-		op2 = 2;
-		actual = op1 / op2;
-		expect = 2.5;
-		assertEqual(actual, expect);
-		op1 = 10;
-		op2 = 3;
-		actual = op1 % op2;
-		expect = 1;
-		assertEqual(actual, expect);
-		writeln("passed");
-	}}
 
 //-----------------------------
 // operator assignment
@@ -1623,6 +1689,16 @@ unittest {
 public bool isDecimal(T)() {
 		return __traits(hasMember, T, "IS_DECIMAL");
 	}
+
+//static if (precision == 9) {
+unittest {
+	write("-- isDecimal........");
+	dec9 dummy;
+	assertTrue(isDecimal!dec9);
+	assertFalse(isDecimal!int);
+	assertTrue(isDecimal!Dec64);
+	writeln("passed");
+}//}
 
 
 

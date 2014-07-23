@@ -214,7 +214,6 @@ unittest // sciForm
 	writeln("passed");
 }
 
-
 /// Converts a decimal number to a string
 /// using "engineering" notation, per the spec.
 public string engForm(T)(in T num) if (isDecimal!T)

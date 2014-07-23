@@ -31,6 +31,7 @@ module eris.decimal.arithmetic;
 
 import eris.integer.extended;
 import std.string;
+import std.traits : isIntegral;
 
 import eris.decimal;
 import eris.decimal.context;
@@ -1207,7 +1208,7 @@ unittest {
 
 // TODO: (behavior, language) these don't work because we don't want to truncate the coefficient.
 // shl is okay, but shr isn't.
-public T shl(T)(const T arg, const int n,
+public T shl(T)(in T arg, const int n,
 		const Rounding rounding = T.rounding) if (isDecimal!T)
 {
 	T result = T.nan;
@@ -1561,81 +1562,17 @@ public T add(T)(in T x, in T y,
 }
 
 
-/// Adds a long value to a decimal number. The result is identical to that of
-/// the 'add' function as if the long value were converted to a decimal number.
+/// Adds the two operands.
 /// The result may be rounded and context flags may be set.
+/// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T add(T)(in T x, long n,
-		Context context = T.context) if (isDecimal!T)
+public T add(T, U)(in T x, U n,
+		Context context = T.context) if (isDecimal!T && !isDecimal!U)
 {
 	return add(x, T(n), context);
 }
 
-
-// TODO: (efficiency) It doesn't seem to be worthwhile to carry a separate
-// add(decimal, long) function since the long has to be converted to a
-// decimal for operator alignment.
-
-/*
-	// if the decimal operand is NaN return a quiet NaN.
-	if (x.isNaN) return invalidOperand(x);
-
-	// if the decimal operand is infinite return infinity.
-	if (x.isInfinite) return x.dup;
-
-	T sum;
-	// add(0, 0)
-	if (x.isZero && n == 0) {
-		sum = x;
-		sum.exponent = std.algorithm.min(x.exponent, 0);
-		sum.sign = x.sign && (n < 0);
-		return sum;
-	}
-	// add(0,f)
-	if (x.isZero) {
-		sum = T(n);
-		sum.exponent = std.algorithm.min(x.exponent, 0);
-		return roundToPrecision(sum, context);
-	}
-	// add(f,0)
-	if (n == 0) {
-		sum = x;
-		sum.exponent = std.algorithm.min(x.exponent, 0);
-		return roundToPrecision(sum, context);
-	}
-
-	// at this point, the result will be finite and not zero.
-	sum = T.zero;
-	// TODO: (Language) see add(decimal,decimal)
-	auto augend = x.dup;
-	auto addend = T(n);
-	// align the operands
-	alignOps(augend, addend);
-	// if operands have the same sign...
-	if (augend.sign == addend.sign) {
-		sum.coefficient = augend.coefficient + addend.coefficient;
-		sum.sign = augend.sign;
-	}
-	// ...else operands have different signs
-	else {
-		if (augend.coefficient >= addend.coefficient) {
-			sum.coefficient = augend.coefficient - addend.coefficient;
-			sum.sign = augend.sign;
-
-		}
-		else {
-			sum.coefficient = addend.coefficient - augend.coefficient;
-			sum.sign = addend.sign;
-		}
-	}
-	// set the number of digits and the exponent
-	sum.digits = numDigits(sum.coefficient);
-	sum.exponent = augend.exponent;
-
-	return roundToPrecision(sum, context);
-}	 // end add(x, n)
-
-	// TODO: (testing) change inputs to real numbers
+// TODO: (testing) change inputs to real numbers
 unittest {	// add, addLOng
 	write("-- add..............");
 	dec9 arg1, arg2, sum;
@@ -1662,7 +1599,7 @@ unittest {	// add, addLOng
 	sum = add(arg1, arg3);
 	assertStringEqual(sum, "10100");
 	writeln("passed");
-}*/
+}
 
 /// Subtracts the second operand from the first operand.
 /// The result may be rounded and context flags may be set.
@@ -1674,15 +1611,14 @@ public T sub(T) (in T x, in T y,
 }	 // end sub(x, y)
 
 
-/// Subtracts a long value from a decimal number.
-/// The result is identical to that of the 'subtract' function
-/// as if the long value were converted to a decimal number.
-public T sub(T,U:long) (in T x, in U n,
-		Context context = T.context) if (isDecimal!T)
+/// Subtracts the second operand from the first operand.
+/// The result may be rounded and context flags may be set.
+/// Implements the 'subtract' function in the specification. (p. 26)
+public T sub(T, U)(in T x, U z,
+		Context context = T.context) if (isDecimal!T && !isDecimal!U)
 {
-	return add(x, -n, context);
-}	 // end sub(x, n)
-
+	return add(x, T(z).copyNegate, context);
+}	// end sub(x, z)
 
 unittest {
 	write("-- subtract.........");
@@ -1741,8 +1677,8 @@ public T mul(T)(in T x, in T y,
 /// The result may be rounded and context flags may be set.
 /// Not a required function, but useful because it avoids
 /// an unnecessary conversion to a decimal when multiplying by an integer.
-public T mul(T)(in T x, long n,
-		Context context = T.context) if (isDecimal!T)
+public T mul(T, U)(in T x, U n, Context context = T.context)
+		if (isDecimal!T && isIntegral!U)
 {
 	// if invalid, return NaN
 	if (x.isNaN) return invalidOperand(x);
@@ -1771,7 +1707,16 @@ public T mul(T)(in T x, long n,
 	product.sign = x.sign ^ (n < 0);
 	product.digits = numDigits(product.coefficient);
 	return roundToPrecision(product, context);
-}
+}	// end mul(x, n)
+
+/// Multiplies the two operands.
+/// The result may be rounded and context flags may be set.
+/// Implements the 'multiply' function in the specification. (p. 33-34)
+public T mul(T, U)(in T x, U z, Context context = T.context)
+		if (isDecimal!T && !isIntegral!U && !isDecimal!U)
+{
+	return mul(x, T(z), context);
+}	// end mul(x, z)
 
 unittest {	// mul
 	write("-- multiply.........");
@@ -1897,8 +1842,8 @@ public T div(T)(in T x, in T y,
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T)(T x, long n,
-		Context context = T.context) if (isDecimal!T)
+public T div(T,U)(T x, U n,
+		Context context = T.context) if (isDecimal!T && isIntegral!U)
 {
 	// check for NaN and division by zero
 	T nan;
@@ -1933,13 +1878,23 @@ public T div(T)(T x, long n,
 	return q;
 }
 
+/// Divides the first operand by the second operand and returns their quotient.
+/// Division by zero sets a flag and returns infinity.
+/// The result may be rounded and context flags may be set.
+/// Implements the 'divide' function in the specification. (p. 27-29)
+public T div(T, U)(in T x, U z, Context context = T.context)
+		if (isDecimal!T && !isIntegral!U && !isDecimal!U)
+{
+	return div(x, T(z), context);
+}	// end div(x, z)
+
 /**
  * Reduces operand to simplest form. All trailing zeros are removed.
  * Reduces operand to specified exponent.
  */
  // TODO: (behavior) has non-standard flag setting
 // NOTE: flags only
-private T reduceToIdeal(T)(T x, int ideal)  {
+private T reduceToIdeal(T)(T x, int ideal) if (isDecimal!T) {
 
 	if (!x.isFinite()) {
 		return x;
@@ -2030,7 +1985,7 @@ unittest {	// div
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
-public T divideInteger(T)(const T arg1, const T arg2)  {
+public T divideInteger(T)(in T arg1, in T arg2)  {
 	// check for NaN or divide by zero
 	T result = T.nan;
 	if (divisionIsInvalid!T(arg1, arg2, result)) {
@@ -2088,7 +2043,7 @@ unittest {	// divideInteger
 /// The sign of the remainder is the same as that of the first operand.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'remainder' function in the specification. (p. 37-38)
-public T remainder(T)(const T arg1, const T arg2,
+public T remainder(T)(in T arg1, in T arg2,
 		in int precision = T.precision)  {
 	T quotient;
 	if (divisionIsInvalid!T(arg1, arg2, quotient)) {
@@ -2141,7 +2096,8 @@ unittest {	// remainder
 /// The sign of the remainder is the same as that of the first operand.
 /// This function corresponds to the "remainder" function
 /// in the General Decimal Arithmetic Specification.
-public T remainderNear(T)(const T x, const T y)  {
+public T remainderNear(T)(in T x, in T y) if (isDecimal!T)
+{
 	T quotient;
 	if (divisionIsInvalid!T(x, y, quotient)) {
 		return quotient;
@@ -2204,7 +2160,7 @@ unittest {
 /// The returned value is rounded to the current precision.
 /// This operation may set the invalid-operation flag.
 /// Implements the 'quantize' function in the specification. (p. 36-37)
-public T quantize(T)(const T x, const T y,
+public T quantize(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	T nan;
@@ -2333,7 +2289,9 @@ unittest {	// quantize
 /// Context flags may be set.
 /// Implements the 'round-to-integral-exact' function
 /// in the specification. (p. 39)
-public T roundToIntegralExact(T)(in T x, in Rounding rounding = Rounding.HALF_EVEN) {
+public T roundToIntegralExact(T)(in T x,
+		in Rounding rounding = Rounding.HALF_EVEN) if (isDecimal!T)
+{
 	T result = x.dup;
 	if (result.isSignaling) return setInvalidFlag!T;
 	if (result.isSpecial) return result;
@@ -2387,8 +2345,9 @@ unittest { // roundToIntegralExact
 /// The result may be rounded and context flags may be set.
 /// Implements the 'round-to-integral-value' function
 /// in the specification. (p. 39)
-public T roundToIntegralValue(T)(const T arg,
-		const Rounding rounding = T.rounding)  {
+public T roundToIntegralValue(T)(in T arg,
+		const Rounding rounding = T.rounding) if (isDecimal!T)
+{
 	T result = arg.dup;
 	if (result.isSignaling) return setInvalidFlag!T;
 	if (result.isSpecial) return result;
@@ -2404,7 +2363,8 @@ public T roundToIntegralValue(T)(const T arg,
 /// coefficient so the value remains the same.
 /// Both operands will have the same exponent on their return.
 /// No flags are set and the result is not rounded.
-private void alignOps(T)(ref T x, ref T y) {
+private void alignOps(T)(ref T x, ref T y) if (isDecimal!T)
+{
 	int diff = x.exponent - y.exponent;
 	if (diff > 0) {
 		x.coefficient = shiftLeft(x.coefficient, diff);
@@ -2421,7 +2381,8 @@ private void alignOps(T)(ref T x, ref T y) {
 /// coefficient so the value remains the same.
 /// Both operands will have the same exponent on their return.
 /// No flags are set and the result is not rounded.
-private void alignOps(T)(ref T x, int n) {
+private void alignOps(T)(ref T x, int n) if (isDecimal!T)
+{
 	int diff = x.exponent;
 	if (x.exponent == 0) return;
 
@@ -2462,7 +2423,8 @@ private bool isLogicalString(const string str) {
 /// Returns true if the argument is a valid logical decimal number.
 /// The sign and exponent must both be zero, and all decimal digits
 /// in the coefficient must be either '1' or '0'.
-public bool isLogical(T)(const T arg)  {
+public bool isLogical(T)(in T arg) if (isDecimal!T)
+{
 	if (arg.sign != 0 || arg.exponent != 0) return false;
 	string str = arg.coefficient.toString;
 	return isLogicalString(str);
@@ -2472,7 +2434,9 @@ public bool isLogical(T)(const T arg)  {
 /// a valid logical decimal number.
 /// The sign and exponent must both be zero, and all decimal digits
 /// in the coefficient must be either '1' or '0'.
-private bool isLogicalOperand(T)(const T arg, out string str)  {
+private bool isLogicalOperand(T)(in T arg, out string str)
+		if (isDecimal!T)
+{
 	if (arg.sign != 0 || arg.exponent != 0) return false;
 	str = arg.coefficient.toString;
 	return isLogicalString(str);
@@ -2495,7 +2459,8 @@ unittest {	// logical string/number tests
 
 /// Inverts and returns a decimal logical number.
 /// Implements the 'invert' function in the specification. (p. 44)
-public T invert(T)(T arg)  {
+public T invert(T)(T arg) if (isDecimal!T)
+{
 	string str;
 	if (!isLogicalOperand(arg, str)) {
 		contextFlags.setFlags(INVALID_OPERATION);
@@ -2506,7 +2471,8 @@ public T invert(T)(T arg)  {
 
 /// Inverts and returns a logical string.
 /// Each '1' is changed to a '0', and vice versa.
-private T invert(T: string)(T arg) {
+private T invert(T: string)(T arg)
+{
 	char[] result = new char[arg.length];
 	for(int i = 0; i < arg.length; i++) {
 		result[i] = arg[i] == '0' ? '1' : '0';
@@ -2533,7 +2499,7 @@ unittest {	// inverse
 //--------------------------------
 
 /// called by opBinary.
-private T opLogical(string op, T)(const T x, const T y)
+private T opLogical(string op, T)(in T x, in T y)
 		if (isDecimal!T)
 {
 	int precision = T.precision;
@@ -2559,13 +2525,14 @@ private T opLogical(string op, T)(const T x, const T y)
 
 /// Performs a logical 'and' of the arguments and returns the result
 /// Implements the 'and' function in the specification. (p. 41)
-public T and(T)(const T x, const T y/*,
-		const DecimalContext context = T.context*/)  {
-	return opLogical!("and", T)(x, y/*, context*/);
+public T and(T)(in T x, in T y) if(isDecimal!T)
+{
+	return opLogical!("and", T)(x, y);
 }
 
 /// Performs a logical 'and' of the (string) arguments and returns the result
-T and(T: string)(const T x, const T y) {
+T and(T: string)(in T x, in T y)
+{
 	string str1, str2;
 	int length, diff;
 	if (x.length > y.length) {
@@ -2598,13 +2565,14 @@ T and(T: string)(const T x, const T y) {
 
 /// Performs a logical 'or' of the arguments and returns the result
 /// Implements the 'or' function in the specification. (p. 47)
-public T or(T)(const T x, const T y/*,
-		const DecimalContext context = T.context*/)  {
+public T or(T)(in T x, in T y) if (isDecimal!T)
+{
 	return opLogical!("or", T)(x, y/*, context*/);
 }
 
 /// Performs a logical 'or' of the (string) arguments and returns the result
-T or(T: string)(const T x, const T y) {
+T or(T: string)(in T x, in T y)
+{
 	string str1, str2;
 	int length;
 	if (x.length > y.length) {
@@ -2634,14 +2602,15 @@ T or(T: string)(const T x, const T y) {
 
 /// Performs a logical 'xor' of the arguments and returns the result
 /// Implements the 'xor' function in the specification. (p. 49)
-public T xor(T)(const T x, const T y/*,
-		const DecimalContext context = T.context*/)  {
-	return opLogical!("xor", T)(x, y/*, context*/);
+public T xor(T)(in T x, in T y) if (isDecimal!T)
+{
+	return opLogical!("xor", T)(x, y);
 }
 
 /// Performs a logical 'xor' of the (string) arguments
 /// and returns the result.
-T xor(T: string)(const T x, const T y) {
+T xor(T: string)(in T x, in T y)
+{
 	string str1, str2;
 	int length;
 	if (x.length > y.length) {
@@ -2689,7 +2658,9 @@ unittest { // binary logical ops
 
 /// Sets the invalid-operation flag and returns a quiet NaN.
 // TODO: combine this with invalidOperand?
-private T setInvalidFlag(T)(bool sign = false, ushort payload = 0)  {
+private T setInvalidFlag(T)(bool sign = false, ushort payload = 0)
+		if (isDecimal!T)
+{
 	contextFlags.setFlags(INVALID_OPERATION);
 //	T result = T.nan(payload, sign);
 //	if (payload != 0) {
@@ -2717,7 +2688,8 @@ unittest {	// setInvalidFlag
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package T invalidOperand(T)(in T x)  {
+package T invalidOperand(T)(in T x) if (isDecimal!T)
+{
 	// flag the invalid operation
 	contextFlags.setFlags(INVALID_OPERATION);
 	// if the operand is a quiet NaN return it.
@@ -2737,7 +2709,8 @@ package T invalidOperand(T)(in T x)  {
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package T invalidOperands(T)(in T x, in T y)  {
+package T invalidOperands(T)(in T x, in T y) if (isDecimal!T)
+{
 	// flag the invalid operation
 	contextFlags.setFlags(INVALID_OPERATION);
 	// if either operand is signaling return a quiet NaN.
@@ -2761,7 +2734,8 @@ package T invalidOperands(T)(in T x, in T y)  {
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package bool operandIsInvalid(T)(in T x)  {
+package bool operandIsInvalid(T)(in T x) if (isDecimal!T)
+{
 	// if the operand is a signaling NaN...
 	if (x.isNaN) {
 		// flag the invalid operation
@@ -2797,7 +2771,8 @@ unittest {
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 private bool operationIsInvalid(T)(in T x, in T y, out T nan)
-		 {
+		if (isDecimal!T)
+{
 	// if either operand is a quiet NaN...
 	if (x.isQuiet || y.isQuiet) {
 		// flag the invalid operation
@@ -2819,7 +2794,8 @@ private bool operationIsInvalid(T)(in T x, in T y, out T nan)
 }
 
 private bool operationIsInvalid(T)(T x, long y, out T nan)
-		 {
+		if (isDecimal!T)
+{
 	// if either operand is a quiet NaN...
 	if (x.isQuiet) {
 		// flag the invalid operation
@@ -2852,7 +2828,8 @@ unittest {
 /// This is a helper function implementing checks for division by zero
 /// and invalid operation in the specification. (p. 51-52)
 private bool divisionIsInvalid(T)(in T dividend, in T divisor,
-		ref T quotient)  {
+		ref T quotient) if (isDecimal!T)
+{
 
 	if (operationIsInvalid(dividend, divisor, quotient)) {
 		return true;
@@ -2870,6 +2847,7 @@ private bool divisionIsInvalid(T)(in T dividend, in T divisor,
 	}
 	// TODO: (behavior) what purpose does this check serve?
 	// The dividend can be zero without any difficulties, right?
+	// NOTE: this is just a short circuit to avoid dividing zero.
 /*	if (dividend.isZero()) {
 		quotient = T.zero;
 		return true;
@@ -2884,7 +2862,8 @@ private bool divisionIsInvalid(T)(in T dividend, in T divisor,
 /// This is a helper function implementing checks for division by zero
 /// and invalid operation in the specification. (p. 51-52)
 private bool divisionIsInvalid(T)(T dividend, long divisor,
-		ref T quotient)  {
+		ref T quotient) if (isDecimal!T)
+{
 
 	if (operationIsInvalid(dividend, divisor, quotient)) {
 		return true;
