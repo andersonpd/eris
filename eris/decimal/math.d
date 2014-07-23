@@ -528,10 +528,10 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- inverse sqrt.....");
-	assertEqual(invSqrt(dec9(2))/*),11)*/, dec9("0.707106781"));
-	assertEqual(invSqrt(dec9(2), 14)/*),11)*/, dec9("0.70710678118655"));
-	assertEqual(invSqrt(dec9(20))/*),11)*/, dec9("0.223606798"));
-	assertEqual(invSqrt(dec9(300))/*,11)*/, dec9("0.0577350269"));
+	assertEqual(invSqrt(dec9(2)), dec9("0.707106781"));
+	assertEqual(invSqrt(dec9(2), 14), dec9("0.70710678118655"));
+	assertEqual(invSqrt(dec9(20)), dec9("0.223606798"));
+	assertEqual(invSqrt(dec9(300)), dec9("0.0577350269"));
 	assertEqual(invSqrt(dec9(4000),11), dec9("0.0158113883"));
 	assertEqual(invSqrt(dec9(98763)), dec9("0.00318201969"));
 	assertEqual(invSqrt(dec9(98763098)), dec9("0.000100624248"));
@@ -844,29 +844,14 @@ unittest {
  * Decimal version of std.math.pow.
  * Required by General Decimal Arithmetic Specification
  */
-public T pow(T)(T x, T y) if (isDecimal!T)
-{
-	return power!T(x,y);
-}
-
-unittest {
-	write("pow............");
-	writeln("test missing");
-}
-
-
-/**
- * power.
- * Required by General Decimal Arithmetic Specification
- */
  // TODO: (behavior) add context
-public T power(T)(T x, T y) if (isDecimal!T)
+public T pow(T)(T x, T y) if (isDecimal!T)
 {
 	return exp(x*log(y));
 }
 
 unittest {
-	write("power..........");
+	write("pow..........");
 	writeln("test missing");
 }
 
@@ -878,8 +863,8 @@ public T hypot(T)(T x, T y, Context context) if (isDecimal!T)
 {
 	// special values
 	if (x.isInfinite || y.isInfinite) return T.infinity();
-    if (x.isZero) return y; //.copy;
-	if (y.isZero) return x; //.copy;
+    if (x.isZero) return y;
+	if (y.isZero) return x;
 	if (x.isNaN || y.isNaN) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;
@@ -893,8 +878,8 @@ public T hypot(T)(T x, T y, Context context) if (isDecimal!T)
 		a = b;
 		b = t;
 	}
-    b = div(b ,a, context);
-    return mul(a, sqrt(add(T.one, sqr(b, context),context),context));
+    b = div(b, a, context);
+    return mul(a, sqrt(add(T.one, sqr(b, context), context), context));
 }
 
 // TODO: (testing) Need to test operation near precisions where this operation is really useful.
@@ -1109,7 +1094,8 @@ public T tan1(T)(T x) if (isDecimal!T)
 	return sine/cosine;
 }
 
-public T tan(T)(T x, int precision = T.precision) {
+public T tan(T)(T x, int precision = T.precision) if (isDecimal!T)
+{
 	if (x.isNaN) {
 		contextFlags.setFlags(INVALID_OPERATION);
 		return T.nan;

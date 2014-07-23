@@ -16,6 +16,7 @@ module eris.decimal;
 
 import std.conv;
 import std.string;
+//import std.traits;
 
 import eris.integer.extended;
 import eris.decimal.context;
@@ -347,12 +348,12 @@ unittest {
 			{ -0.1234,		"-0.1234" },
 			{ 234568901234,	"234568901234" },
 			{ 123.457E+29,	"1.23457E+31" },
-			{ 2.71828183,		"2.71828183" },
-			{ 2147483646,		"2147483646" },
-			{ 2147483648,		"2147483648" },
+			{ 2.71828183,	"2.71828183" },
+			{ 2147483646,	"2147483646" },
+			{ 2147483648,	"2147483648" },
 			{ -2147483647,	"-2147483647" },
 			{ -2147483649,	"-2147483649" },
-			{ real.infinity,			"Infinity" },
+			{ real.infinity, "Infinity" },
 		];
 
 		foreach (i, s; tests)
@@ -1687,10 +1688,9 @@ unittest {
 
 /// Returns true if the parameter is a type of decimal number.
 public bool isDecimal(T)() {
-		return __traits(hasMember, T, "IS_DECIMAL");
-	}
+	return std.traits.hasMember!(T, "IS_DECIMAL");
+}
 
-//static if (precision == 9) {
 unittest {
 	write("-- isDecimal........");
 	dec9 dummy;
@@ -1698,7 +1698,24 @@ unittest {
 	assertFalse(isDecimal!int);
 	assertTrue(isDecimal!Dec64);
 	writeln("passed");
-}//}
+}
+
+/// Returns true if the parameter is convertible to a decimal number.
+public bool isConvertible(T)() {
+	return std.traits.isNumeric!T || is(T:string) || std.traits.isBoolean!T;
+}
+
+unittest {
+	write("-- isConvertible...");
+	dec9 dummy;
+	assertTrue(isConvertible!int);
+	assertTrue(isConvertible!bool);
+	assertTrue(isConvertible!string);
+	assertTrue(isConvertible!double);
+	assertFalse(isConvertible!creal);
+	assertFalse(isConvertible!dec9);
+	writeln("passed");
+}
 
 
 

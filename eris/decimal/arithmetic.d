@@ -1566,10 +1566,10 @@ public T add(T)(in T x, in T y,
 /// The result may be rounded and context flags may be set.
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T add(T, U)(in T x, U n,
-		Context context = T.context) if (isDecimal!T && !isDecimal!U)
+public T add(T, U)(in T x, U z,
+		Context context = T.context) if (isDecimal!T && isConvertible!U)
 {
-	return add(x, T(n), context);
+	return add(x, T(z), context);
 }
 
 // TODO: (testing) change inputs to real numbers
@@ -1615,7 +1615,7 @@ public T sub(T) (in T x, in T y,
 /// The result may be rounded and context flags may be set.
 /// Implements the 'subtract' function in the specification. (p. 26)
 public T sub(T, U)(in T x, U z,
-		Context context = T.context) if (isDecimal!T && !isDecimal!U)
+		Context context = T.context) if (isDecimal!T && isConvertible!U)
 {
 	return add(x, T(z).copyNegate, context);
 }	// end sub(x, z)
@@ -1713,7 +1713,7 @@ public T mul(T, U)(in T x, U n, Context context = T.context)
 /// The result may be rounded and context flags may be set.
 /// Implements the 'multiply' function in the specification. (p. 33-34)
 public T mul(T, U)(in T x, U z, Context context = T.context)
-		if (isDecimal!T && !isIntegral!U && !isDecimal!U)
+		if (isDecimal!T && !isIntegral!U && isConvertible!U)
 {
 	return mul(x, T(z), context);
 }	// end mul(x, z)
@@ -1883,7 +1883,7 @@ public T div(T,U)(T x, U n,
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
 public T div(T, U)(in T x, U z, Context context = T.context)
-		if (isDecimal!T && !isIntegral!U && !isDecimal!U)
+		if (isDecimal!T && !isIntegral!U && isConvertible!U)
 {
 	return div(x, T(z), context);
 }	// end div(x, z)
