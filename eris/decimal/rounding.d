@@ -31,11 +31,13 @@ version(unittest) {
 	import eris.assertion;
 }
 
-public T roundToPrecision(T)(in T num, Context context) {
+public T roundToPrecision(T)(in T num, Context context) if (isDecimal!T)
+{
 	return roundToPrecision(num, context.precision, context.rounding);
 }
 
-public T roundToPrecision(T)(in T num, Rounding rounding) {
+public T roundToPrecision(T)(in T num, Rounding rounding) if (isDecimal!T)
+{
 	return roundToPrecision(num, T.precision, rounding);
 }
 
@@ -43,10 +45,9 @@ public T roundToPrecision(T)(in T num, Rounding rounding) {
 /// the context parameter.
 /// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 //@safe
-public T roundToPrecision(T)(in T num,
-	in int precision = T.precision,
-	in Rounding rounding = T.rounding) {
-
+public T roundToPrecision(T)(in T num, int precision = T.precision,
+		Rounding rounding = T.rounding) if (isDecimal!T)
+{
 	T result = num.dup;	// copy the input
 	if (rounding == Rounding.NONE) return result;
 
@@ -160,7 +161,8 @@ unittest {	// roundToPrecision
 /// Flags: OVERFLOW, ROUNDED, INEXACT.
 /// Precondition: number must be finite.
 //@safe
-private bool overflow(T)(ref T num,	Rounding mode = T.rounding)  {
+private bool overflow(T)(ref T num,	Rounding mode = T.rounding) if (isDecimal!T)
+{
 	if (num.adjustedExponent <= T.maxExpo) return false;
 	switch (mode) {
 		case Rounding.NONE:
@@ -196,7 +198,9 @@ private bool halfRounding(Rounding rounding) {
 
 /// Rounds the number to the context precision
 /// using the specified rounding mode.
-private void roundByMode(T)(ref T num, int precision, Rounding mode) {
+private void roundByMode(T)(ref T num,
+		int precision, Rounding mode) if (isDecimal!T)
+{
 
 	if (mode == Rounding.NONE) return;
 
@@ -294,8 +298,8 @@ unittest {	// roundByMode
 /// Otherwise the rounded flag is set, and if the remainder is not zero
 /// the inexact flag is also set.
 /// Flags: ROUNDED, INEXACT.
-private T getRemainder(T) (ref T x, int precision)  {
-
+private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
+{
 	T remainder = T.zero;
 	int diff = x.digits - precision;
 	if (diff <= 0) {
@@ -334,17 +338,18 @@ unittest {	// getRemainder
 /// Increments the coefficient by one.
 /// If this causes an overflow the coefficient is adjusted by clipping
 /// the last digit (it will be zero) and incrementing the exponent.
-private void incrementAndRound(T)(ref T x)  {
-
-	x.coefficient = x.coefficient + 1;
-	int digits = x.digits;
-	// if x was zero
-	if (digits == 0) {
+private void incrementAndRound(T)(ref T x) if (isDecimal!T)
+{
+	// if x is zero
+	if (x.digits == 0) {
+		x.coefficient = 1;
 		x.digits = 1;
 		return;
 	}
+	x.coefficient = x.coefficient + 1;
+	// TODO: (efficiency) is there a less expensive test?
 	if (lastDigit(x.coefficient) == 0) {
-		if (x.coefficient / pow10(digits) > 0) {
+		if (x.coefficient / pow10(x.digits) > 0) {
 			x.coefficient = x.coefficient / 10;
 			x.exponent = x.exponent + 1;
 		}
@@ -393,15 +398,6 @@ unittest {	// testFive
 	assertEqual(testFive(x),  1);
 	writeln("passed");
 }
-
-/*/// Increments the number by 1.
-/// Re-calculates the number of digits -- the increment may have caused
-/// an increase in the number of digits, i.e., input number was all 9s.
-private void increment(T)(ref T x, ref uint digits) {
-	x++;
-	// TODO: (efficiency) there should be a smarter way to do this: x > pow10(digits)?
-	digits = numDigits(x);
-}*/
 
 //-----------------------------
 // useful constants
@@ -869,7 +865,6 @@ unittest {	// lastDigit(xint)
 }
 
 /// Returns the number of trailing zeros in the argument.
-// TODO: (language) move to arithmetic
 public int trailingZeros(xint n, int digits) {
 	// shortcuts for frequent values
 	if (n ==  0) return 0;
@@ -891,7 +886,6 @@ public int trailingZeros(xint n, int digits) {
 }
 
 /// Trims any trailing zeros and returns the number of zeros trimmed.
-// TODO: (language) move this to arithmetic?
 public int trimZeros(ref xint n, int digits) {
 	int zeros = trailingZeros(n, digits);
 	if (zeros == 0) return 0;

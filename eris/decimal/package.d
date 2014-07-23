@@ -363,8 +363,6 @@ unittest {
 		writeln("passed");
 	}}
 
-   // TODO: (testing) add unittest for real value construction
-
 	// Constructs a decimal number from a different type of decimal.
 	public this(T)(T from) if (isDecimal!T) {
 		bool sign = from.isNegative;
@@ -655,6 +653,13 @@ unittest {
 	@property
 	@safe
 	xint coefficient(xint mant) {
+		this.mant = mant;
+		return this.mant;
+	}
+
+	@property
+	@safe
+	xint coefficient(long mant) {
 		this.mant = mant;
 		return this.mant;
 	}
