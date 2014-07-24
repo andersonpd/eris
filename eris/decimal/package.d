@@ -23,7 +23,8 @@ import eris.decimal.context;
 import eris.decimal.arithmetic;
 import eris.decimal.rounding;
 
-version(unittest) {
+version(unittest)
+{
 	import std.stdio;
 	import eris.assertion;
 	import eris.decimal.dec64;
@@ -151,14 +152,16 @@ unittest {
 	/// Constructs a new number given a special value and an optional sign.
 	///
 	@safe
-	public this(const SV sv, const bool sign = false) {
+	public this(const SV sv, const bool sign = false)
+	{
 		this.signed = sign;
 		this.sval = sv;
 	}
 
 	/// Creates a decimal from a boolean value.
 	/// false == 0, true == 1
-	public this(const bool value) {
+	public this(const bool value)
+	{
 		this = zero;
         if (value) {
 			mant = 1;
@@ -183,7 +186,8 @@ unittest {
 	/// The intial precision of the number is deduced from the number
 	/// of decimal digits in the coefficient.
 	//@safe
-	this(const bool sign, const xint coefficient, const int exponent = 0) {
+	this(const bool sign, const xint coefficient, const int exponent = 0)
+	{
 		this = zero();
 		this.signed = sign;
 		this.mant = coefficient.abs;
@@ -209,7 +213,8 @@ unittest {
 	/// of the coefficient. The initial precision is determined by the number
 	/// of digits in the coefficient.
 	//@safe
-	this(const xint coefficient, const int exponent = 0) {
+	this(const xint coefficient, const int exponent = 0)
+	{
 		bool sign = coefficient.sgn < 0;
 		this(sign, coefficient.abs, exponent);
 	};
@@ -228,7 +233,8 @@ unittest {
 	/// Constructs a number from a sign, a long integer coefficient and
 	/// an integer exponent.
 	//@safe
-	public this(const bool sign, const long coefficient, const int exponent) {
+	public this(const bool sign, const long coefficient, const int exponent)
+	{
 		this(sign, xint(coefficient), exponent);
 	}
 
@@ -258,12 +264,14 @@ unittest {
 
 	/// Constructs a number from a long integer coefficient
 	/// and an optional integer exponent.
-	this(const long coefficient, const int exponent) {
+	this(const long coefficient, const int exponent)
+	{
 		this(xint(coefficient), exponent);
 	}
 
 	/// Constructs a number from a long integer value
-	this(const long coefficient) {
+	this(const long coefficient)
+	{
 		this(xint(coefficient), 0);
 	}
 
@@ -279,7 +287,8 @@ unittest {
 	}}
 
 	// Constructs a decimal number from a string representation
-	this(const string str) {
+	this(const string str)
+	{
 		this = eris.decimal.conv.toNumber!decimal(str);
 	};
 
@@ -328,7 +337,8 @@ unittest {
 
 	// TODO: (efficiency) fix for small numbers (convert to long, back to real/decimal)
 	/// Constructs a decimal number from a real value.
-	this(const real r) {
+	this(const real r)
+	{
 		string str = format("%.*G", cast(int)precision, r);
 		this(str);
 	}
@@ -364,7 +374,8 @@ unittest {
 	}}
 
 	// Constructs a decimal number from a different type of decimal.
-	public this(T)(T from) if (isDecimal!T) {
+	public this(T)(T from) if (isDecimal!T)
+	{
 		bool sign = from.isNegative;
 		if (from.isFinite) this(from.sign, from.coefficient, from.exponent);
 		else if (from.isInfinite) 	this(SV.INF, sign);
@@ -389,7 +400,8 @@ unittest {
 
 	// copy constructor
 	//@safe
-	public this(const decimal that) {
+	public this(const decimal that)
+	{
 		this.signed = that.signed;
 		this.sval	= that.sval;
 		this.digits = that.digits;
@@ -403,7 +415,8 @@ unittest {
 
 	/// dup property
 	//@safe
-	public decimal dup() const {
+	public decimal dup() const
+	{
 		return decimal(this);
 	}
 
@@ -426,7 +439,8 @@ unittest {
 	/// The copy is unaffected by context and is quiet -- no flags are changed.
 	/// Implements the 'copy' function in the specification. (p. 43)
 	//@safe
-	public decimal copy() const {
+	public decimal copy() const
+	{
 		return dup;
 	}
 
@@ -434,7 +448,8 @@ unittest {
 	/// The copy is unaffected by context and is quiet -- no flags are changed.
 	/// Implements the 'copy-abs' function in the specification. (p. 44)
 	//@safe
-	public decimal copyAbs() const  {
+	public decimal copyAbs() const
+	{
 		decimal copy = dup;
 		copy.sign = false;
 		return copy;
@@ -444,7 +459,8 @@ unittest {
 	/// The copy is unaffected by context and is quiet -- no flags are changed.
 	/// Implements the 'copy-negate' function in the specification. (p. 44)
 	//@safe
-	public decimal copyNegate() const {
+	public decimal copyNegate() const
+	{
 		decimal copy = dup;
 		copy.sign = !sign;
 		return copy;
@@ -454,12 +470,14 @@ unittest {
 	/// The copy is unaffected by context and is quiet -- no flags are changed.
 	/// Implements the 'copy-sign' function in the specification. (p. 44)
 	//@safe
-	public decimal copySign()(in decimal x) const {
+	public decimal copySign()(in decimal x) const
+	{
 		decimal copy = dup;
 		copy.sign = x.sign;
 		return copy;
 	}
 
+	static if (precision == 9) {
 	unittest {	// copy
 		write("-- copy.............");
 		dec9 arg, expect;
@@ -488,13 +506,14 @@ unittest {
 		expect = -1.50;
 		assertZero(compareTotal(arg1.copySign(arg2),expect));
 		writeln("passed");
-	}
+	}}
 
 //--------------------------------
 // casts
 //--------------------------------
 
- 	bool opCast(T:bool)() const {
+ 	bool opCast(T:bool)() const
+	{
 		return isTrue;
 	}
 
@@ -533,7 +552,8 @@ unittest {
 //--------------------------------
 
 	/// Assigns a decimal number (makes a copy)
-	void opAssign(T:decimal)(in T that) {
+	void opAssign(T:decimal)(in T that)
+	{
 		this.signed  = that.signed;
 		this.sval	 = that.sval;
 		this.digits  = that.digits;
@@ -542,23 +562,27 @@ unittest {
 	}
 
 	///    Assigns an xint value.
-	void opAssign(T:xint)(in T that) {
+	void opAssign(T:xint)(in T that)
+	{
 		this = decimal(that);
 	}
 
 	/// Assigns a long value.
 	/// NOTE: Unsigned long integers are first converted to signed.
-	void opAssign(T:long)(in T that) {
+	void opAssign(T:long)(in T that)
+	{
 		this = decimal(that);
 	}
 
 	/// Assigns a floating point value.
-	void opAssign(T:real)(in T that) {
+	void opAssign(T:real)(in T that)
+	{
 		this = decimal(that);
 	}
 
 	///    Assigns a string value.
-	void opAssign(T:string)(in T that) {
+	void opAssign(T:string)(in T that)
+	{
 		this = decimal(that);
 	}
 
@@ -596,28 +620,32 @@ unittest {
 //--------------------------------
 
 	/// Converts a number to an abstract string representation.
-	public string toAbstract() const {
+	public string toAbstract() const
+	{
 		return eris.decimal.conv.toAbstract(this);
 	}
 
 	/// Converts a number to a full string representation.
-	public string toExact() const {
+	public string toExact() const
+	{
 		return eris.decimal.conv.toExact(this);
 	}
 
 	/// Converts a decimal to a "scientific" string representation.
-	public string toSciString() const {
+	public string toSciString() const
+	{
 		return eris.decimal.conv.sciForm(this);
 	}
 
 	/// Converts a decimal to an "engineering" string representation.
-	public string toEngString() const {
+	public string toEngString() const
+	{
    		return eris.decimal.conv.engForm(this);
 	}
 
 	/// Converts a number to its string representation.
-//	override
-	public string toString() const {
+	public string toString() const
+	{
 		return eris.decimal.conv.sciForm(this);
 	}
 
@@ -628,7 +656,8 @@ unittest {
 	/// Returns the exponent of this number
 	@property
 	@safe
-	int exponent() const {
+	int exponent() const
+	{
 		if (isSpecial) return 0;
 		return this.expo;
 	}
@@ -638,35 +667,40 @@ unittest {
 	/// sets the exponent of this number
 	@property
 	@safe
-	int exponent(int expo) {
+	int exponent(int expo)
+	{
 		this.expo = expo;
 		return this.expo;
 	}
 
 	@property
 	@safe
-	xint coefficient() const {
+	xint coefficient() const
+	{
 		if (isSpecial) return xint(0);
 		return this.mant.dup;
 	}
 
 	@property
 	@safe
-	xint coefficient(xint mant) {
+	xint coefficient(xint mant)
+	{
 		this.mant = mant;
 		return this.mant;
 	}
 
 	@property
 	@safe
-	xint coefficient(long mant) {
+	xint coefficient(long mant)
+	{
 		this.mant = mant;
 		return this.mant;
 	}
 
 	@property
 	@safe
-	ushort payload() const {
+	ushort payload() const
+	{
 		if (this.isNaN) {
 			return cast(ushort)(this.mant.toLong);
 		}
@@ -675,7 +709,8 @@ unittest {
 
 	@property
 	@safe
-	ushort payload(const ushort value) {
+	ushort payload(const ushort value)
+	{
 		if (this.isNaN) {
 			this.mant = xint(value);
 			return value;
@@ -686,7 +721,8 @@ unittest {
 	/// Returns the adjusted exponent of this number
 	@property
 	@safe
-	int adjustedExponent() const {
+	int adjustedExponent() const
+	{
 		if (isSpecial) return 0;
 		return expo + digits - 1;
 	}
@@ -694,20 +730,23 @@ unittest {
 	/// Returns the number of decimal digits in the coefficient of this number
 	@property
 	@safe
-	int getDigits() const {
+	int getDigits() const
+	{
 		if (isSpecial) return 0;
 		return this.digits;
 	}
 
 	@property
 	@safe
-	bool sign() const {
+	bool sign() const
+	{
 		return signed;
 	}
 
 	@property
 	@safe
-	bool sign(bool value) {
+	bool sign(bool value)
+	{
 		signed = value;
 		return signed;
 	}
@@ -718,13 +757,15 @@ unittest {
 
 	/// Returns the default value for this type (NaN)
 	@safe
-	static decimal init() {
+	static decimal init()
+	{
 		return NAN.dup;
 	}
 
 	/// Returns NaN
 	@safe
-	static decimal nan(ushort payload = 0, bool sign = false) {
+	static decimal nan(ushort payload = 0, bool sign = false)
+	{
 		decimal dec = NAN.dup;
 		dec.payload = payload;
 		dec.signed = sign;
@@ -733,7 +774,8 @@ unittest {
 
 	/// Returns signaling NaN
 	@safe
-	static decimal snan(ushort payload = 0, bool sign = false) {
+	static decimal snan(ushort payload = 0, bool sign = false)
+	{
 		decimal dec = SNAN.dup;
 		dec.payload = payload;
 		dec.signed = sign;
@@ -742,19 +784,22 @@ unittest {
 
 	/// Returns infinity.
 	@safe
-	static decimal infinity(bool signed = false) {
+	static decimal infinity(bool signed = false)
+	{
 		return signed ? NEG_INF.dup : INFINITY.dup;
 	}
 
 	/// Returns the maximum number of decimal digits in this context.
 	@safe
-	static uint dig() {
+	static uint dig()
+	{
 		return precision;
 	}
 
 	/// Returns the number of binary digits in this context.
 	@safe
-	static int mant_dig() {
+	static int mant_dig()
+	{
 		return cast(int)(precision/std.math.LOG2);
 	}
 
@@ -789,7 +834,8 @@ unittest {
 
 	/// Returns zero.
 	@safe
-	static enum decimal zero(bool signed = false) {
+	static enum decimal zero(bool signed = false)
+	{
 		return signed ? NEG_ZERO.dup : ZERO.dup;
 	}
 
@@ -800,20 +846,23 @@ unittest {
 //	}
 
 	/// Returns 1.
-	//@safe
-	static enum decimal one() {
+	@safe
+	static enum decimal one()
+	{
 		return ONE.dup;
 	}
 
 	/// Returns 2.
-	//@safe
-	static enum decimal two() {
+	@safe
+	static enum decimal two()
+	{
 		return TWO.dup;
 	}
 
 	/// Returns 1/2.
-	//@safe
-	static enum decimal half() {
+	@safe
+	static enum decimal half()
+	{
 		return HALF.dup;
 	}
 
@@ -830,13 +879,15 @@ unittest {
 
 	/// Returns true if this number's representation is canonical (always true).
 	@safe
-	const bool isCanonical() {
+	const bool isCanonical()
+	{
 		return true;
 	}
 
 	/// Returns the canonical form of the number.
 	@safe
-	const decimal canonical() {
+	const decimal canonical()
+	{
 		return this.dup;
 	}
 
@@ -852,7 +903,8 @@ unittest {
 
 	/// Returns true if this number is exactly one.
 	//@safe
-	const bool isOne() {
+	const bool isOne()
+	{
 		if (isSimpleOne) {
 			return true;
 		}
@@ -864,7 +916,8 @@ unittest {
 
 	/// Returns true if this number is exactly (false, 1, 0).
 	@safe
-	const bool isSimpleOne() {
+	const bool isSimpleOne()
+	{
 		return isFinite && !isSigned && coefficient == 1 && exponent == 0;
 	}
 
@@ -882,7 +935,8 @@ unittest {
 
 	/// Returns true if this number is + or - zero.
 	@safe
-	const bool isZero() {
+	const bool isZero()
+	{
 		return isFinite && coefficient == 0;
 	}
 
@@ -901,19 +955,22 @@ unittest {
 
 	/// Returns true if this number is a quiet or signaling NaN.
 	@safe
-	const bool isNaN() {
+	const bool isNaN()
+	{
 		return this.sval == SV.QNAN || this.sval == SV.SNAN;
 	}
 
 	/// Returns true if this number is a signaling NaN.
 	@safe
-	const bool isSignaling() {
+	const bool isSignaling()
+	{
 		return this.sval == SV.SNAN;
 	}
 
 	/// Returns true if this number is a quiet NaN.
 	@safe
-	const bool isQuiet() {
+	const bool isQuiet()
+	{
 		return this.sval == SV.QNAN;
 	}
 
@@ -938,13 +995,15 @@ unittest {
 
 	/// Returns true if this number is + or - infinity.
 	@safe
-	const bool isInfinite() {
+	const bool isInfinite()
+	{
 		return this.sval == SV.INF;
 	}
 
 	/// Returns true if this number is not an infinity or a NaN.
 	@safe
-	const bool isFinite() {
+	const bool isFinite()
+	{
 		return sval != SV.INF
 			&& sval != SV.QNAN
 			&& sval != SV.SNAN;
@@ -972,7 +1031,8 @@ unittest {
 
 	/// Returns true if this number is a NaN or infinity.
 	@safe
-	const bool isSpecial() {
+	const bool isSpecial()
+	{
 		return sval == SV.INF
 			|| sval == SV.QNAN
 			|| sval == SV.SNAN;
@@ -993,13 +1053,15 @@ unittest {
 
 	/// Returns true if this number is negative. (Includes -0)
 	@safe
-	const bool isNegative() {
+	const bool isNegative()
+	{
 		return this.signed;
 	}
 
 	/// Returns true if this number is positive. (Excludes -0)
 	@safe
-	const bool isPositive() {
+	const bool isPositive()
+	{
 		return !this.signed;
 	}
 
@@ -1023,14 +1085,16 @@ unittest {
 
 	/// Returns true if this number is subnormal.
 	@safe
-	const bool isSubnormal() {
+	const bool isSubnormal()
+	{
 		if (!isFinite) return false;
 		return adjustedExponent < minExpo;
 	}
 
 	/// Returns true if this number is normal.
 	@safe
-	const bool isNormal() {
+	const bool isNormal()
+	{
 		if (isFinite && !isZero) {
 			return adjustedExponent >= minExpo;
 		}
@@ -1060,7 +1124,8 @@ unittest {
 	}}
 
 	/// Returns true if the number is an integer (the fractional part is zero).
-	const bool isIntegralValued() {
+	const bool isIntegralValued()
+	{
 		if (isSpecial) return false;
 		if (exponent >= 0) return true;
 		int expo = -exponent;
@@ -1098,7 +1163,8 @@ unittest {
 	/// Non-zero finite numbers are true.
 	/// Infinity is true and NaN is false.
 	@safe
-	const bool isTrue() {
+	const bool isTrue()
+	{
 		return isFinite && !isZero || isInfinite;
 	}
 
@@ -1106,7 +1172,9 @@ unittest {
 	/// Finite numbers with zero coefficient are false.
 	/// Infinity is true and NaN is false.
 	@safe
-	const bool isFalse() {
+	@property
+	const bool isFalse()
+	{
 		return isNaN || isZero;
 	}
 
@@ -1161,13 +1229,15 @@ unittest {
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
 	/// or greater than the argument, respectively. NOTE: The comparison
 	/// is made to the current precision.
-	const int opCmp(T:decimal)(T that) {
+	const int opCmp(T:decimal)(T that)
+	{
 		return compare(this, that);
 	}
 
 	/// Returns -1, 0 or 1, if this number is less than, equal to,
 	/// or greater than the argument, respectively.
-	const int opCmp(T)(T that) {
+	const int opCmp(T)(T that)
+	{
 		return opCmp(decimal(that));
 	}
 
@@ -1178,12 +1248,14 @@ unittest {
 	/// Zeros are equal regardless of sign.
 	/// A NaN is not equal to any number, not even to another NaN.
 	/// A number is not even equal to itself (this != this) if it is a NaN.
-	const bool opEquals(T:decimal)(T that) {
+	const bool opEquals(T:decimal)(T that)
+	{
 		return equals(this, that);
 	}
 
 	/// Returns true if this extended integer is equal to the argument.
-	const bool opEquals(T)(T that) {
+	const bool opEquals(T)(T that)
+	{
 		return opEquals(decimal(that));
 	}
 
@@ -1212,18 +1284,23 @@ unittest {
 	/// Returns the result of performing the specified
 	/// unary operation on this number.
 	//@safe
-	private decimal opUnary(string op)() {
-		static if (op == "+") {
+	private decimal opUnary(string op)()
+	{
+		static if (op == "+")
+		{
 			return plus(this);
 		}
-		else static if (op == "-") {
+		else static if (op == "-")
+		{
 			return minus(this);
 		}
-		else static if (op == "++") {
+		else static if (op == "++")
+		{
 			this = add(this, 1);
 			return this;
 		}
-		else static if (op == "--") {
+		else static if (op == "--")
+		{
 			this = sub(this, 1);
 			return this;
 		}
@@ -1272,28 +1349,36 @@ unittest {
 	/// binary operation on this number and the argument.
 	decimal opBinary(string op, T:decimal)(in T x) const
 	{
-		static if (op == "+") {
+		static if (op == "+")
+		{
 			return add(this, x);
 		}
-		else static if (op == "-") {
+		else static if (op == "-")
+		{
 			return sub(this, x);
 		}
-		else static if (op == "*") {
+		else static if (op == "*")
+		{
 			return mul(this, x);
 		}
-		else static if (op == "/") {
+		else static if (op == "/")
+		{
 			return div(this, x);
 		}
-		else static if (op == "%") {
+		else static if (op == "%")
+		{
 			return remainder(this, x);
 		}
-		else static if (op == "&") {
+		else static if (op == "&")
+		{
 			return and(this, x);
 		}
-		else static if (op == "|") {
+		else static if (op == "|")
+		{
 			return or(this, x);
 		}
-		else static if (op == "^") {
+		else static if (op == "^")
+		{
 			return xor(this, x);
 		}
 	}
@@ -1408,28 +1493,36 @@ unittest {
 	/// binary operation on this number and the argument.
 	decimal opBinaryRight(string op, T)(in T x) const
 	{
-		static if (op == "+") {
+		static if (op == "+")
+		{
 			return add(this, x, decimal.context);
 		}
-		else static if (op == "-") {
+		else static if (op == "-")
+		{
 			return sub(decimal(x), this, decimal.context);
 		}
-		else static if (op == "*") {
+		else static if (op == "*")
+		{
 			return mul(this, x, decimal.context);
 		}
-		else static if (op == "/") {
+		else static if (op == "/")
+		{
 			return div(decimal(x), this, decimal.context);
 		}
-		else static if (op == "%") {
+		else static if (op == "%")
+		{
 			return remainder(decimal(x), this, decimal.context);
 		}
-		else static if (op == "&") {
+		else static if (op == "&")
+		{
 			return and(this, decimal(x), rounding);
 		}
-		else static if (op == "|") {
+		else static if (op == "|")
+		{
 			return or(this, decimal(x), rounding);
 		}
-		else static if (op == "^") {
+		else static if (op == "^")
+		{
 			return xor(this, decimal(x), rounding);
 		}
 	}
@@ -1440,14 +1533,16 @@ unittest {
 
 	/// Performs the specified binary operation on this number
 	/// and the argument then assigns the result to this number.
-	ref decimal opOpAssign(string op, T:decimal) (T x) {
+	ref decimal opOpAssign(string op, T:decimal) (T x)
+	{
 		this = opBinary!op(x);
 		return this;
 	}
 
 	/// Performs the specified binary operation on this number
 	/// and the argument then assigns the result to this number.
-	ref decimal opOpAssign(string op, T) (T x) {
+	ref decimal opOpAssign(string op, T) (T x)
+	{
 		this = opBinary!op(decimal(x));
 		return this;
 	}
@@ -1475,20 +1570,23 @@ unittest {
 
 	/// Returns the smallest representable number that is larger than
 	/// this number.
-	decimal nextUp() const {
+	decimal nextUp() const
+	{
 		return nextPlus(this, decimal.context);
 	}
 
 	/// Returns the largest representable number that is smaller than
 	/// this number.
-	decimal nextDown() const {
+	decimal nextDown() const
+	{
 		return nextMinus(this, decimal.context);
 	}
 
 	/// Returns the representable number that is closest to the
 	/// this number (but not this number) in the
 	/// direction toward the argument.
-	decimal nextAfter(decimal x) const {
+	decimal nextAfter(decimal x) const
+	{
 		return nextToward(this, x, decimal.context);
 	}
 
@@ -1607,7 +1705,8 @@ unittest {
 //--------------------------------
 
     /// mixin template to add a constant and a arbitrary precision constant.
-	mixin template Constant(string name) {
+	mixin template Constant(string name)
+	{
 		mixin ("public static decimal " ~ name ~ "(int precision = decimal.precision) {
 			if (precision != decimal.precision) {
 				return eris.decimal.math." ~ name ~ "!decimal(precision);
@@ -1617,7 +1716,8 @@ unittest {
 	}
 
     /// mixin template to add a constant and a arbitrary precision constant.
-	mixin template Constant(string lcName, string ucName) {
+	mixin template Constant(string lcName, string ucName)
+	{
 		mixin ("public static decimal " ~ lcName ~ "(int precision = decimal.precision) {
 			if (precision != decimal.precision) {
 				return eris.decimal.math." ~ lcName ~ "!decimal(precision);
@@ -1631,7 +1731,8 @@ unittest {
 	/// included, but no exponent is allowed.
 	/// A string of all nines will throw an exception.
 	private static string roundString(
-			string str, int precision = decimal.precision) {
+			string str, int precision = decimal.precision)
+		{
 
 		// make a copy, deleting any whitespace at ends of the string
 		char[] copy = strip(str).dup;
@@ -1692,7 +1793,8 @@ unittest {
 }	 // end struct BigDecimal
 
 /// Returns true if the parameter is a type of decimal number.
-public bool isDecimal(T)() {
+public bool isDecimal(T)()
+{
 	return std.traits.hasMember!(T, "IS_DECIMAL");
 }
 
@@ -1706,7 +1808,8 @@ unittest {
 }
 
 /// Returns true if the parameter is convertible to a decimal number.
-public bool isConvertible(T)() {
+public bool isConvertible(T)()
+{
 	return std.traits.isNumeric!T || is(T:string) || std.traits.isBoolean!T;
 }
 
