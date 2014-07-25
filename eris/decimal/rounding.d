@@ -31,14 +31,14 @@ version(unittest) {
 	import eris.assertion;
 }
 
-public T roundToPrecision(T)(in T num, Context context) if (isDecimal!T)
+public T roundToPrecision(T)(in T num, Context context, bool noFlags = false) if (isDecimal!T)
 {
-	return roundToPrecision(num, context.precision, context.rounding);
+	return roundToPrecision(num, context.precision, context.rounding, noFlags);
 }
 
 public T roundToPrecision(T)(in T num, Rounding rounding) if (isDecimal!T)
 {
-	return roundToPrecision(num, T.precision, rounding);
+	return roundToPrecision(num, T.precision, rounding, noFlags);
 }
 
 /// Rounds the referenced number using the precision and rounding mode of
@@ -46,7 +46,7 @@ public T roundToPrecision(T)(in T num, Rounding rounding) if (isDecimal!T)
 /// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 //@safe
 public T roundToPrecision(T)(in T num, int precision = T.precision,
-		Rounding rounding = T.rounding) if (isDecimal!T)
+		Rounding rounding = T.rounding, bool noFlags = false) if (isDecimal!T)
 {
 	T result = num.dup;	// copy the input
 	if (rounding == Rounding.NONE) return result;
@@ -86,13 +86,13 @@ public T roundToPrecision(T)(in T num, int precision = T.precision,
 	}
 
 	// Don't round the number if it is too large to represent
-	if (overflow(result, rounding)) {
+	if (overflow(result, rounding, noFlags)) {
 		return result;
     }
 	// round the number
 	roundByMode(result, precision, rounding);
 	// check again for an overflow
-	overflow(result, rounding);
+	overflow(result, rounding, noFlags);
 	return result;
 } // end roundToPrecision()
 
@@ -161,11 +161,14 @@ unittest {	// roundToPrecision
 /// Flags: OVERFLOW, ROUNDED, INEXACT.
 /// Precondition: number must be finite.
 //@safe
-private bool overflow(T)(ref T num,	Rounding mode = T.rounding) if (isDecimal!T)
+private bool overflow(T)(ref T num,	Rounding mode = T.rounding,
+		bool noFlags = false) if (isDecimal!T)
 {
 	if (num.adjustedExponent <= T.maxExpo) return false;
-	switch (mode) {
-		case Rounding.NONE:
+
+	switch (mode)
+	{
+		case Rounding.NONE: 	// can this branch be reached? should it be?
 		case Rounding.HALF_UP:
 		case Rounding.HALF_EVEN:
 		case Rounding.HALF_DOWN:
@@ -184,8 +187,7 @@ private bool overflow(T)(ref T num,	Rounding mode = T.rounding) if (isDecimal!T)
 		default:
 			break;
 	}
-	// TODO: (behavior) don't set flags if not rounded??
-	contextFlags.setFlags(OVERFLOW | INEXACT | ROUNDED);
+	if (!noFlags) contextFlags.setFlags(OVERFLOW | INEXACT | ROUNDED);
 	return true;
 }
 

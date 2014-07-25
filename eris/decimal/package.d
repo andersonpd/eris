@@ -98,7 +98,7 @@ unittest {
 	/// Smallest normalized exponent.
 	enum int minExpo = 1 - maxExpo;
 	/// Smallest non-normalized exponent.
-	enum int tinyExpo = 2 - maxExpo - precision;
+	enum int tinyExpo = 1 - maxExpo - precision;
 	/// Rounding mode.
 	enum Rounding rounding = context.rounding;
 

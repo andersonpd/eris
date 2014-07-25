@@ -54,114 +54,40 @@ alias xcompare = eris.integer.extended.xint.compare;
 // classification functions
 //--------------------------------
 
-	/// Returns a string indicating the class and sign of the argument.
-	/// Classes are: sNaN, NaN, Infinity, Zero, Normal, and Subnormal.
-	/// The sign of any NaN values is ignored in the classification.
-	/// The argument is not rounded and no flags are changed.
-	/// Implements the 'class' function in the specification. (p. 42)
-	public string classify(T)(T x) if (isDecimal!T)
+/// Returns a string indicating the class and sign of the argument.
+/// Classes are: sNaN, NaN, Infinity, Zero, Normal, and Subnormal.
+/// The sign of any NaN values is ignored in the classification.
+/// The argument is not rounded and no flags are changed.
+/// Implements the 'class' function in the specification. (p. 42)
+public string classify(T)(T x) if (isDecimal!T)
+{
+	if (x.isFinite)
 	{
-		if (x.isFinite) {
-			if (x.isZero) 	 { return x.sign ? "-Zero" : "+Zero"; }
-			if (x.isNormal)	 { return x.sign ? "-Normal" : "+Normal"; }
-			if (x.isSubnormal) { return x.sign ? "-Subnormal" : "+Subnormal"; }
-		}
-		if (x.isInfinite)  { return x.sign ? "-Infinity" : "+Infinity"; }
-		if (x.isSignaling) { return "sNaN"; }
-		return "NaN";
+		if (x.isZero)		{ return x.sign ? "-Zero" : "+Zero"; }
+		if (x.isNormal)		{ return x.sign ? "-Normal" : "+Normal"; }
+		if (x.isSubnormal)	{ return x.sign ? "-Subnormal" : "+Subnormal"; }
 	}
-
-	unittest {	// classify
-		write("-- classify.........");
-		dec9 x;
-		x = dec9("Inf");
-		assertEqual(classify(x), "+Infinity");
-		x = dec9("1E-10");
-		assertEqual(classify(x), "+Normal");
-		x = dec9("-0");
-		assertEqual(classify(x), "-Zero");
-		x = dec9("-0.1E-99");
-		assertEqual(classify(x), "-Subnormal");
-		x = dec9("NaN");
-		assertEqual(classify(x), "NaN");
-		x = dec9("sNaN");
-		assertEqual(classify(x), "sNaN");
-		writeln("passed");
-	}
-
-/+
-//--------------------------------
-// copy functions
-//--------------------------------
-
-/// Returns a copy of the operand.
-/// The copy is unaffected by context and is quiet -- no flags are changed.
-/// Implements the 'copy' function in the specification. (p. 43)
-//@safe
-public T copy(T)(in T x)  {
-	return x.dup;
+	if (x.isInfinite)  { return x.sign ? "-Infinity" : "+Infinity"; }
+	if (x.isSignaling) { return "sNaN"; }
+	return "NaN";
 }
 
-/// Returns a copy of the operand with a positive sign.
-/// The copy is unaffected by context and is quiet -- no flags are changed.
-/// Implements the 'copy-abs' function in the specification. (p. 44)
-//@safe
-public T copyAbs(T)(in T x)  {
-	T copy = x.dup;
-	copy.sign = false;
-	return copy;
-}
-
-/// Returns a copy of the operand with the sign inverted.
-/// The copy is unaffected by context and is quiet -- no flags are changed.
-/// Implements the 'copy-negate' function in the specification. (p. 44)
-//@safe
-public T copyNegate(T)(in T x)  {
-	T copy = x.dup;
-	copy.sign = !x.sign;
-	return copy;
-}
-
-/// Returns a copy of the first operand with the sign of the second operand.
-/// The copy is unaffected by context and is quiet -- no flags are changed.
-/// Implements the 'copy-sign' function in the specification. (p. 44)
-//@safe
-public T copySign(T)(in T x1, in T x2)  {
-	T copy = x1.dup;
-	copy.sign = x2.sign;
-	return copy;
-}
-
-unittest {	// copy
-	write("-- copy.............");
-	dec9 arg, expect;
-	arg = dec9("2.1");
-	expect = dec9("2.1");
-	assertZero(compareTotal(copy(arg),expect));
-	arg = dec9("-1.00");
-	expect = dec9("-1.00");
-	assertZero(compareTotal(copy(arg),expect));
-	// copyAbs
-	arg = 2.1;
-	expect = 2.1;
-	assertZero(compareTotal(copyAbs(arg),expect));
-	arg = dec9("-1.00");
-	expect = dec9("1.00");
-	assertZero(compareTotal(copyAbs(arg),expect));
-	// copyNegate
-	arg	= dec9("101.5");
-	expect = dec9("-101.5");
-	assertZero(compareTotal(copyNegate(arg),expect));
-	// copySign
-	dec9 arg1, arg2;
-	arg1 = 1.50; arg2 = 7.33; expect = 1.50;
-	assertZero(compareTotal(copySign(arg1, arg2),expect));
-	arg2 = -7.33;
-	expect = -1.50;
-	assertZero(compareTotal(copySign(arg1, arg2),expect));
+unittest {	// classify
+	write("-- classify.........");
+	static struct S { dec9 actual; string expect; }
+	static S[] tests =
+	[
+		{ dec9.nan,			"NaN" },
+		{ dec9.snan,		"sNaN" },
+		{ dec9.infinity,	"+Infinity" },
+		{ dec9("1E-10"),	"+Normal" },
+		{ dec9("-0"),		"-Zero" },
+		{ dec9("-0.1E-99"),	"-Subnormal" },
+	];
+	foreach (i, s; tests)
+		assertEqualIndexed(i, classify(s.actual), s.expect);
 	writeln("passed");
 }
-+/
 
 /// Returns the truncated base 10 logarithm of the argument.
 /// "...The integer which is the exponent of the magnitude
@@ -173,13 +99,13 @@ unittest {	// copy
 /// Implements the 'logb' function in the specification. (p. 47)
 public int ilogb(T)(T x) if (isDecimal!T)
 {
-	if (operandIsInvalid!T(x)) {
+	if (x.isNaN) {
+		setInvalidFlag!T();
 		return 0;
 	}
-	if (x.isInfinite) {
-		return int.max;
-	}
-	if (x.isZero) {
+	if (x.isInfinite) return int.max;
+	if (x.isZero)
+	{
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return int.min;
 	}
@@ -197,10 +123,9 @@ public int ilogb(T)(T x) if (isDecimal!T)
 public T logb(T)(T x) if (isDecimal!T)
 {
 	if (x.isNaN) return invalidOperand(x);
-
 	if (x.isInfinite) return T.infinity;
-
-	if (x.isZero) {
+	if (x.isZero)
+	{
 		contextFlags.setFlags(DIVISION_BY_ZERO);
 		return T.infinity(true);
 	}
@@ -210,15 +135,44 @@ public T logb(T)(T x) if (isDecimal!T)
 
 unittest {
 	write("-- logb.............");
-	dec9 a;
-	a = dec9("250");
-	assertEqual(logb(a), 2L);
-	a = "2.50";
-	assertEqual(logb(a), 0);
-	a = "0.03";
-	assertEqual(logb(a), -2);
-	a = 0;
-	assertEqual(logb(a), dec9.infinity(true));
+		static struct S { dec9 actual; dec9 expect; }
+		static S[] tests =
+		[
+			{ dec9(250), 	dec9(2) },
+			{ dec9("2.50"),	dec9(0) },
+			{ dec9("0.03"),	dec9(-2) },
+			{ dec9.infinity, dec9.infinity },
+			{ dec9.zero,	-dec9.infinity },
+		];
+		foreach (i, s; tests)
+		{
+			assertEqualIndexed(i, logb(s.actual), s.expect);
+		}
+		// separate tests needed because NaNs are never equal to anything.
+		static struct T { dec9 actual; string expect; }
+		static T[] ttests =
+		[
+			{ dec9.nan,		"NaN" },
+			{ dec9.snan,	"NaN" },
+		];
+		foreach (i, t; ttests)
+		{
+			assertStringEqualIndexed!dec9(i, logb(t.actual), t.expect);
+		}
+		// test ilogb
+		static struct U { dec9 actual; int expect; }
+		static U[] utests =
+		[
+			{ dec9(250), 	2 },
+			{ dec9("2.50"),	0 },
+			{ dec9("0.03"),	-2 },
+			{ dec9.infinity, int.max },
+			{ dec9.zero,	int.min },
+		];
+		foreach (i, u; utests)
+		{
+			assertEqualIndexed(i, ilogb(u.actual), u.expect);
+		}
 	writeln("passed");
 }
 
@@ -232,7 +186,7 @@ unittest {
 /// Implements the 'scaleb' function in the specification. (p. 48)
 public T scaleb(T)(T x, T y) if (isDecimal!T)
 {
-	if (x.isNaN || y.isNaN) return invalidOperands(x,y);
+	if (x.isNaN || y.isNaN) return invalidOperand(x,y);
 
 	if (x.isInfinite) return x;
 
@@ -277,19 +231,16 @@ public T reduce(T)(in T x,
 {
 	// TODO: (language) remove constness from x.
 	// special cases
-	if (operandIsInvalid(x)) return x.dup;
-
+	if (x.isNaN) return invalidOperand(x);
 	if (!x.isFinite) return x.dup;
 
 	T reduced = plus(x, context);
-
 	// have to check again -- rounding may have made it infinite
 	if (!reduced.isFinite) return reduced;
 
 	int digits = reduced.digits;
 	auto temp = reduced.coefficient;
 	int zeros = trimZeros(temp, digits);
-
 	if (zeros) {
 		reduced.coefficient = temp;
 		reduced.digits = digits - zeros;
@@ -395,7 +346,7 @@ public int sgn(T:xint)(T x) {
 public T plus(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
-	if (operandIsInvalid!T(x)) return x.dup;
+	if (x.isNaN) return invalidOperand(x);
 	return roundToPrecision(x, context);
 }
 
@@ -408,7 +359,7 @@ public T plus(T)(in T x,
 public T minus(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
-	if (operandIsInvalid!T(x)) return x.dup;
+	if (x.isNaN) return invalidOperand(x);
 	return roundToPrecision(x.copyNegate, context);
 }
 
@@ -443,11 +394,11 @@ unittest {	// plus
 /// Returns the smallest representable number that is larger than
 /// the argument.
 /// Implements the 'next-plus' function in the specification. (p. 34)
+/// Note that the overflow flag is not set by this operation.
 /// Flags: INVALID_OPERATION
 public T nextPlus(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
-
 	if (x.isNaN) return invalidOperand(x);
 
 	if (x.isInfinite) {
@@ -460,25 +411,43 @@ public T nextPlus(T)(in T x,
 	}
 	int adjustedExpo = x.exponent + x.digits - context.precision;
 	if (adjustedExpo < T.tinyExpo) {
-			return T(0L, T.tinyExpo);
+			return T(true, 0L, T.tinyExpo);
 	}
-	// (A)TODO: (behavior) must add the increment w/o setting flags
+
 	T y = T(1L, adjustedExpo);
-	T z = add(x, y, context);
+	T z = add(x, y, context, true);
 	if (z > T.max) {
 		z = T.infinity;
 	}
-	return z;
+	return roundToPrecision(z);
 }
 
+unittest {
+	write("-- nextPlus.........");
+	static struct S { string x; string plus; }
+	static S[] tests =
+	[
+		{ "1", 			 "1.00000001" },
+		{ "-1E-107", 	 "-0E-107" },
+		{ "-1.00000003", "-1.00000002" },
+		{ "-Infinity",	 "-9.99999999E+99" },
+		{ "9.99999999E+99",	 "Infinity" },	// overflow flag should not be set!
+		{ "1E+101",	 "Infinity" },
+	];
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, nextPlus(dec9(s.x)).toString, dec9(s.plus).toString);
+	}
+	writeln("passed");
+}
 /// Returns the largest representable number that is smaller than
 /// the argument.
 /// Implements the 'next-minus' function in the specification. (p. 34)
-/// Flags: INVALID_OPERATION
+/// Note that the overflow flag is not set by this operation.
+/// Flags: INVALID_OPERATION.
 public T nextMinus(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
-
 	if (x.isNaN) return invalidOperand(x);
 
 	if (x.isInfinite) {
@@ -495,23 +464,40 @@ public T nextMinus(T)(in T x,
 		return T(0L, T.tinyExpo);
 	}
 	T y = T(1L, adjustedExpo);
-	y = sub!T(x, y, context);	// TODO: (behavior) are the flags set/not set correctly?
+	y = sub!T(x, y, context);
 		if (y < T.max.copyNegate) {
 		y = T.infinity.copyNegate;
 	}
 	return y;
 }
 
+unittest {
+	write("-- nextMinus........");
+	static struct S { string x; string minus; }
+	static S[] tests =
+	[
+		{ "1", 					"0.999999999" },
+		{ "1E-107",				"0E-107" },
+		{ "-1.00000003",		"-1.00000004" },
+		{ "Infinity",			"9.99999999E+99" },
+		{ "-9.99999999E+99",	"-Infinity" },
+	];
+	foreach (i, s; tests)
+	{
+		assertEqualIndexed(i, nextMinus(dec9(s.x)).toString, dec9(s.minus).toString);
+	}
+	writeln("passed");
+}
 /// Returns the representable number that is closest to the first operand
 /// in the direction of the second operand.
 /// Implements the 'next-toward' function in the specification. (p. 34-35)
 /// Flags: INVALID_OPERATION
+// TODO: anomalous flag settings
 public T nextToward(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
-
-	T nan;
-	if (operationIsInvalid(x, y, nan)) return nan;
+   	T nan;
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 
 	// compare them but don't round
 	int comp = compare(x, y, context);
@@ -521,27 +507,8 @@ public T nextToward(T)(in T x, in T y,
 }
 
 unittest {
-	write("-- next.............");
+	write("-- nextToward.......");
 	dec9 arg, expect, actual;
-	arg = 1;
-	expect = dec9("1.00000001");
-	actual = nextPlus(arg);
-	assertEqual(actual, expect);
-	verbose = false;
-	dec9.verbose = false;
-	arg = 10;
-	expect = dec9("10.0000001");
-	actual = nextPlus(arg);
-	assertEqual(actual, expect);
-	// nextMinus
-	arg = 1;
-	expect = 0.999999999;
-	actual = nextMinus(arg);
-	assertEqual(actual, expect);
-	arg = -1.00000003;
-	expect = -1.00000004;
-	actual = nextMinus(arg);
-	assertEqual(actual, expect);
 	// nextToward
 	dec9 arg1, arg2;
 	arg1 = 1;
@@ -570,7 +537,6 @@ unittest {
 public int compare(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
-
 	// any operation with a signaling NaN is invalid.
 	// if both are signaling, return as if x > y.
 	if (x.isSignaling || y.isSignaling) {
@@ -1208,19 +1174,16 @@ unittest {
 
 // TODO: (behavior, language) these don't work because we don't want to truncate the coefficient.
 // shl is okay, but shr isn't.
-public T shl(T)(in T arg, const int n,
+public T shl(T)(in T x, const int n,
 		const Rounding rounding = T.rounding) if (isDecimal!T)
 {
-	T result = T.nan;
-	if (operandIsInvalid(arg, result)) {
-		return result;
-	}
-	result = arg;
-	with (result) {
+	if (x.isNaN) return invalidOperand(x);
+	auto y = x;
+	with (y) {
 		coefficient = coefficient << n;
 		digits = numDigits(coefficient);
 	}
-	return roundToPrecision(result, T.precision, rounding);
+	return roundToPrecision(y, T.precision, rounding);
 }
 
 unittest {	// shl
@@ -1285,8 +1248,7 @@ public T shift(T)(T x, T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	// check for NaN
-	if (x.isNaN) return invalidOperand(x);
-	if (y.isNaN) return invalidOperand(y);
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 	if (y.exponent != 0) return invalidOperand(y);
 	if (y.coefficient > context.precision ||
 		y.coefficient < -context.precision) return invalidOperand(y);
@@ -1493,12 +1455,9 @@ unittest {
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
 public T add(T)(in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+		Context context = T.context, bool noFlags = false) if (isDecimal!T)
 {
-	T nan;
-	if (operationIsInvalid(x, y, nan)) {
-		return nan;
-	}
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 
 	// if both operands are infinite...
 	if (x.isInfinite && y.isInfinite) {
@@ -1558,7 +1517,7 @@ public T add(T)(in T x, in T y,
 	sum.digits = numDigits(sum.coefficient);
 	sum.exponent = xx.exponent;
 	// round the result
-	return roundToPrecision(sum, context);
+	return roundToPrecision(sum, context, noFlags);
 }
 
 
@@ -1643,11 +1602,11 @@ public T mul(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	// if invalid, return NaN
-	if (x.isNaN || y.isNaN) return invalidOperands(x,y);
+	if (x.isNaN || y.isNaN) return invalidOperand(x,y);
 
 	// infinity * zero => invalid operation
 	if (x.isZero && y.isInfinite || x.isInfinite && y.isZero) {
-		return invalidOperands(x,y);
+		return invalidOperand(x,y);
 	}
 	// if either operand is infinite, return infinity
 	if (x.isInfinite || y.isInfinite) {
@@ -2163,8 +2122,7 @@ unittest {
 public T quantize(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
-	T nan;
-	if (operationIsInvalid(x, y, nan)) return nan;
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 
 	// if one operand is infinite and the other is not...
 	if (x.isInfinite != y.isInfinite()) {
@@ -2709,57 +2667,20 @@ package T invalidOperand(T)(in T x) if (isDecimal!T)
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package T invalidOperands(T)(in T x, in T y) if (isDecimal!T)
+package T invalidOperand(T)(in T x, in T y) if (isDecimal!T)
 {
 	// flag the invalid operation
 	contextFlags.setFlags(INVALID_OPERATION);
 	// if either operand is signaling return a quiet NaN.
 	// NOTE: sign is ignored.
-	if (x.isSignaling) return T.nan(x.payload, x.sign);
-	if (y.isSignaling) return T.nan(y.payload, y.sign);
+	if (x.isSignaling) return T.nan(x.payload);
+	if (y.isSignaling) return T.nan(y.payload);
 	// if the operand is a quiet NaN return it.
 	if (x.isQuiet) return x.dup;
 	if (y.isQuiet) return y.dup;
 	// if neither of the operands is quiet or signaling,
 	// the operands are invalid for some reason. return a quiet NaN.
 	return T.nan;
-}
-
-/// Returns true and sets the invalid-operation flag if the operand
-/// is a NaN.
-/// "The result of any arithmetic operation which has an operand
-/// which is a NaN (a quiet NaN or a signaling NaN) is [s,qNaN]
-/// or [s,qNaN,d]. The sign and any diagnostic information is copied
-/// from the first operand which is a signaling NaN, or if neither is
-/// signaling then from the first operand which is a NaN."
-/// -- General Decimal Arithmetic Specification, p. 24
-//@safe
-package bool operandIsInvalid(T)(in T x) if (isDecimal!T)
-{
-	// if the operand is a signaling NaN...
-	if (x.isNaN) {
-		// flag the invalid operation
-		contextFlags.setFlags(INVALID_OPERATION);
-		// TODO: should retain payload if signalling, but change to quiet.
-		// retain payload; convert to qNaN
-//		result = T.nan(x.payload);
-		return true;
-	}
-/*	// ...else if the operand is a quiet NaN...
-	if (x.isQuiet) {
-		// flag the invalid operation
-		contextFlags.setFlags(INVALID_OPERATION);
-		// set the result to the qNaN operand
-//		result = x;
-		return true;
-	}*/
-	// ...otherwise, no flags are set and result is unchanged
-	return false;
-}
-
-unittest {
-	write("operandIsInvalid...");
-	writeln("test missing");
 }
 
 /// Returns true and sets the invalid-operation flag if either operand
@@ -2864,7 +2785,6 @@ private bool divisionIsInvalid(T)(in T dividend, in T divisor,
 private bool divisionIsInvalid(T)(T dividend, long divisor,
 		ref T quotient) if (isDecimal!T)
 {
-
 	if (operationIsInvalid(dividend, divisor, quotient)) {
 		return true;
 	}
