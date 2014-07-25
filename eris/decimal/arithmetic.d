@@ -1762,10 +1762,9 @@ public T div(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	// check for NaN and division by zero
-	T nan;
-	if (divisionIsInvalid(x, y, nan)) {
-		return nan;
-	}
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
+	if (y.isZero) return divisionByZero(x, y);
+
 	// copy the arguments
 	auto xx = x.dup;
 	auto yy  = y.dup;
@@ -1805,10 +1804,8 @@ public T div(T,U)(T x, U n,
 		Context context = T.context) if (isDecimal!T && isIntegral!U)
 {
 	// check for NaN and division by zero
-	T nan;
-	if (divisionIsInvalid(x, T(n), nan)) {
-		return nan;
-	}
+	if (x.isNaN) return invalidOperand(x);
+	if (n == 0) return divisionByZero(x, n);
 
 	auto q = T.zero;
 
@@ -1944,15 +1941,13 @@ unittest {	// div
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
-public T divideInteger(T)(in T arg1, in T arg2)  {
-	// check for NaN or divide by zero
-	T result = T.nan;
-	if (divisionIsInvalid!T(arg1, arg2, result)) {
-		return result;
-	}
+public T divideInteger(T)(in T x, in T y)  {
+	// check for NaN and division by zero
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
+	if (y.isZero) return divisionByZero(x, y);
 
-	auto dividend = arg1.dup;
-	auto divisor  = arg2.dup;
+	auto dividend = x.dup;
+	auto divisor  = y.dup;
 	auto quotient = T.zero;
 
 	// align operands
@@ -1973,7 +1968,7 @@ public T divideInteger(T)(in T arg1, in T arg2)  {
 		return setInvalidFlag!T;
 	}
 	quotient.digits = digits;
-	return T(quotient);
+	return quotient;
 }
 
 unittest {	// divideInteger
@@ -2002,14 +1997,16 @@ unittest {	// divideInteger
 /// The sign of the remainder is the same as that of the first operand.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'remainder' function in the specification. (p. 37-38)
-public T remainder(T)(in T arg1, in T arg2,
-		in int precision = T.precision)  {
-	T quotient;
-	if (divisionIsInvalid!T(arg1, arg2, quotient)) {
-		return quotient;
-	}
-	quotient = divideInteger!T(arg1, arg2,);
-	T remainder = arg1 - mul!T(arg2, quotient, Context(precision, T.maxExpo, Rounding.NONE));
+// TODO: (behavior) do we need a context version??
+public T remainder(T)(in T x, in T y,
+		int precision = T.precision) if (isDecimal!T)
+{
+	// check for NaN and division by zero
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
+	if (y.isZero) return divisionByZero(x, y);
+
+	T quotient = divideInteger!T(x, y,);
+	T remainder = x - mul!T(y, quotient, Context(precision, T.maxExpo, Rounding.NONE));
 	return remainder;
 }
 
@@ -2057,11 +2054,10 @@ unittest {	// remainder
 /// in the General Decimal Arithmetic Specification.
 public T remainderNear(T)(in T x, in T y) if (isDecimal!T)
 {
-	T quotient;
-	if (divisionIsInvalid!T(x, y, quotient)) {
-		return quotient;
-	}
-	quotient = x/y;
+	// check for NaN and division by zero
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
+	if (y.isZero) return divisionByZero(x, y);
+	T quotient = x/y;
 	// TODO: (behavior) roundToIntegralValue?
 	T remainder = x - y * (roundToIntegralExact(quotient));
 	return remainder;
@@ -2683,63 +2679,20 @@ package T invalidOperand(T)(in T x, in T y) if (isDecimal!T)
 	return T.nan;
 }
 
-/// Returns true and sets the invalid-operation flag if either operand
-/// is a NaN.
-/// "The result of any arithmetic operation which has an operand
-/// which is a NaN (a quiet NaN or a signaling NaN) is [s,qNaN]
-/// or [s,qNaN,d]. The sign and any diagnostic information is copied
-/// from the first operand which is a signaling NaN, or if neither is
-/// signaling then from the first operand which is a NaN."
-/// -- General Decimal Arithmetic Specification, p. 24
-private bool operationIsInvalid(T)(in T x, in T y, out T nan)
-		if (isDecimal!T)
+/// Checks for invalid operands and division by zero.
+/// If found, the function sets the quotient to NaN or infinity, respectively,
+/// and returns true after setting the context flags.
+/// Also checks for zero dividend and calculates the result as needed.
+/// This is a helper function implementing checks for division by zero
+/// and invalid operation in the specification. (p. 51-52)
+// precondition: divisor is zero.
+private T divisionByZero(T)(in T dividend, in T divisor) if (isDecimal!T)
 {
-	// if either operand is a quiet NaN...
-	if (x.isQuiet || y.isQuiet) {
-		// flag the invalid operation
-		contextFlags.setFlags(INVALID_OPERATION);
-		// set the nan to the first qNaN operand
-		nan = x.isQuiet ? x : y;
-		return true;
-	}
-	// ...if either operand is a signaling NaN...
-	if (x.isSignaling || y.isSignaling) {
-		// flag the invalid operation
-		contextFlags.setFlags(INVALID_OPERATION);
-		// set the nan to the first sNaN operand
-		nan = x.isSignaling ? T.nan(x.payload) : T.nan(y.payload);
-		return true;
-	}
-	// ...otherwise, no flags are set and nan is unchanged
-	return false;
-}
-
-private bool operationIsInvalid(T)(T x, long y, out T nan)
-		if (isDecimal!T)
-{
-	// if either operand is a quiet NaN...
-	if (x.isQuiet) {
-		// flag the invalid operation
-		contextFlags.setFlags(INVALID_OPERATION);
-		// set the nan to the first qNaN operand
-		nan = x;
-		return true;
-	}
-	// ...if either operand is a signaling NaN...
-	if (x.isSignaling) {
-		// flag the invalid operation
-		contextFlags.setFlags(INVALID_OPERATION);
-		// set the nan to the first sNaN operand
-		nan = T.nan(x.payload);
-		return true;
-	}
-	// ...otherwise, no flags are set and nan is unchanged
-	return false;
-}
-
-unittest {
-	write("operationIsInvalid...");
-	writeln("test missing");
+	// division of zero by zero is undefined
+	if (dividend.isZero) return setInvalidFlag!T;
+	// set flag and return signed infinity
+	contextFlags.setFlags(DIVISION_BY_ZERO);
+	return T.infinity(dividend.sign ^ divisor.sign);
 }
 
 /// Checks for invalid operands and division by zero.
@@ -2748,68 +2701,19 @@ unittest {
 /// Also checks for zero dividend and calculates the result as needed.
 /// This is a helper function implementing checks for division by zero
 /// and invalid operation in the specification. (p. 51-52)
-private bool divisionIsInvalid(T)(in T dividend, in T divisor,
-		ref T quotient) if (isDecimal!T)
+// precondition: divisor is zero.
+private T divisionByZero(T, U)(in T dividend, U divisor)
+		if (isDecimal!T && isIntegral!U)
 {
-
-	if (operationIsInvalid(dividend, divisor, quotient)) {
-		return true;
-	}
-	if (divisor.isZero()) {
-		if (dividend.isZero()) {
-			quotient = setInvalidFlag!T;
-		}
-		else {
-			contextFlags.setFlags(DIVISION_BY_ZERO);
-			quotient = T.infinity;
-			quotient.sign = dividend.sign ^ divisor.sign;
-		}
-		return true;
-	}
-	// TODO: (behavior) what purpose does this check serve?
-	// The dividend can be zero without any difficulties, right?
-	// NOTE: this is just a short circuit to avoid dividing zero.
-/*	if (dividend.isZero()) {
-		quotient = T.zero;
-		return true;
-	}*/
-	return false;
-}
-
-/// Checks for invalid operands and division by zero.
-/// If found, the function sets the quotient to NaN or infinity, respectively,
-/// and returns true after setting the context flags.
-/// Also checks for zero dividend and calculates the result as needed.
-/// This is a helper function implementing checks for division by zero
-/// and invalid operation in the specification. (p. 51-52)
-private bool divisionIsInvalid(T)(T dividend, long divisor,
-		ref T quotient) if (isDecimal!T)
-{
-	if (operationIsInvalid(dividend, divisor, quotient)) {
-		return true;
-	}
-	if (divisor == 0) {
-		if (dividend.isZero()) {
-			quotient = setInvalidFlag!T;
-		}
-		else {
-			contextFlags.setFlags(DIVISION_BY_ZERO);
-			quotient = T.infinity;
-			quotient.sign = dividend.sign ^ (divisor < 0);
-		}
-		return true;
-	}
-	// TODO: (behavior) what purpose does this check serve?
-	// The dividend can be zero without any difficulties, right?
-/*	if (dividend.isZero()) {
-		quotient = T.zero;
-		return true;
-	}*/
-	return false;
+	// division of zero by zero is undefined
+	if (dividend.isZero) return setInvalidFlag!T;
+	// set flag and return signed infinity
+	contextFlags.setFlags(DIVISION_BY_ZERO);
+	return T.infinity(dividend.sign ^ (divisor < 0));
 }
 
 unittest {
-	write("divisionIsInvalid...");
+	write("divisionByZero......");
 	writeln("test missing");
 }
 
