@@ -186,7 +186,7 @@ unittest {
 	/// The intial precision of the number is deduced from the number
 	/// of decimal digits in the coefficient.
 	//@safe
-	this(const bool sign, const xint coefficient, const int exponent = 0)
+	this(bool sign, xint coefficient, int exponent = 0)
 	{
 		this = zero();
 		this.signed = sign;
@@ -213,11 +213,11 @@ unittest {
 	/// of the coefficient. The initial precision is determined by the number
 	/// of digits in the coefficient.
 	//@safe
-	this(const xint coefficient, const int exponent = 0)
+	this(xint coefficient, int exponent = 0)
 	{
 		bool sign = coefficient.sgn < 0;
 		this(sign, coefficient.abs, exponent);
-	};
+	}
 
 	static if (precision == 9) {
 	unittest {	// xint, int construction
@@ -233,7 +233,7 @@ unittest {
 	/// Constructs a number from a sign, a long integer coefficient and
 	/// an integer exponent.
 	//@safe
-	public this(const bool sign, const long coefficient, const int exponent)
+	public this(bool sign, long coefficient, int exponent)
 	{
 		this(sign, xint(coefficient), exponent);
 	}
@@ -264,13 +264,13 @@ unittest {
 
 	/// Constructs a number from a long integer coefficient
 	/// and an optional integer exponent.
-	this(const long coefficient, const int exponent)
+	this(long coefficient, int exponent)
 	{
 		this(xint(coefficient), exponent);
 	}
 
 	/// Constructs a number from a long integer value
-	this(const long coefficient)
+	this(long coefficient)
 	{
 		this(xint(coefficient), 0);
 	}
@@ -335,20 +335,114 @@ unittest {
 		writeln("passed");
 	}}
 
-	// TODO: (efficiency) fix for small numbers (convert to long, back to real/decimal)
-	/// Constructs a decimal number from a real value.
-	this(const real r)
+	/// Constructs a decimal number from a double value.
+	this(real r)
 	{
-		string str = format("%.*G", cast(int)precision, r);
-		this(str);
+		// if small enough, cast to double
+		if (std.math.isFinite(r))
+		{
+			if (std.math.abs(r) <= double.max)
+			{
+			this(cast(double)r);
+			}
+			else
+			{
+				// always works but it's slow
+				string str = format("%.*G", cast(int)precision, r);
+				this(str);
+			}
+		}
+		// special values
+		else if (std.math.isInfinity(r)) this(SV.INF, r < 0.0);
+		else this(SV.QNAN);
 	}
 
+	/// Constructs a decimal number from a float value.
+	// NOTE: Need this to distinguish float from double from real
+	this(float f)
+	{
+		this(cast(double)f);
+	}
+
+	// TODO: (efficiency) replace with table lookup?
+	private long ones(int n)
+	{
+		return (1L << n) - 1;
+	}
+
+	private void trimZeros(ref long f, ref int e)
+	{
+		int k = e + 52;
+		if (k > 63) return;
+		int min = 1;
+		int max = 52;
+		while (min <= max)
+		{
+			int mid = (min + max)/2;
+			long m = ones(mid);
+			if (f & m)
+			{
+				max = mid - 1;
+			}
+			else
+			{
+				min = mid + 1;
+			}
+		}
+		e += max;
+		f >>>= max;
+	}
+
+	/// Constructs a decimal number from a double value.
+	this(double r)
+	{
+		if (std.math.isFinite(r))
+		{
+			if (r == 0.0)
+			{
+				this(SV.NONE, r < 0.0);
+			}
+			else if (r == 1.0)
+			{
+				this(1);
+			}
+			else
+			{
+				std.bitmanip.DoubleRep rep;
+				rep.value = r;
+				long f = 1L << 52 | rep.fraction;
+				int e = rep.exponent;
+				e -= rep.bias + 52;
+				// TODO: there must be an exponent size that no amount of trimming would fix
+				if (!(f & 1)) trimZeros(f, e);
+				int c = std.math.abs(e);
+				if (c <= 63)
+				{
+					long x = 1L << c;
+					decimal n = decimal(f);
+					decimal d = decimal(x);
+					decimal a = (e < 0) ? n / d : n * d;
+					if (rep.sign) a = a.copyNegate;
+					this(a);
+				}
+				else
+				{
+					string str = format("%.*G", cast(int)precision, r);
+					this(str);
+				}
+			}
+		}
+		else if (std.math.isInfinity(r)) this(SV.INF, r < 0.0);
+		else this(SV.QNAN);
+	}
+
+	// TODO: (testing) need to test this with 15-17 digit precision
 	static if (precision == 9) {
-	unittest // string construction
+	unittest // real construction
 	{
 		write("-- this(real).......");
 
-		static struct S { real num; string val; }
+		static struct S { double num; string val; }
 
 		static S[] tests =
 		[
@@ -363,6 +457,11 @@ unittest {
 			{ 2147483648,	"2147483648" },
 			{ -2147483647,	"-2147483647" },
 			{ -2147483649,	"-2147483649" },
+			{ 0.0,			"0" },
+			{ -0.0,			"-0" },
+			{ 1E54,			"1E54" },
+			{ double.max, 	"21.79769313E+305" },
+			{ real.max, 	"Infinity" },
 			{ real.infinity, "Infinity" },
 		];
 
@@ -372,6 +471,34 @@ unittest {
 		}
 		writeln("passed");
 	}}
+
+	// TODO: (efficiency) replace with table lookup
+	public double dpow10(int n)
+	{
+		return 10.0 ^^ n;
+	}
+
+	public double toDouble() {
+		if (digits <= 15) {
+			int absExpo = std.math.abs(expo);
+			if (absExpo <= 22) {
+				double s = cast(double)(coefficient.toLong);
+				if (absExpo == 0) return s;
+				double p = dpow10(absExpo);
+				if (expo > 0) return s * p;
+				if (expo < 0) return s / p;
+			}
+		}
+		return double.nan;
+	}
+
+	// TODO: (testing) add unit tests
+	unittest {
+		write("toDouble...");
+		dec9 x = "3.14159";
+//		writefln("x.toDouble = %s", x.toDouble);
+		writeln("test missing");
+	}
 
 	// Constructs a decimal number from a different type of decimal.
 	public this(T)(T from) if (isDecimal!T)
@@ -562,7 +689,7 @@ unittest {
 	}
 
 	///    Assigns an xint value.
-	void opAssign(T:xint)(in T that)
+	void opAssign(T:xint)(T that)
 	{
 		this = decimal(that);
 	}
@@ -1815,7 +1942,6 @@ public bool isConvertible(T)()
 
 unittest {
 	write("-- isConvertible...");
-	dec9 dummy;
 	assertTrue(isConvertible!int);
 	assertTrue(isConvertible!bool);
 	assertTrue(isConvertible!string);

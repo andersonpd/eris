@@ -29,10 +29,10 @@
 
 module eris.decimal.arithmetic;
 
-import eris.integer.extended;
 import std.string;
 import std.traits : isIntegral;
 
+import eris.integer.extended;
 import eris.decimal;
 import eris.decimal.context;
 import eris.decimal.rounding;
@@ -100,7 +100,7 @@ unittest {	// classify
 public int ilogb(T)(T x) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		setInvalidFlag!T();
+		invalidOperation!T;
 		return 0;
 	}
 	if (x.isInfinite) return int.max;
@@ -1281,7 +1281,7 @@ public T shift(T)(T x, int n,
 
 	// shifting by more than precision is invalid.
 	if (n < -precision || n > precision) {
-		return setInvalidFlag!T;
+		return invalidOperation!T;
 	}
 
 	if (n > 0) {
@@ -1369,7 +1369,7 @@ public T rotate(T)(T x, int n,
 
 	// shifting by more than precision is invalid.
 	if (n < -precision || n > precision) {
-		return setInvalidFlag!T;
+		return invalidOperation!T;
 	}
     // clip leading digits
 	if (x.digits > precision){
@@ -1463,7 +1463,7 @@ public T add(T)(in T x, in T y,
 	if (x.isInfinite && y.isInfinite) {
 		// if the signs differ return NaN and set invalid operation flag
 		if (x.sign != y.sign) {
-			return setInvalidFlag!T;
+			return invalidOperation!T;
 		}
 		// both infinite with same sign, return the first
 		return x.dup;
@@ -1942,7 +1942,10 @@ unittest {	// div
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
 public T divideInteger(T)(in T x, in T y)  {
-	// check for NaN and division by zero
+	T quo;
+	remquo(x,y,quo);
+	return quo;
+/*	// check for NaN and division by zero
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 	if (y.isZero) return divisionByZero(x, y);
 
@@ -1965,10 +1968,54 @@ public T divideInteger(T)(in T x, in T y)  {
 	// number of digits cannot exceed precision
 	int digits = numDigits(quotient.coefficient);
 	if (digits > T.precision) {
-		return setInvalidFlag!T;
+		return invalidOperation!T;
 	}
 	quotient.digits = digits;
-	return quotient;
+	return quotient;*/
+}
+
+// TODO: (behavior) Does this implement the actual spec operation?
+/// Divides the first operand by the second and returns the integer portion
+/// of the quotient.
+/// Division by zero sets a flag and returns infinity.
+/// The result may be rounded and context flags may be set.
+/// Implements the 'divide-integer' function in the specification. (p. 30)
+public T remquo(T)(in T x, in T y, out T quotient)  {
+	// check for NaN and division by zero
+	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
+	if (y.isZero) return divisionByZero(x, y);
+
+	auto dividend = x.dup;
+	auto divisor  = y.dup;
+	quotient.sign = dividend.sign ^ divisor.sign;
+	if (x.isZero) {
+		quotient = T.zero(quotient.sign);
+		return quotient.dup;
+	}
+//    auto remainder = T.zero;
+
+	// align operands
+	int diff = dividend.exponent - divisor.exponent;
+	if (diff < 0) {
+		divisor.coefficient = shiftLeft(divisor.coefficient, -diff);
+	}
+	if (diff > 0) {
+		dividend.coefficient = shiftLeft(dividend.coefficient, diff);
+	}
+	xint div, mod;
+	div = eris.integer.extended.xint.divmod(dividend.coefficient, divisor.coefficient, mod);
+	quotient = T(div);
+	T remainder = T(mod);
+	// number of digits cannot exceed precision
+	int digits = numDigits(quotient.coefficient);
+	if (digits > T.precision) {
+		remainder = T.nan;
+		return invalidOperation!T;
+	}
+	quotient.digits = digits;
+	remainder.digits = numDigits(remainder.coefficient);
+	remainder.sign = quotient.sign;
+	return remainder;
 }
 
 unittest {	// divideInteger
@@ -2121,38 +2168,38 @@ public T quantize(T)(in T x, in T y,
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 
 	// if one operand is infinite and the other is not...
-	if (x.isInfinite != y.isInfinite()) {
-		return setInvalidFlag!T;
+	if (x.isInfinite != y.isInfinite) {
+		return invalidOperation!T;
 	}
 	// if both arguments are infinite
-	if (x.isInfinite() && y.isInfinite()) {
+	if (x.isInfinite && y.isInfinite) {
 		return x.dup;
 	}
-	T result = x.dup;
+	T z = x.dup;
 	int diff = x.exponent - y.exponent;
 
 	if (diff == 0) {
-		return result;
+		return z;
 	}
 
 	// TODO: (behavior) this shift can cause integer overflow for fixed size decimals
 	if (diff > 0) {
-		result.coefficient = shiftLeft(result.coefficient, diff/*, precision*/);
-		result.digits = result.digits + diff;
-		result.exponent = y.exponent;
-		if (result.digits > T.precision) {
-			result = T.nan;
+		z.coefficient = shiftLeft(z.coefficient, diff/*, precision*/);
+		z.digits = z.digits + diff;
+		z.exponent = y.exponent;
+		if (z.digits > T.precision) {
+			z = T.nan;
 		}
-		return result;
+		return z;
 	}
 	else {
 		int precision = (-diff > x.digits) ? 0 : x.digits + diff;
-		result = roundToPrecision(result, precision, context.rounding);
-		result.exponent = y.exponent;
-		if (result.isZero && x.isSigned) {
-			result.sign = true;
+		z = roundToPrecision(z, precision, context.rounding);
+		z.exponent = y.exponent;
+		if (z.isZero && x.isSigned) {
+			z.sign = true;
 		}
-		return result;
+		return z;
 	}
 }
 
@@ -2247,7 +2294,7 @@ public T roundToIntegralExact(T)(in T x,
 		in Rounding rounding = Rounding.HALF_EVEN) if (isDecimal!T)
 {
 	T result = x.dup;
-	if (result.isSignaling) return setInvalidFlag!T;
+	if (result.isSignaling) return invalidOperation!T;
 	if (result.isSpecial) return result;
 	if (result.exponent >= 0) return result;
 
@@ -2303,7 +2350,7 @@ public T roundToIntegralValue(T)(in T arg,
 		const Rounding rounding = T.rounding) if (isDecimal!T)
 {
 	T result = arg.dup;
-	if (result.isSignaling) return setInvalidFlag!T;
+	if (result.isSignaling) return invalidOperation!T;
 	if (result.isSpecial) return result;
 	if (result.exponent >= 0) return result;
 
@@ -2388,22 +2435,16 @@ public bool isLogical(T)(in T arg) if (isDecimal!T)
 /// a valid logical decimal number.
 /// The sign and exponent must both be zero, and all decimal digits
 /// in the coefficient must be either '1' or '0'.
-private bool isLogicalOperand(T)(in T arg, out string str)
-		if (isDecimal!T)
+private bool isLogicalOperand(T)(T x, string str) if (isDecimal!T)
 {
-	if (arg.sign != 0 || arg.exponent != 0) return false;
-	str = arg.coefficient.toString;
+	if (x.sign != 0 || x.exponent != 0) return false;
 	return isLogicalString(str);
 }
 
 unittest {	// logical string/number tests
-//	import decimal.dec32;
  	write("-- logical tests....");
 	assertTrue(isLogicalString("010101010101"));
 	assertTrue(isLogical(dec9("1010101")));
-//	string str;
-//	assert(isLogicalOperand(Dec32("1010101"), str));
-//	assert(str == "1010101");
 	writeln("passed");
 }
 
@@ -2413,23 +2454,21 @@ unittest {	// logical string/number tests
 
 /// Inverts and returns a decimal logical number.
 /// Implements the 'invert' function in the specification. (p. 44)
-public T invert(T)(T arg) if (isDecimal!T)
+public T invert(T)(T x) if (isDecimal!T)
 {
-	string str;
-	if (!isLogicalOperand(arg, str)) {
-		contextFlags.setFlags(INVALID_OPERATION);
-		return T.nan;
-	}
-	return T(invert(str));
+	string xstr = x.coefficient.toString;
+	if (!isLogicalOperand(x, xstr))	return invalidOperand(x);
+	return T(invert(xstr));
 }
 
 /// Inverts and returns a logical string.
 /// Each '1' is changed to a '0', and vice versa.
-private T invert(T: string)(T arg)
+private T invert(T: string)(T str)
 {
-	char[] result = new char[arg.length];
-	for(int i = 0; i < arg.length; i++) {
-		result[i] = arg[i] == '0' ? '1' : '0';
+	char[] result = new char[str.length];
+	for(int i = 0; i < str.length; i++)
+	{
+		result[i] = str[i] == '0' ? '1' : '0';
 	}
 	return result.idup;
 }
@@ -2456,23 +2495,23 @@ unittest {	// inverse
 private T opLogical(string op, T)(in T x, in T y)
 		if (isDecimal!T)
 {
-	int precision = T.precision;
-	string str1;
-	if (!isLogicalOperand(x, str1)) {
-		return setInvalidFlag!T;
+//	int precision = T.precision;
+	string xstr = x.coefficient.toString;
+	if (!isLogicalOperand(x, xstr)) {
+		return invalidOperation!T;
 	}
-	string str2;
-	if (!isLogicalOperand(y, str2)) {
-		return setInvalidFlag!T;
+	string ystr = y.coefficient.toString;
+	if (!isLogicalOperand(y, ystr)) {
+		return invalidOperation!T;
 	}
 	static if (op == "and") {
-		string str = and(str1, str2);
+		string str = and(xstr, ystr);
 	}
 	static if (op == "or") {
-		string str = or(str1, str2);
+		string str = or(xstr, ystr);
 	}
 	static if (op == "xor") {
-		string str = xor(str1, str2);
+		string str = xor(xstr, ystr);
 	}
 	return T(str);
 }
@@ -2521,37 +2560,37 @@ T and(T: string)(in T x, in T y)
 /// Implements the 'or' function in the specification. (p. 47)
 public T or(T)(in T x, in T y) if (isDecimal!T)
 {
-	return opLogical!("or", T)(x, y/*, context*/);
+	return opLogical!("or", T)(x, y);
 }
 
 /// Performs a logical 'or' of the (string) arguments and returns the result
-T or(T: string)(in T x, in T y)
+private T or(T: string)(T xstr, T ystr)
 {
 	string str1, str2;
 	int length;
-	if (x.length > y.length) {
-		length = x.length;
-		str1 = x;
-		str2 = rightJustify(y, x.length, '0');
+	if (xstr.length > ystr.length) {
+		length = xstr.length;
+		str1 = xstr;
+		str2 = rightJustify(ystr, xstr.length, '0');
 	}
-	if (x.length < y.length) {
-		length = y.length;
-		str1 = rightJustify(x, y.length, '0');
-		str2 = y;
+	if (xstr.length < ystr.length) {
+		length = ystr.length;
+		str1 = rightJustify(xstr, ystr.length, '0');
+		str2 = ystr;
 	} else {
-		length = x.length;
-		str1 = x;
-		str2 = y;
+		length = xstr.length;
+		str1 = xstr;
+		str2 = ystr;
 	}
-	char[] result = new char[length];
+	char[] zstr = new char[length];
 	for(int i = 0; i < length; i++) {
 		if (str1[i] == '1' || str2[i] == '1') {
-			result[i] = '1';
+			zstr[i] = '1';
 		} else {
-			result[i] = '0';
+			zstr[i] = '0';
 		}
 	}
-	return result.idup;
+	return zstr.idup;
 }
 
 /// Performs a logical 'xor' of the arguments and returns the result
@@ -2612,18 +2651,14 @@ unittest { // binary logical ops
 
 /// Sets the invalid-operation flag and returns a quiet NaN.
 // TODO: combine this with invalidOperand?
-private T setInvalidFlag(T)(bool sign = false, ushort payload = 0)
+private T invalidOperation(T)(ushort payload = 0)
 		if (isDecimal!T)
 {
 	contextFlags.setFlags(INVALID_OPERATION);
-//	T result = T.nan(payload, sign);
-//	if (payload != 0) {
-//		result.payload = payload;
-//	}
-	return T.nan(payload, sign);
+	return T.nan(payload);
 }
 
-unittest {	// setInvalidFlag
+unittest {	// invalidOperation
 /*	dec9 arg, expect, actual;
 	// TODO: (testing) Can't actually test payloads at this point.
 	arg = dec9("sNaN123");
@@ -2680,25 +2715,23 @@ package T invalidOperand(T)(in T x, in T y) if (isDecimal!T)
 }
 
 /// Checks for invalid operands and division by zero.
-/// If found, the function sets the quotient to NaN or infinity, respectively,
-/// and returns true after setting the context flags.
-/// Also checks for zero dividend and calculates the result as needed.
+/// If found, the function returns NaN or infinity, respectively,
+/// and sets the context flags.
 /// This is a helper function implementing checks for division by zero
 /// and invalid operation in the specification. (p. 51-52)
 // precondition: divisor is zero.
 private T divisionByZero(T)(in T dividend, in T divisor) if (isDecimal!T)
 {
 	// division of zero by zero is undefined
-	if (dividend.isZero) return setInvalidFlag!T;
+	if (dividend.isZero) return invalidOperation!T;
 	// set flag and return signed infinity
 	contextFlags.setFlags(DIVISION_BY_ZERO);
 	return T.infinity(dividend.sign ^ divisor.sign);
 }
 
 /// Checks for invalid operands and division by zero.
-/// If found, the function sets the quotient to NaN or infinity, respectively,
-/// and returns true after setting the context flags.
-/// Also checks for zero dividend and calculates the result as needed.
+/// If found, the function returns NaN or infinity, respectively,
+/// and sets the context flags.
 /// This is a helper function implementing checks for division by zero
 /// and invalid operation in the specification. (p. 51-52)
 // precondition: divisor is zero.
@@ -2706,7 +2739,7 @@ private T divisionByZero(T, U)(in T dividend, U divisor)
 		if (isDecimal!T && isIntegral!U)
 {
 	// division of zero by zero is undefined
-	if (dividend.isZero) return setInvalidFlag!T;
+	if (dividend.isZero) return invalidOperation!T;
 	// set flag and return signed infinity
 	contextFlags.setFlags(DIVISION_BY_ZERO);
 	return T.infinity(dividend.sign ^ (divisor < 0));
