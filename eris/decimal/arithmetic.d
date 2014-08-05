@@ -249,12 +249,12 @@ public T reduce(T)(in T x,
 	return reduced;
 }
 
-// just a wrapper
+/*// just a wrapper
 public T normalize(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
 	return reduce(x, context);
-}
+}*/
 
 unittest {	// reduce
 	write("-- reduce...........");

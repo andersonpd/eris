@@ -296,7 +296,7 @@ unittest {
 	unittest {	// string construction
 		write("-- this(string).....");
 		dec9 num;
-		num = std.math.E;
+		num = cast(double)std.math.E;
 		string str = "2.71828183";
 		assertStringEqual(num,str);
 		num = std.math.LOG2;
@@ -335,51 +335,82 @@ unittest {
 		writeln("passed");
 	}}
 
-	/// Constructs a decimal number from a double value.
+	private enum struct RealRep
+	{
+		union
+		{
+			real value;
+			struct
+			{
+				ulong fraction;
+				mixin(std.bitmanip.bitfields!(
+					ushort,  "exponent", 15,
+					bool,    "sign",      1));
+			}
+		}
+		enum uint bias = 16383, signBits = 1, exponentBits = 15,
+				integerBits = 1, fractionBits = 63;
+	}
+
+	/// Constructs a decimal number from a real value.
 	this(real r)
 	{
-		// if small enough, cast to double
-		if (std.math.isFinite(r))
+		static if (real.sizeof == 8)	// if real and double are the same size
 		{
-			if (std.math.abs(r) <= double.max)
-			{
 			this(cast(double)r);
+		}
+		else static if (real.sizeof == 10)
+		{
+			// finite numbers
+			if (std.math.isFinite(r))
+			{
+				RealRep rep;
+				rep.value = r;
+				ulong f = rep.fraction;
+				int e = rep.exponent;
+				e -= rep.bias + rep.fractionBits;
+				this(r, f, e, rep.sign, 20);
+			}
+			// special values
+			else if (std.math.isInfinity(r))
+			{
+				this(SV.INF, r < 0.0);
 			}
 			else
 			{
-				// always works but it's slow
-				string str = format("%.*G", cast(int)precision, r);
-				this(str);
+				this(SV.QNAN);
 			}
 		}
-		// special values
-		else if (std.math.isInfinity(r)) this(SV.INF, r < 0.0);
-		else this(SV.QNAN);
+		else	// real.sizeof != 10 && != 8. Shouldn't happen
+		{
+			// always works but it's slow
+			string str = format("%.*G", real.dig, r);
+			this(str);
+		}
 	}
 
-	/// Constructs a decimal number from a float value.
-	// NOTE: Need this to distinguish float from double from real
-	this(float f)
-	{
-		this(cast(double)f);
-	}
+	unittest {
+	writeln("this(real)...");
+writefln("dec9(std.math.PI)  = %s", dec9(std.math.PI));
+writefln("-dec9(std.math.PI) = %s", dec9(-std.math.PI));
+	writeln("test missing");
+}
 
 	// TODO: (efficiency) replace with table lookup?
-	private long ones(int n)
+	static private long ones(int n)
 	{
 		return (1L << n) - 1;
 	}
 
-	private void trimZeros(ref long f, ref int e)
+	private static int countZeros(ulong f, int e)
 	{
-		int k = e + 52;
-		if (k > 63) return;
 		int min = 1;
-		int max = 52;
+		int max = 64;
 		while (min <= max)
 		{
 			int mid = (min + max)/2;
 			long m = ones(mid);
+			// TODO: if there was a way to identify the right one we could exit here
 			if (f & m)
 			{
 				max = mid - 1;
@@ -389,51 +420,111 @@ unittest {
 				min = mid + 1;
 			}
 		}
-		e += max;
-		f >>>= max;
+		return max;
+	}
+
+	private static void trimZeros(ref ulong f, ref int e) //, int max)
+	{
+		int zeros = countZeros(f, e);
+		if (zeros < 64) {
+			e += zeros;
+			f >>>= zeros;
+		}
+	}
+
+	this(real r, ulong frac, int expo, bool sign, int typePrecision)
+	{
+		if (!(frac & 1)) trimZeros(frac, expo);
+		int c = std.math.abs(expo);
+		if (c <= 63)
+		{
+			// integer coefficient
+			decimal n = decimal(xint(frac));
+			if (sign) n = n.copyNegate;
+			// scale factor
+			decimal scale = decimal(1L << c);
+			// multiply or divide
+			if (expo < 0)
+			{
+				this(n/scale);
+			}
+			else
+			{
+				this(n*scale);
+			}
+		}
+		else
+		{
+			string str = format("%.*G", typePrecision, r);
+			this(str);
+		}
 	}
 
 	/// Constructs a decimal number from a double value.
-	this(double r)
+	this(double dbl)
 	{
-		if (std.math.isFinite(r))
+		if (std.math.isFinite(dbl))
 		{
-			if (r == 0.0)
+			if (dbl == 0.0)
 			{
-				this(SV.NONE, r < 0.0);
+				this(SV.NONE, dbl < 0.0);
 			}
-			else if (r == 1.0)
+			else if (std.math.abs(dbl) == 1.0)
 			{
-				this(1);
+				this((dbl < 0.0) ? -1 : 1);
 			}
 			else
 			{
 				std.bitmanip.DoubleRep rep;
-				rep.value = r;
-				long f = 1L << 52 | rep.fraction;
+				rep.value = dbl;
+				ulong f = 1L << rep.fractionBits | rep.fraction;
 				int e = rep.exponent;
-				e -= rep.bias + 52;
-				// TODO: there must be an exponent size that no amount of trimming would fix
-				if (!(f & 1)) trimZeros(f, e);
-				int c = std.math.abs(e);
-				if (c <= 63)
-				{
-					long x = 1L << c;
-					decimal n = decimal(f);
-					decimal d = decimal(x);
-					decimal a = (e < 0) ? n / d : n * d;
-					if (rep.sign) a = a.copyNegate;
-					this(a);
-				}
-				else
-				{
-					string str = format("%.*G", cast(int)precision, r);
-					this(str);
-				}
+				e -= rep.bias + rep.fractionBits;
+				this(dbl, f, e, rep.sign, 18);
 			}
 		}
-		else if (std.math.isInfinity(r)) this(SV.INF, r < 0.0);
-		else this(SV.QNAN);
+		else if (std.math.isInfinity(dbl))
+		{
+			this(SV.INF, dbl < 0.0);
+		}
+		else
+		{
+			this(SV.QNAN);
+		}
+	}
+
+	/// Constructs a decimal number from a float value.
+	// NOTE: Need this to distinguish float from double from real
+	this(float flt)
+	{
+		if (std.math.isFinite(flt))
+		{
+			if (flt == 0.0)
+			{
+				this(SV.NONE, flt < 0.0);
+			}
+			else if (std.math.abs(flt) == 1.0)
+			{
+				this((flt < 0.0) ? -1 : 1);
+			}
+			else
+			{
+				std.bitmanip.FloatRep rep;
+				rep.value = flt;
+				ulong f = 1L << rep.fractionBits | rep.fraction;
+				int e = rep.exponent;
+				e -= rep.bias + rep.fractionBits;
+				this(flt, f, e, rep.sign, 9);
+			}
+		}
+		else if (std.math.isInfinity(flt))
+		{
+			this(SV.INF, flt < 0.0);
+		}
+		else
+		{
+			this(SV.QNAN);
+		}
 	}
 
 	// TODO: (testing) need to test this with 15-17 digit precision
@@ -444,6 +535,7 @@ unittest {
 
 		static struct S { double num; string val; }
 
+writefln("dec9(cast(double)std.math.PI) = %s", dec9(cast(double)std.math.PI));
 		static S[] tests =
 		[
 			{ 7254E94,		"7.254E+97" },
@@ -473,12 +565,14 @@ unittest {
 	}}
 
 	// TODO: (efficiency) replace with table lookup
-	public double dpow10(int n)
+	static public double dpow10(int n)
 	{
 		return 10.0 ^^ n;
 	}
 
-	public double toDouble() {
+	public double toDouble() const
+	{
+		// try for an exact conversion...
 		if (digits <= 15) {
 			int absExpo = std.math.abs(expo);
 			if (absExpo <= 22) {
@@ -489,6 +583,7 @@ unittest {
 				if (expo < 0) return s / p;
 			}
 		}
+		// TODO: (behavior) add method for other values
 		return double.nan;
 	}
 
@@ -731,7 +826,7 @@ unittest {
 		str = "237";
 		assertStringEqual(num,str);
 		num = real.max;
-		str = "1.1897315E+4932";
+		str = "1.1897314953572317649E+4932";
 		assertStringEqual(num, str);
 		num = xint("123456098420234978023480");
 		str = "123456098420234978023480";
