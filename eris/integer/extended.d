@@ -19,7 +19,6 @@ import std.ascii;
 import std.conv;
 import std.format;
 import std.string;
-import std.traits;
 
 import eris.integer.digits;
 import eris.integer.exception;

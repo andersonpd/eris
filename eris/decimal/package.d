@@ -16,7 +16,7 @@ module eris.decimal;
 
 import std.conv;
 import std.string;
-//import std.traits;
+import std.traits;
 
 import eris.integer.extended;
 import eris.decimal.context;
@@ -353,48 +353,56 @@ unittest {
 	}
 
 	/// Constructs a decimal number from a real value.
-	this(real r)
+	this(T)(T r) if (isFloatingPoint!T)
 	{
-		static if (real.sizeof == 8)	// if real and double are the same size
+		static if (T.sizeof == 10)	// 80-bit real
 		{
-			this(cast(double)r);
+			RealRep rep;
 		}
-		else static if (real.sizeof == 10)
+		else static if (T.sizeof == 8)	// 64-bit double
 		{
-			// finite numbers
-			if (std.math.isFinite(r))
+			std.bitmanip.DoubleRep rep;
+		}
+		else static if (T.sizeof == 4)	// 32-bit float
+		{
+			std.bitmanip.FloatRep rep;
+		}
+		else // Shouldn't reach here
+		{
+			// always works but it's slow
+			string str = format("%.20G", r);
+			this(str);
+		}
+
+		// finite numbers
+		if (std.math.isFinite(r))
+		{
+			if (r == 0.0)
 			{
-				RealRep rep;
-				rep.value = r;
-				ulong f = rep.fraction;
-				int e = rep.exponent;
-				e -= rep.bias + rep.fractionBits;
-				this(r, f, e, rep.sign, 20);
+				this(SV.NONE, r < 0.0);
 			}
-			// special values
-			else if (std.math.isInfinity(r))
+			else if (std.math.abs(r) == 1.0)
 			{
-				this(SV.INF, r < 0.0);
+				this((r < 0.0) ? -1 : 1);
 			}
 			else
 			{
-				this(SV.QNAN);
+				rep.value = r;
+				ulong f = 1L << rep.fractionBits | rep.fraction;
+				int e = rep.exponent - rep.bias - rep.fractionBits;
+				this(r, f, e, rep.sign);
 			}
 		}
-		else	// real.sizeof != 10 && != 8. Shouldn't happen
+		// special values
+		else if (std.math.isInfinity(r))
 		{
-			// always works but it's slow
-			string str = format("%.*G", real.dig, r);
-			this(str);
+			this(SV.INF, r < 0.0);
+		}
+		else
+		{
+			this(SV.QNAN);
 		}
 	}
-
-	unittest {
-	writeln("this(real)...");
-writefln("dec9(std.math.PI)  = %s", dec9(std.math.PI));
-writefln("-dec9(std.math.PI) = %s", dec9(-std.math.PI));
-	writeln("test missing");
-}
 
 	// TODO: (efficiency) replace with table lookup?
 	static private long ones(int n)
@@ -432,7 +440,8 @@ writefln("-dec9(std.math.PI) = %s", dec9(-std.math.PI));
 		}
 	}
 
-	this(real r, ulong frac, int expo, bool sign, int typePrecision)
+	this(T)(T r, ulong frac, int expo, bool sign)
+		if (isFloatingPoint!T)
 	{
 		if (!(frac & 1)) trimZeros(frac, expo);
 		int c = std.math.abs(expo);
@@ -455,75 +464,9 @@ writefln("-dec9(std.math.PI) = %s", dec9(-std.math.PI));
 		}
 		else
 		{
-			string str = format("%.*G", typePrecision, r);
+			string str = format("%.20G", r);
+//writefln("str = %s", str);
 			this(str);
-		}
-	}
-
-	/// Constructs a decimal number from a double value.
-	this(double dbl)
-	{
-		if (std.math.isFinite(dbl))
-		{
-			if (dbl == 0.0)
-			{
-				this(SV.NONE, dbl < 0.0);
-			}
-			else if (std.math.abs(dbl) == 1.0)
-			{
-				this((dbl < 0.0) ? -1 : 1);
-			}
-			else
-			{
-				std.bitmanip.DoubleRep rep;
-				rep.value = dbl;
-				ulong f = 1L << rep.fractionBits | rep.fraction;
-				int e = rep.exponent;
-				e -= rep.bias + rep.fractionBits;
-				this(dbl, f, e, rep.sign, 18);
-			}
-		}
-		else if (std.math.isInfinity(dbl))
-		{
-			this(SV.INF, dbl < 0.0);
-		}
-		else
-		{
-			this(SV.QNAN);
-		}
-	}
-
-	/// Constructs a decimal number from a float value.
-	// NOTE: Need this to distinguish float from double from real
-	this(float flt)
-	{
-		if (std.math.isFinite(flt))
-		{
-			if (flt == 0.0)
-			{
-				this(SV.NONE, flt < 0.0);
-			}
-			else if (std.math.abs(flt) == 1.0)
-			{
-				this((flt < 0.0) ? -1 : 1);
-			}
-			else
-			{
-				std.bitmanip.FloatRep rep;
-				rep.value = flt;
-				ulong f = 1L << rep.fractionBits | rep.fraction;
-				int e = rep.exponent;
-				e -= rep.bias + rep.fractionBits;
-				this(flt, f, e, rep.sign, 9);
-			}
-		}
-		else if (std.math.isInfinity(flt))
-		{
-			this(SV.INF, flt < 0.0);
-		}
-		else
-		{
-			this(SV.QNAN);
 		}
 	}
 
@@ -533,9 +476,10 @@ writefln("-dec9(std.math.PI) = %s", dec9(-std.math.PI));
 	{
 		write("-- this(real).......");
 
-		static struct S { double num; string val; }
+		static struct S { real num; string val; }
+		static struct T { double num; string val; }
+		static struct U { float num; string val; }
 
-writefln("dec9(cast(double)std.math.PI) = %s", dec9(cast(double)std.math.PI));
 		static S[] tests =
 		[
 			{ 7254E94,		"7.254E+97" },
@@ -553,7 +497,7 @@ writefln("dec9(cast(double)std.math.PI) = %s", dec9(cast(double)std.math.PI));
 			{ -0.0,			"-0" },
 			{ 1E54,			"1E54" },
 			{ double.max, 	"21.79769313E+305" },
-			{ real.max, 	"Infinity" },
+			{ real.max, 	"1.1897314953572317649E+4932" },
 			{ real.infinity, "Infinity" },
 		];
 
@@ -2017,7 +1961,7 @@ writefln("dec9(cast(double)std.math.PI) = %s", dec9(cast(double)std.math.PI));
 /// Returns true if the parameter is a type of decimal number.
 public bool isDecimal(T)()
 {
-	return std.traits.hasMember!(T, "IS_DECIMAL");
+	return hasMember!(T, "IS_DECIMAL");
 }
 
 unittest {
@@ -2032,7 +1976,7 @@ unittest {
 /// Returns true if the parameter is convertible to a decimal number.
 public bool isConvertible(T)()
 {
-	return std.traits.isNumeric!T || is(T:string) || std.traits.isBoolean!T;
+	return isNumeric!T || is(T:string) || isBoolean!T;
 }
 
 unittest {
