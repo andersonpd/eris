@@ -87,9 +87,16 @@ public T trunc(T)(T x) {
 /// the maximum (minimum) int value the maximum (minimum) value is returned.
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
-public int toInt(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
-	if (x.isNaN) return 0;	// TODO: (behavior) should throw.
-	if (x.isInfinite) return x.isNegative ? int.min : int.max;
+public int toInt(T)(T x, Rounding mode = Rounding.HALF_EVEN)
+{
+	if (x.isNaN)
+	{
+		throw new InvalidOperationException("NaN cannot be converted to int");
+	}
+	if (x.isInfinite)
+	{
+		return x.isNegative ? int.min : int.max;
+	}
 	return toBigInt(x, mode).toInt;
 }
 
@@ -100,21 +107,32 @@ public int toInt(T)(T x, Rounding mode = Rounding.HALF_EVEN) {
 public long toLong(T)(T x,
 		Rounding mode = Rounding.HALF_EVEN) if (isDecimal!T)
 {
-	if (x.isNaN) return 0;	// TODO: (behavior) should throw.
-	if (x.isInfinite) return x.isNegative ? long.min : long.max;
+	if (x.isNaN)
+	{
+		throw new InvalidOperationException("NaN cannot be converted to long");
+	}
+	if (x.isInfinite)
+	{
+		return x.isNegative ? long.min : long.max;
+	}
 	return toBigInt(x, mode).toLong;
 }
 
 /// Returns the nearest extended integer value.
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
-public xint toBigInt(T)(T x,
-		Rounding mode = Rounding.HALF_EVEN) {
-	if (x.isNaN) return xint(0);	// TODO: (behavior) should throw
-	if (x.isInfinite) {			// TODO: (behavior) should throw
-		return x.isNegative ? T.min.coefficient : T.max.coefficient;
+public xint toBigInt(T)(T x, Rounding mode = Rounding.HALF_EVEN)
+{
+	if (x.isNaN)
+	{
+		throw new InvalidOperationException("NaN cannot be converted to bigint");
 	}
-	if (x.exponent != 0) {
+	if (x.isInfinite)
+	{
+		return x.isNegative ? -T.max.coefficient : T.max.coefficient;
+	}
+	if (x.exponent != 0)
+	{
 		return round(x, mode).coefficient;
 	}
 	return x.coefficient;
