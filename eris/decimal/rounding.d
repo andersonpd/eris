@@ -441,9 +441,12 @@ public enum ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
 // decimal digit functions
 //-----------------------------
 
-public int numDigits(in xint x) {
-    // special cases
+public int numDigits(in xint x)
+{
+	// special cases
+    if (x.getDigitLength == 1) return numDigits(x.getDigit(0));
 	if (x == 0) return 0;
+
 	int count = 0;
 	long n = reduceDigits(x, count);
 	return count + numDigits(n);

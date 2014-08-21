@@ -1280,20 +1280,24 @@ public T shift(T)(T x, int n,
 	int precision = context.precision;
 
 	// shifting by more than precision is invalid.
-	if (n < -precision || n > precision) {
+	if (n < -precision || n > precision)
+	{
 		return invalidOperation!T;
 	}
 
-	if (n > 0) {
+	if (n > 0)
+	{
 		// shift left
 		x.coefficient = x.coefficient * pow10(n);
 		x.digits = numDigits(x.coefficient);
-		if (x.digits > context.precision) {
+		if (x.digits > context.precision)
+		{
 			x.coefficient = x.coefficient % pow10(precision);
 			x.digits = precision;
 		}
 	}
-	else {
+	else
+	{
 		// shift right
 		x.coefficient = x.coefficient / pow10(-n);
 		x.digits = numDigits(x.coefficient);
@@ -1623,7 +1627,7 @@ public T mul(T)(in T x, in T y,
 	}
 
 	// at this point the product is a finite, non-zero number
-	T product = T.zero;
+	T product = T.zero.dup;
 	product.coefficient = x.coefficient * y.coefficient;
 	product.exponent = std.algorithm.min(T.maxExpo, x.exponent + y.exponent);
 	product.sign = x.sign ^ y.sign;
@@ -1935,6 +1939,17 @@ unittest {	// div
 	writeln("passed");
 }
 
+/*public T integerPart(T)(T x) if (isDecimal!T)
+{
+	int expo = x.exponent;
+	int digits = x.digits;
+	if (expo >= 0) return x;
+	expo = -expo;
+	if (expo >= digits) return T.zero(x.sign);	// TODO: review conditions for -0
+
+
+}*/
+
 // TODO: (behavior) Does this implement the actual spec operation?
 /// Divides the first operand by the second and returns the integer portion
 /// of the quotient.
@@ -1980,7 +1995,8 @@ public T divideInteger(T)(in T x, in T y)  {
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
-public T remquo(T)(in T x, in T y, out T quotient)  {
+public T remquo(T)(in T x, in T y, out T quotient) if (isDecimal!T)
+{
 	// check for NaN and division by zero
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 	if (y.isZero) return divisionByZero(x, y);
@@ -2687,7 +2703,7 @@ package T invalidOperand(T)(in T x) if (isDecimal!T)
 	if (x.isSignaling) return T.nan(x.payload, x.sign);
 	// if the operand is neither quiet nor signaling something else is wrong
 	// so return NaN.
-	return T.nan;
+	return T.nan.dup;
 }
 
 /// Returns a quiet NaN and sets the invalid-operation flag.

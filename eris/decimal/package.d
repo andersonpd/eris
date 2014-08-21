@@ -404,7 +404,6 @@ unittest {
 		}
 	}
 
-	// TODO: (efficiency) replace with table lookup?
 	static private long ones(int n)
 	{
 		return (1L << n) - 1;
@@ -418,7 +417,6 @@ unittest {
 		{
 			int mid = (min + max)/2;
 			long m = ones(mid);
-			// TODO: if there was a way to identify the right one we could exit here
 			if (f & m)
 			{
 				max = mid - 1;
@@ -455,11 +453,11 @@ unittest {
 			// multiply or divide
 			if (expo < 0)
 			{
-				this(n/scale);
+				this(n / scale);
 			}
 			else
 			{
-				this(n*scale);
+				this(n * scale);
 			}
 		}
 		else
@@ -468,6 +466,51 @@ unittest {
 //writefln("str = %s", str);
 			this(str);
 		}
+	}
+
+		bool testRoundTrip(int first, double second)
+		{
+			first = 12;
+			second = 12.0;
+			return first == 1;;
+		}
+		bool testRoundTrip(double first, int second)
+		{
+			first = 12.0;
+			second = 12;
+			return second == 2;
+		}
+
+
+	static if (precision == 9) {
+	unittest {
+		write("templates...");
+/*		bool testRoundTrip(U, T)(U first, T second) if (isIntegral!T && isFloatingPoint!U)
+		{
+			return false;
+		}
+		bool testRoundTrip(T, U)(T first, U second) if (isIntegral!T && isFloatingPoint!U)
+		{
+			return false;
+		}
+		bool testRoundTrip(U, T)(U first, T second) if (isIntegral!T && isFloatingPoint!U)
+		{
+			return false;
+		}*/
+		writeln("test missing");
+	}}
+	unittest {
+		write("floating...");
+/*		bool testRoundTrip(T, U)(T first) if (isIntegral!T && isFloatingPoint!U)
+		{
+			return false;
+		}
+
+		bool testRoundTrip(U, T)(U first) if (isDecimal!T && isFloatingPoint!U)
+		{
+			return false;
+		}*/
+		writeln("test missing");
 	}
 
 	// TODO: (testing) need to test this with 15-17 digit precision
@@ -508,10 +551,21 @@ unittest {
 		writeln("passed");
 	}}
 
-	// TODO: (efficiency) replace with table lookup
-	static public double dpow10(int n)
+	public static double dpow10(int n)
 	{
-		return 10.0 ^^ n;
+		static double[23] tens;
+		bool initialized = false;
+		if (!initialized)
+		{
+			tens[0] = 1.0;
+			for(int i = 1; i < tens.length; i++)
+			{
+				tens[i] = tens[i-1] * 10.0;
+			}
+			initialized = true;
+		}
+		if (n > 22) return double.nan;
+		return tens[n];
 	}
 
 	public double toDouble() const
@@ -535,7 +589,7 @@ unittest {
 	unittest {
 		write("toDouble...");
 		dec9 x = "3.14159";
-//		writefln("x.toDouble = %s", x.toDouble);
+		writefln("x.toDouble = %s", x.toDouble);
 		writeln("test missing");
 	}
 
@@ -683,7 +737,12 @@ unittest {
 		return isTrue;
 	}
 
- 	T opCast(T)() const
+ 	T opCast(T)() const if (isDecimal!T)
+	{
+		return T(this);
+	}
+
+ 	T opCast(T)() const if (isFloatingPoint!T)
 	{
 		return T(this);
 	}
@@ -903,15 +962,15 @@ unittest {
 	}
 
 	@property
-	@safe
+//	@safe
 	bool sign() const
 	{
 		return signed;
 	}
 
 	@property
-	@safe
-	bool sign(bool value)
+//	@safe
+	bool sign(const bool value)
 	{
 		signed = value;
 		return signed;

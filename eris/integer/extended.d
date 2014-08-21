@@ -1625,7 +1625,8 @@ unittest {
 	/// If the index is larger than the current length of the
 	/// internal array of digits, zero is returned.
 	@safe
-	public uint getDigit(int n) {
+	public uint getDigit(int n) const
+	{
 		if (n >= digits.length) return 0;
 		return digits[$ - n - 1];
 	}
@@ -1702,8 +1703,8 @@ unittest {
 		writeln("passed");
 	}
 
-	public static xint min(in xint a, in xint b) {
-		return b > a ? b.dup : a.dup;
+	public static xint min(xint a, xint b) {
+		return b > a ? b : a;
 	}
 
 /*	/// Returns a copy of the entire array of uint values, unmodified
