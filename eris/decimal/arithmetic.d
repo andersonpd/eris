@@ -237,9 +237,9 @@ public T reduce(T)(in T x,
 	if (x.isNaN) return invalidOperand(x);
 	if (!x.isFinite) return x.dup;
 
-writefln("--- x.toExact = %s", x.toExact);
+//writefln("--- x.toExact = %s", x.toExact);
 	T reduced = plus(x, context);
-writefln("reduced.toExact = %s", reduced.toExact);
+//writefln("reduced.toExact = %s", reduced.toExact);
 	// have to check again -- rounding may have made it infinite
 	if (!reduced.isFinite) return reduced;
 
@@ -251,6 +251,7 @@ writefln("reduced.toExact = %s", reduced.toExact);
 		reduced.digits = digits - zeros;
 		reduced.exponent = reduced.exponent + zeros;
 	}
+	reduced.coefficient = reduced.coefficient.trim;
 	return reduced;
 }
 

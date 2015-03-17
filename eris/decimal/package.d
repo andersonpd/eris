@@ -38,6 +38,7 @@ public enum Context DefaultContext = Context(99, 9999, Rounding.halfEven);
 public enum Context TestContext    = Context(9, 99, Rounding.halfEven);
 public enum Context Context99      = Context(99, 999, Rounding.halfEven);
 public enum Context RealContext    = Context(real.dig, real.max_10_exp, Rounding.halfEven);
+public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, Rounding.halfEven);
 
 alias dec9  = BigDecimal!(TestContext);
 alias dec99 = BigDecimal!(Context99);
@@ -135,28 +136,17 @@ unittest {
 	enum decimal Three	= decimal(3);
 	enum decimal Five	= decimal(5);
 	enum decimal Ten	= decimal(10);
-	// TODO: add values for float and double also
-	// TODO: add for int, long (short?)
+
 	enum decimal RealMax = decimal("1.1897314953572317649E+4932");
 	enum decimal RealMin = RealMax.copyNegate;
 	enum decimal RealMinNorm = decimal("3.362103143112093506E-4932");
+	enum decimal DoubleMax = decimal("1.7976931348623157079E+308");
+	enum decimal DoubleMin = DoubleMax.copyNegate;
+	enum decimal DoubleMinNorm = decimal("2.2250738585072013832E-308");
 	enum decimal LongMax = decimal("9223372036854775807");
-unittest {
-	write("constants...");
-writeln;
-writefln("RealMax  = %s", RealMax);
-writefln("cast(ulong)RealMax.coefficient = %s", cast(ulong)RealMax.coefficient);
-writefln("real.max = %.20G", real.max);
-writefln("real.max = %A", real.max);
-writefln("RealMin  = %s", RealMin);
-writefln("real.min = %.20G", -real.max);
-writefln("real.min = %.A", -real.max);
-writefln("RealMinNorm     = %s", RealMinNorm);
-writefln("real.min_normal = %.20G", real.min_normal);
-writefln("real.min_normal = %A", real.min_normal);
-	writeln("test missing");
-}
-
+	enum decimal LongMin = decimal("-9223372036854775808");
+	enum decimal IntMax = decimal("2147483647");
+	enum decimal IntMin = decimal("-2147483648");
 
 //--------------------------------
 // construction
@@ -534,7 +524,7 @@ writefln("real.min_normal = %A", real.min_normal);
 		// NOTE: actually better here to use a longer coefficient and smaller exponent.
 //writefln("x.adjustedExponent = %s", x.adjustedExponent);
 // if (x.adjustedExponent > x.expo) { // room for more digits
-writefln("x = %s", x.toExact);
+//writefln("x = %s", x.toExact);
 		real r;
 		r = cast(ulong)x.coefficient;
 		if (x.sign) r = -r;
@@ -563,24 +553,28 @@ writefln("x = %s", x.toExact);
 		// will the coefficent fit into a long integer?
 		if (this.coefficient.getDigitLength <= 2)
 		{
-writefln("this = %s", this);
 			return longToReal(this);
 		}
 
 		decimal reduced = this.reduce(RealContext);
-		// will the reduced coefficent fit into a long integer?
 		if (reduced.coefficient.getDigitLength <= 2)
 		{
-writefln("reduced = %s", reduced);
 			return longToReal(reduced);
 		}
+		// TODO: Uncertain if these last two steps are necessary
 
-		decimal rounded = roundToPrecision(this, 18);
+		decimal rounded = roundToPrecision(reduced, RealContext);
 		if (rounded.coefficient.getDigitLength <= 2)
 		{
-writefln("rounded = %s", rounded);
 			return longToReal(rounded);
 		}
+
+		decimal rr = rounded.reduce(RealContext);
+		if (rr.coefficient.getDigitLength <= 2)
+		{
+			return longToReal(rr);
+		}
+
 		return real.nan;
 	}
 
@@ -616,14 +610,14 @@ writefln("\nrep.fraction = %s", rep.fraction);
 writefln("rep.exponent = %s", rep.exponent);
 writefln("rep.sign = %s", rep.sign);*/
 
-writefln("\nr = %.20G", r);
-writefln("r = %A", r);
+//writefln("\nr = %.20G", r);
+//writefln("r = %A", r);
 		decimal d = toDecimal(r);
 //writefln("d = %s", d);
 		real s = d.toReal();
 //writefln("s = %.20G", s);
-writefln("s = %.20G", s);
-writefln("s = %A", s);
+//writefln("s = %.20G", s);
+//writefln("s = %A", s);
 			assertEqualIndexed(i, s, r);
 		}
 		writeln("passed");
