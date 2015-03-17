@@ -23,8 +23,8 @@ bool assertEqual(T,U)(in T actual, in U expected,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" expected \"", expected, "\"",
-	        	" but found \"", actual, "\".");
+				" expected \"", expected, "\"",
+				" but found \"", actual, "\".");
 		return false;
 	}
 }
@@ -38,8 +38,8 @@ bool assertEqualIndexed(T,U)(uint index, in T actual, in U expected,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, ")[", index, "]:",
-	        	" expected \"", expected, "\"",
-	        	" but found \"", actual, "\".");
+				" expected \"", expected, "\"",
+				" but found \"", actual, "\".");
 		return false;
 	}
 }
@@ -130,8 +130,8 @@ bool assertStringEqual(T:string)(in T actual, in T expected,
 		return true;
 	}
 	writeln("failed at ", baseName(file), "(", line, "):",
-	        " expected \"", expected, "\"",
-	        " but found \"", actual, "\".");
+			" expected \"", expected, "\"",
+			" but found \"", actual, "\".");
 	return false;
 }*/
 
@@ -144,7 +144,7 @@ bool assertNotEqual(T,U = T)(in T actual, in U expected,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" \"", expected, "\" is equal to \"", actual, "\".");
+				" \"", expected, "\" is equal to \"", actual, "\".");
 		return false;
 	}
 }
@@ -186,8 +186,8 @@ bool assertNull(T)(T actual,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" expected null ",
-	        	" but found \"", actual, "\".");
+				" expected null ",
+				" but found \"", actual, "\".");
 		return false;
 	}
 }
@@ -201,8 +201,8 @@ bool assertNotNull(T)(T actual,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" expected \"", actual, "\"",
-	        	" but found null.");
+				" expected \"", actual, "\"",
+				" but found null.");
 		return false;
 	}
 }
@@ -216,8 +216,8 @@ bool assertZero(T)(T actual,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" expected zero ",
-	        	" but found \"", actual, "\".");
+				" expected zero ",
+				" but found \"", actual, "\".");
 		return false;
 	}
 }
@@ -231,8 +231,8 @@ bool assertPositive(T)(T actual,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" expected a positive value ",
-	        	" but found \"", actual, "\".");
+				" expected a positive value ",
+				" but found \"", actual, "\".");
 		return false;
 	}
 }
@@ -246,8 +246,8 @@ bool assertNegative(T)(T actual,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" expected a negative value ",
-	        	" but found \"", actual, "\".");
+				" expected a negative value ",
+				" but found \"", actual, "\".");
 		return false;
 	}
 }
@@ -261,8 +261,8 @@ bool assertGreaterThan(T,U)(in T first, in U second,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" \"", first, "\"",
-	        	" is not greater than \"", second, "\".");
+				" \"", first, "\"",
+				" is not greater than \"", second, "\".");
 		return false;
 	}
 }
@@ -276,8 +276,8 @@ bool assertNotGreaterThan(T,U)(in T first, in U second,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" \"", first, "\"",
-	        	" is greater than \"", second, "\".");
+				" \"", first, "\"",
+				" is greater than \"", second, "\".");
 		return false;
 	}
 }
@@ -291,8 +291,8 @@ bool assertLessThan(T,U)(in T first, in U second,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" \"", first, "\"",
-	        	" is not less than \"", second, "\".");
+				" \"", first, "\"",
+				" is not less than \"", second, "\".");
 		return false;
 	}
 }
@@ -306,8 +306,8 @@ bool assertNotLessThan(T,U)(in T first, in U second,
 	}
 	else {
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" \"", first, "\"",
-	        	" is less than \"", second, "\".");
+				" \"", first, "\"",
+				" is less than \"", second, "\".");
 		return false;
 	}
 }
@@ -322,9 +322,8 @@ bool assertThrows(T:Throwable = Exception, E)(lazy E expression,
 	catch (Throwable exc) {
 		// FIXTHIS: unhelpful error message
 		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" Did not throw \"", msg, "\".");
+				" Did not throw \"", msg, "\".");
 		return false;
 	}
 }
-
 

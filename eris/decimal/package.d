@@ -23,36 +23,27 @@ import eris.decimal.context;
 import eris.decimal.arithmetic;
 import eris.decimal.rounding;
 
+// temporary import
+	import std.stdio;
+
 version(unittest)
 {
 	import std.stdio;
 	import eris.assertion;
-	import eris.decimal.dec64;
 }
 
 alias xint = ExtendedInt;
 
-public enum Context DEFAULT_CONTEXT = Context(99, 9999, Rounding.HALF_EVEN);
-public enum Context TEST_CONTEXT    = Context(9, 99, Rounding.HALF_EVEN);
-public enum Context CONTEXT_99      = Context(99, 999, Rounding.HALF_EVEN);
+public enum Context DefaultContext = Context(99, 9999, Rounding.halfEven);
+public enum Context TestContext    = Context(9, 99, Rounding.halfEven);
+public enum Context Context99      = Context(99, 999, Rounding.halfEven);
+public enum Context RealContext    = Context(real.dig, real.max_10_exp, Rounding.halfEven);
 
-alias dec9  = BigDecimal!(TEST_CONTEXT);
-alias dec99 = BigDecimal!(CONTEXT_99);
+alias dec9  = BigDecimal!(TestContext);
+alias dec99 = BigDecimal!(Context99);
 
 // special values for NaN, Inf, etc.
-private enum SV { NONE, INF, QNAN, SNAN };
-
-/*public BigInt x2b(in xint x = 0) {
-	return BigInt(x.toString);
-}
-
-unittest {
-	write("x2b...");
-writefln("x2b = %s", x2b());
-writefln("x2b = %s", x2b(xint(3)));
-writefln("x2b = %s", x2b(xint("909239874203948")));
-	writeln("test missing");
-}*/
+private enum SV { None, Inf, qNaN, sNaN };
 
 /// A struct representing an arbitrary-precision decimal floating-point number.
 ///
@@ -61,7 +52,7 @@ writefln("x2b = %s", x2b(xint("909239874203948")));
 /// http://www.speleotrove.com/decimal.
 /// This specification conforms with IEEE standard 754-2008.
 
-struct BigDecimal(immutable Context _context = DEFAULT_CONTEXT)
+struct BigDecimal(immutable Context _context = DefaultContext)
 {
 
 static if (context.precision == 9) {
@@ -75,10 +66,10 @@ unittest {
 	enum Context context = _context;
 
  	/// Marker used to identify decimal numbers irrespective of size.
-	public enum IS_DECIMAL;
+	public enum IsDecimal;
 
 	/// members
-	private SV sval = SV.QNAN;		// special value: default is quiet NaN
+	private SV sval = SV.qNaN;		// special value: default is quiet NaN
 	private bool signed = false;	// true if the value is negative, false otherwise.
 	private int expo = 0;			// the exponent of the decimal value
 	private xint mant;				// the coefficient of the decimal value
@@ -105,12 +96,12 @@ unittest {
 	private alias decimal = BigDecimal!(context);
 
 	// decimal special values
-	enum decimal NAN		= decimal(SV.QNAN);
-	enum decimal SNAN		= decimal(SV.SNAN);
-	enum decimal INFINITY	= decimal(SV.INF);
-	enum decimal NEG_INF	= decimal(SV.INF, true);
-	enum decimal ZERO		= decimal(SV.NONE);
-	enum decimal NEG_ZERO	= decimal(SV.NONE, true);
+	enum decimal NaN		= decimal(SV.qNaN);
+	enum decimal sNaN		= decimal(SV.sNaN);
+	enum decimal Infinity	= decimal(SV.Inf);
+	enum decimal negInf		= decimal(SV.Inf, true);
+	enum decimal Zero		= decimal(SV.None);
+	enum decimal negZero	= decimal(SV.None, true);
 
 	static if (precision == 9) {
 	unittest // decimal special values
@@ -121,12 +112,12 @@ unittest {
 
 		static S[] tests =
 		[
-			{ NAN,		"NaN" },
-			{ SNAN,		"sNaN" },
-			{ ZERO,		"0" },
-			{ NEG_ZERO,	"-0" },
-			{ INFINITY,	"Infinity" },
-			{ NEG_INF,	"-Infinity" },
+			{ NaN,		"NaN" },
+			{ sNaN,		"sNaN" },
+			{ Zero,		"0" },
+			{ negZero,	"-0" },
+			{ Infinity,	"Infinity" },
+			{ negInf,	"-Infinity" },
 		];
 
 		foreach (i, s; tests)
@@ -137,13 +128,35 @@ unittest {
 	}}
 
 	// common decimal numbers
-	enum decimal HALF		= decimal(5, -1);
-	enum decimal ONE		= decimal(1);
-	enum decimal NEG_ONE	= decimal(-1);
-	enum decimal TWO		= decimal(2);
-	enum decimal THREE		= decimal(3);
-	enum decimal FIVE		= decimal(5);
-	enum decimal TEN		= decimal(10);
+	enum decimal Half	= decimal(5, -1);
+	enum decimal One	= decimal(1);
+	enum decimal negOne	= decimal(-1);
+	enum decimal Two	= decimal(2);
+	enum decimal Three	= decimal(3);
+	enum decimal Five	= decimal(5);
+	enum decimal Ten	= decimal(10);
+	// TODO: add values for float and double also
+	// TODO: add for int, long (short?)
+	enum decimal RealMax = decimal("1.1897314953572317649E+4932");
+	enum decimal RealMin = RealMax.copyNegate;
+	enum decimal RealMinNorm = decimal("3.362103143112093506E-4932");
+	enum decimal LongMax = decimal("9223372036854775807");
+unittest {
+	write("constants...");
+writeln;
+writefln("RealMax  = %s", RealMax);
+writefln("cast(ulong)RealMax.coefficient = %s", cast(ulong)RealMax.coefficient);
+writefln("real.max = %.20G", real.max);
+writefln("real.max = %A", real.max);
+writefln("RealMin  = %s", RealMin);
+writefln("real.min = %.20G", -real.max);
+writefln("real.min = %.A", -real.max);
+writefln("RealMinNorm     = %s", RealMinNorm);
+writefln("real.min_normal = %.20G", real.min_normal);
+writefln("real.min_normal = %A", real.min_normal);
+	writeln("test missing");
+}
+
 
 //--------------------------------
 // construction
@@ -197,7 +210,7 @@ unittest {
 
 	static if (precision == 9) {
 	unittest {	// bool, xint, int construction
-		write("-- this(bool,big,int)...");
+		write("-- this(s,big,int)..");
 		dec9 num;
 		num = dec9(true, xint(7254), 94);
 		assertStringEqual(num, "-7.254E+97");
@@ -295,20 +308,6 @@ unittest {
 	static if (precision == 9) {
 	unittest {	// string construction
 		write("-- this(string).....");
-		dec9 num;
-		num = cast(double)std.math.E;
-		string str = "2.71828183";
-		assertStringEqual(num,str);
-		num = std.math.LOG2;
-		dec9 copy = dec9(num);
-		assertEqual(compareTotal(num, copy), 0);
-		writeln("passed");
-	}}
-
-	static if (precision == 9) {
-	unittest // string construction
-	{
-		write("-- this(string).....");
 
 		static struct S { string num; string val; }
 
@@ -335,6 +334,40 @@ unittest {
 		writeln("passed");
 	}}
 
+	private static int countZeros(ulong f, int e)
+	{
+		// quick check for no trailing zeros
+		if (f & 1) return 0;
+		// quick check for 1 trailing zero
+		if (f & 2) return 1;
+		// otherwise do a binary search
+		int min = 2;
+		int max = 64;
+		while (min <= max)
+		{
+			int mid = (min + max)/2;
+			long m = ones(mid);
+			if (f & m)
+			{
+				max = mid - 1;
+			}
+			else
+			{
+				min = mid + 1;
+			}
+		}
+		return max;
+	}
+
+	private static void trimZeros(ref ulong f, ref int e)
+	{
+		int zeros = countZeros(f, e);
+		if (zeros < 64) {
+			e += zeros;
+			f >>>= zeros;
+		}
+	}
+
 	private enum struct RealRep
 	{
 		union
@@ -350,6 +383,7 @@ unittest {
 		}
 		enum uint bias = 16383, signBits = 1, exponentBits = 15,
 				integerBits = 1, fractionBits = 63;
+//				integerBits = 1, fractionBits = 63;
 	}
 
 	/// Constructs a decimal number from a real value.
@@ -379,7 +413,7 @@ unittest {
 		{
 			if (r == 0.0)
 			{
-				this(SV.NONE, r < 0.0);
+				this(SV.None, r < 0.0);
 			}
 			else if (std.math.abs(r) == 1.0)
 			{
@@ -396,11 +430,11 @@ unittest {
 		// special values
 		else if (std.math.isInfinity(r))
 		{
-			this(SV.INF, r < 0.0);
+			this(SV.Inf, r < 0.0);
 		}
 		else
 		{
-			this(SV.QNAN);
+			this(SV.qNaN);
 		}
 	}
 
@@ -409,48 +443,18 @@ unittest {
 		return (1L << n) - 1;
 	}
 
-	private static int countZeros(ulong f, int e)
-	{
-		int min = 1;
-		int max = 64;
-		while (min <= max)
-		{
-			int mid = (min + max)/2;
-			long m = ones(mid);
-			if (f & m)
-			{
-				max = mid - 1;
-			}
-			else
-			{
-				min = mid + 1;
-			}
-		}
-		return max;
-	}
-
-	private static void trimZeros(ref ulong f, ref int e) //, int max)
-	{
-		int zeros = countZeros(f, e);
-		if (zeros < 64) {
-			e += zeros;
-			f >>>= zeros;
-		}
-	}
-
 	this(T)(T r, ulong frac, int expo, bool sign)
 		if (isFloatingPoint!T)
 	{
-		if (!(frac & 1)) trimZeros(frac, expo);
+		trimZeros(frac, expo);
 		int c = std.math.abs(expo);
-		if (c <= 63)
+		if (c <= 63)	// if coefficient fits in a long integer
 		{
-			// integer coefficient
 			decimal n = decimal(xint(frac));
 			if (sign) n = n.copyNegate;
 			// scale factor
-			decimal scale = decimal(1L << c);
-			// multiply or divide
+			auto scale = decimal(1L << c);
+    		// multiply or divide
 			if (expo < 0)
 			{
 				this(n / scale);
@@ -463,54 +467,8 @@ unittest {
 		else
 		{
 			string str = format("%.20G", r);
-//writefln("str = %s", str);
 			this(str);
 		}
-	}
-
-		bool testRoundTrip(int first, double second)
-		{
-			first = 12;
-			second = 12.0;
-			return first == 1;;
-		}
-		bool testRoundTrip(double first, int second)
-		{
-			first = 12.0;
-			second = 12;
-			return second == 2;
-		}
-
-
-	static if (precision == 9) {
-	unittest {
-		write("templates...");
-/*		bool testRoundTrip(U, T)(U first, T second) if (isIntegral!T && isFloatingPoint!U)
-		{
-			return false;
-		}
-		bool testRoundTrip(T, U)(T first, U second) if (isIntegral!T && isFloatingPoint!U)
-		{
-			return false;
-		}
-		bool testRoundTrip(U, T)(U first, T second) if (isIntegral!T && isFloatingPoint!U)
-		{
-			return false;
-		}*/
-		writeln("test missing");
-	}}
-	unittest {
-		write("floating...");
-/*		bool testRoundTrip(T, U)(T first) if (isIntegral!T && isFloatingPoint!U)
-		{
-			return false;
-		}
-
-		bool testRoundTrip(U, T)(U first) if (isDecimal!T && isFloatingPoint!U)
-		{
-			return false;
-		}*/
-		writeln("test missing");
 	}
 
 	// TODO: (testing) need to test this with 15-17 digit precision
@@ -525,23 +483,25 @@ unittest {
 
 		static S[] tests =
 		[
-			{ 7254E94,		"7.254E+97" },
-			{ 7254.005,		"7254.005" },
-			{ -2.3456E+14,	"-2.3456E+14" },
-			{ -0.1234,		"-0.1234" },
-			{ 234568901234,	"234568901234" },
-			{ 123.457E+29,	"1.23457E+31" },
-			{ 2.71828183,	"2.71828183" },
-			{ 2147483646,	"2147483646" },
-			{ 2147483648,	"2147483648" },
-			{ -2147483647,	"-2147483647" },
-			{ -2147483649,	"-2147483649" },
-			{ 0.0,			"0" },
-			{ -0.0,			"-0" },
-			{ 1E54,			"1E54" },
-			{ double.max, 	"21.79769313E+305" },
-			{ real.max, 	"1.1897314953572317649E+4932" },
-			{ real.infinity, "Infinity" },
+			{ 0.1L,				"0.1" },
+			{ 7254E94,			"7.254E+97" },
+			{ 7254.005,			"7254.005" },
+			{ -2.3456E+14,		"-2.3456E+14" },
+			{ -0.1234,			"-0.1234" },
+			{ 234568901234.0,	"234568901234" },
+			{ 123.457E+29,		"1.23457E+31" },
+			{ 2.71828183,		"2.71828183" },
+			{ 2.718281832,		"2.718281832" },
+			{ 2147483646.0,		"2147483646" },
+			{ 2147483648.0,		"2147483648" },
+			{ -2147483647.0,	"-2147483647" },
+			{ -2147483649.0,	"-2147483649" },
+			{ 0.0,				"0" },
+			{ -0.0,				"-0" },
+			{ 1E54,				"1E54" },
+			{ double.max, 		"21.79769313E+305" },
+			{ real.max, 		"1.1897314953572317649E+4932" },
+			{ real.infinity, 	"Infinity" },
 		];
 
 		foreach (i, s; tests)
@@ -568,6 +528,108 @@ unittest {
 		return tens[n];
 	}
 
+	// Returns a real number constructed from
+	// a long coefficient and an integer exponent.
+	private static real longToReal(const decimal x) {
+		// NOTE: actually better here to use a longer coefficient and smaller exponent.
+//writefln("x.adjustedExponent = %s", x.adjustedExponent);
+// if (x.adjustedExponent > x.expo) { // room for more digits
+writefln("x = %s", x.toExact);
+		real r;
+		r = cast(ulong)x.coefficient;
+		if (x.sign) r = -r;
+		if (x.expo == 0) return r;
+		real tens = 10.0L ^^ std.math.abs(x.expo);
+		if (x.expo > 0) return r * tens;
+		return r / tens;
+//		real rx = x.expo > 0 10.0L^^x.expo;
+//		return r * rx;
+	}
+
+
+	public real toReal() const
+	{
+		// if this number is too large to be a real, return infinity
+		if (this.expo >= real.max_10_exp) {
+			if (this > RealMax)	return  real.infinity;
+			if (this < RealMin) return -real.infinity;
+		}
+
+		// if too small, return zero
+		if (this.expo <= real.min_10_exp) {
+			if (this.copyAbs < RealMinNorm) return this.sign ? -0.0 : 0.0;
+        }
+
+		// will the coefficent fit into a long integer?
+		if (this.coefficient.getDigitLength <= 2)
+		{
+writefln("this = %s", this);
+			return longToReal(this);
+		}
+
+		decimal reduced = this.reduce(RealContext);
+		// will the reduced coefficent fit into a long integer?
+		if (reduced.coefficient.getDigitLength <= 2)
+		{
+writefln("reduced = %s", reduced);
+			return longToReal(reduced);
+		}
+
+		decimal rounded = roundToPrecision(this, 18);
+		if (rounded.coefficient.getDigitLength <= 2)
+		{
+writefln("rounded = %s", rounded);
+			return longToReal(rounded);
+		}
+		return real.nan;
+	}
+
+	public static decimal toDecimal(T)(T fl) if (isFloatingPoint!T) {
+		string str = format("%.20G", fl);
+		return decimal(str);
+	}
+
+	static if (precision == 9) {
+	unittest {	// toReal, toDecimal
+		writeln("-- toReal...........");
+
+writefln("RealContext.precision = %s", RealContext.precision);
+writefln("RealContext.maxExpo = %s", RealContext.maxExpo);
+writefln("RealMax.reduce = %s", RealMax.reduce(RealContext));
+		static real[] tests =
+		[
+			1.0,
+			2.0,
+			1.0E5,
+			0.1,
+			123.456,
+			32E-27,
+			double.max,
+			real.max,
+		];
+
+		foreach (i, r; tests)
+		{
+/*RealRep rep;
+rep.value = r;
+writefln("\nrep.fraction = %s", rep.fraction);
+writefln("rep.exponent = %s", rep.exponent);
+writefln("rep.sign = %s", rep.sign);*/
+
+writefln("\nr = %.20G", r);
+writefln("r = %A", r);
+		decimal d = toDecimal(r);
+//writefln("d = %s", d);
+		real s = d.toReal();
+//writefln("s = %.20G", s);
+writefln("s = %.20G", s);
+writefln("s = %A", s);
+			assertEqualIndexed(i, s, r);
+		}
+		writeln("passed");
+	}}
+
+
 	public double toDouble() const
 	{
 		// try for an exact conversion...
@@ -593,15 +655,16 @@ unittest {
 		writeln("test missing");
 	}
 
-	// Constructs a decimal number from a different type of decimal.
-	public this(T)(T from) if (isDecimal!T)
+	// Constructs a decimal number from another decimal number
+	/// which may be of a different type.
+	public this(T)(T that) if (isDecimal!T)
 	{
-		bool sign = from.isNegative;
-		if (from.isFinite) this(from.sign, from.coefficient, from.exponent);
-		else if (from.isInfinite) 	this(SV.INF, sign);
-		else if (from.isQuiet)		this(SV.QNAN, sign);
-		else if (from.isSignaling)	this(SV.SNAN, sign);
-		else this(SV.QNAN);
+		bool sign = that.isNegative;
+		if (that.isFinite) this(that.sign, that.coefficient, that.exponent);
+		else if (that.isInfinite) 	this(SV.Inf, sign);
+		else if (that.isQuiet)		this(SV.qNaN, sign);
+		else if (that.isSignaling)	this(SV.sNaN, sign);
+		else this(SV.qNaN);
 	}
 
 	static if (precision == 9) {
@@ -640,14 +703,23 @@ unittest {
 		return decimal(this);
 	}
 
+/*	static if (precision == 9) {
+	version(unittest) {
+		private bool assertCopy(T) (T num, T copy)if (isDecimal!T) {
+			return assertZero!T(compareTotal(num, copy));
+		}
+	}}*/
+
 	static if (precision == 9) {
 	unittest {	// dup
-		write("-- this(decimal)....");
+		write("-- dup..............");
 		dec9 num, copy;
+		// TODO: add tests for these values
 		num = std.math.LOG2;
 		num = std.math.PI;
 		num = std.math.LOG2;
 		copy = dec9(num);
+//		assertCopy!dec9(num, copy);
 		assertZero(compareTotal(num, copy));
 		num = dec9(std.math.PI);
 		copy = num.dup;
@@ -777,6 +849,8 @@ unittest {
 //--------------------------------
 
 	/// Assigns a decimal number (makes a copy)
+	// COMPILER BUG
+//	void opAssign(T:decimal)(in T that)
 	void opAssign(T:decimal)(in T that)
 	{
 		this.signed  = that.signed;
@@ -984,14 +1058,14 @@ unittest {
 	@safe
 	static decimal init()
 	{
-		return NAN.dup;
+		return NaN.dup;
 	}
 
 	/// Returns NaN
 	@safe
 	static decimal nan(ushort payload = 0, bool sign = false)
 	{
-		decimal dec = NAN.dup;
+		decimal dec = NaN.dup;
 		dec.payload = payload;
 		dec.signed = sign;
 		return dec;
@@ -1001,7 +1075,7 @@ unittest {
 	@safe
 	static decimal snan(ushort payload = 0, bool sign = false)
 	{
-		decimal dec = SNAN.dup;
+		decimal dec = sNaN.dup;
 		dec.payload = payload;
 		dec.signed = sign;
 		return dec;
@@ -1011,7 +1085,7 @@ unittest {
 	@safe
 	static decimal infinity(bool signed = false)
 	{
-		return signed ? NEG_INF.dup : INFINITY.dup;
+		return signed ? negInf.dup : Infinity.dup;
 	}
 
 	/// Returns the maximum number of decimal digits in this context.
@@ -1061,40 +1135,40 @@ unittest {
 	@safe
 	static enum decimal zero(bool signed = false)
 	{
-		return signed ? NEG_ZERO.dup : ZERO.dup;
+		return signed ? negZero.dup : Zero.dup;
 	}
 
 //	/// Returns 1.
 //	//@safe
 //	immutable static decimal one(bool signed = false) {
-//		return signed ? NEG_ONE.dup : ONE.dup;
+//		return signed ? negOne.dup : One.dup;
 //	}
 
 	/// Returns 1.
 	@safe
 	static enum decimal one()
 	{
-		return ONE.dup;
+		return One.dup;
 	}
 
 	/// Returns 2.
 	@safe
 	static enum decimal two()
 	{
-		return TWO.dup;
+		return Two.dup;
 	}
 
 	/// Returns 1/2.
 	@safe
 	static enum decimal half()
 	{
-		return HALF.dup;
+		return Half.dup;
 	}
 
 	static if (precision == 9) {
 	unittest {
 		write("-- constants........");
-		assertEqual(dec9.HALF, dec9(0.5));
+		assertEqual(dec9.Half, dec9(0.5));
 		writeln("passed");
 	}}
 
@@ -1182,21 +1256,21 @@ unittest {
 	@safe
 	const bool isNaN()
 	{
-		return this.sval == SV.QNAN || this.sval == SV.SNAN;
+		return this.sval == SV.qNaN || this.sval == SV.sNaN;
 	}
 
 	/// Returns true if this number is a signaling NaN.
 	@safe
 	const bool isSignaling()
 	{
-		return this.sval == SV.SNAN;
+		return this.sval == SV.sNaN;
 	}
 
 	/// Returns true if this number is a quiet NaN.
 	@safe
 	const bool isQuiet()
 	{
-		return this.sval == SV.QNAN;
+		return this.sval == SV.qNaN;
 	}
 
 	static if (precision == 9) {
@@ -1222,16 +1296,16 @@ unittest {
 	@safe
 	const bool isInfinite()
 	{
-		return this.sval == SV.INF;
+		return this.sval == SV.Inf;
 	}
 
 	/// Returns true if this number is not an infinity or a NaN.
 	@safe
 	const bool isFinite()
 	{
-		return sval != SV.INF
-			&& sval != SV.QNAN
-			&& sval != SV.SNAN;
+		return sval != SV.Inf
+			&& sval != SV.qNaN
+			&& sval != SV.sNaN;
 	}
 
 	static if (precision == 9) {
@@ -1258,9 +1332,9 @@ unittest {
 	@safe
 	const bool isSpecial()
 	{
-		return sval == SV.INF
-			|| sval == SV.QNAN
-			|| sval == SV.SNAN;
+		return sval == SV.Inf
+			|| sval == SV.qNaN
+			|| sval == SV.sNaN;
 	}
 
 	static if (precision == 9) {
@@ -1407,9 +1481,9 @@ unittest {
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
 //		assertTrue(dec9(1));
-//		assert(ONE);
-//		assertEqual(ONE, true);
-//		assertTrue(cast(bool)ONE);
+//		assert(One);
+//		assertEqual(One, true);
+//		assertTrue(cast(bool)One);
 		assertTrue(dec9("1").isTrue);
 		assertFalse(dec9("0").isTrue);
 		assertTrue(infinity.isTrue);
@@ -1440,9 +1514,9 @@ unittest {
 		assertFalse(num.isZeroCoefficient);
 		num = 1.5;
 		assertFalse(num.isZeroCoefficient);
-		num = dec9.NAN;
+		num = dec9.NaN;
 		assertFalse(num.isZeroCoefficient);
-		num = dec9.INFINITY;
+		num = dec9.Infinity;
 		assertFalse(num.isZeroCoefficient);
 		writeln("passed");
 	}}*/
@@ -1865,7 +1939,7 @@ unittest {
 	enum decimal LOG2_E = roundString("1.44269504088896340735992468100189213"
 		"742664595415298593413544940693110921918118507988552662289350634");
 
-	/// base 2 logarithm of 10 = 3.32192809...
+//	/// base 2 logarithm of 10 = 3.32192809...
 	mixin Constant!("log2_10");
 	enum decimal LOG2_10 = roundString("3.3219280948873623478703194294893901"
 		"7586483139302458061205475639581593477660862521585013974335937016");
@@ -2018,25 +2092,19 @@ unittest {
 }	 // end struct BigDecimal
 
 /// Returns true if the parameter is a type of decimal number.
-public bool isDecimal(T)()
-{
-	return hasMember!(T, "IS_DECIMAL");
-}
+public enum bool isDecimal(T) = hasMember!(T, "IsDecimal");
 
 unittest {
 	write("-- isDecimal........");
 	dec9 dummy;
 	assertTrue(isDecimal!dec9);
 	assertFalse(isDecimal!int);
-	assertTrue(isDecimal!Dec64);
+//	assertTrue(isDecimal!Dec64);
 	writeln("passed");
 }
 
 /// Returns true if the parameter is convertible to a decimal number.
-public bool isConvertible(T)()
-{
-	return isNumeric!T || is(T:string) || isBoolean!T;
-}
+public enum bool isConvertible(T) = isNumeric!T || is(T:string) || isBoolean!T;
 
 unittest {
 	write("-- isConvertible...");

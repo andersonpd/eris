@@ -37,15 +37,15 @@ version(unittest) {
 	import eris.assertion;
 }
 
-public enum Context context64 = Context(16, 369, Rounding.HALF_UP);
+public enum Context context64 = Context(16, 369, Rounding.halfUp);
 // BigDecimal with the same context as Dec64
 private alias Big64 = BigDecimal!(context64);
 
 struct Dec64 {
 
-public enum IS_DECIMAL;
+public enum IsDecimal;
 
-public enum Context context = Context(16, 369, Rounding.HALF_UP);
+public enum Context context = Context(16, 369, Rounding.halfUp);
 
     /// Returns an equivalent BigDecimal number
     @property
@@ -162,7 +162,7 @@ private:
 	// (signed) exponent.
 	enum int BIAS = 398;			// = 0x18E
 	// The maximum representable exponent.
-	enum int MAX_EXPO = 369;		// MAX_BIASED - BIAS
+	enum int MaxExpo = 369;		// MAX_BIASED - BIAS
 
 private:
 	// union providing different views of the number representation.
@@ -243,13 +243,13 @@ private:
 		POS_NAN = 0x7C00000000000000,
 		NEG_NAN = 0xFC00000000000000,
 		POS_INF = 0x7800000000000000,
-		NEG_INF = 0xF800000000000000,
+		negInf = 0xF800000000000000,
 		POS_ZRO = 0x31C0000000000000,
 		NEG_ZRO = 0xB1C0000000000000,
 		POS_MAX = 0x77FB86F26FC0FFFF,
 		NEG_MAX = 0xF7FB86F26FC0FFFF,
 		POS_ONE = 0x31C0000000000001,
-		NEG_ONE = 0xB1C0000000000001,
+		negOne = 0xB1C0000000000001,
 		POS_TWO = 0x31C0000000000002,
 		NEG_TWO = 0xB1C0000000000002,
 		POS_FIV = 0x31C0000000000005,
@@ -287,23 +287,23 @@ private:
 
 
 public:
-	enum Dec64 NAN 	 = Dec64(Bits.POS_NAN);
-	enum Dec64 SNAN	 = Dec64(Bits.POS_SIG);
-	enum Dec64 INFINITY = Dec64(Bits.POS_INF);
-	enum Dec64 NEG_INF  = Dec64(Bits.NEG_INF);
-	enum Dec64 ZERO	 = Dec64(Bits.POS_ZRO);
-	enum Dec64 NEG_ZERO = Dec64(Bits.NEG_ZRO);
+	enum Dec64 NaN 	 = Dec64(Bits.POS_NAN);
+	enum Dec64 sNaN	 = Dec64(Bits.POS_SIG);
+	enum Dec64 Infinity = Dec64(Bits.POS_INF);
+	enum Dec64 negInf  = Dec64(Bits.negInf);
+	enum Dec64 Zero	 = Dec64(Bits.POS_ZRO);
+	enum Dec64 negZero = Dec64(Bits.NEG_ZRO);
 	enum Dec64 MAX 	 = Dec64(Bits.POS_MAX);
 	enum Dec64 NEG_MAX  = Dec64(Bits.NEG_MAX);
 
 	// small integers
-	enum Dec64 ONE 	 = Dec64(Bits.POS_ONE);
-	enum Dec64 NEG_ONE  = Dec64(Bits.NEG_ONE);
-	enum Dec64 TWO 	 = Dec64(Bits.POS_TWO);
+	enum Dec64 One 	 = Dec64(Bits.POS_ONE);
+	enum Dec64 negOne  = Dec64(Bits.negOne);
+	enum Dec64 Two 	 = Dec64(Bits.POS_TWO);
 	enum Dec64 NEG_TWO  = Dec64(Bits.NEG_TWO);
-	enum Dec64 FIVE	 = Dec64(Bits.POS_FIV);
+	enum Dec64 Five	 = Dec64(Bits.POS_FIV);
 	enum Dec64 NEG_FIVE = Dec64(Bits.NEG_FIV);
-	enum Dec64 TEN 	 = Dec64(Bits.POS_TEN);
+	enum Dec64 Ten 	 = Dec64(Bits.POS_TEN);
 	enum Dec64 NEG_TEN  = Dec64(Bits.NEG_TEN);
 
 	// mathamatical constants
@@ -329,8 +329,8 @@ public:
 	enum Dec64 GAMMA	 = Dec64(Bits.GAMMA);
 */
 	// boolean constants
-	enum Dec64 TRUE	 = ONE;
-	enum Dec64 FALSE	 = ZERO;
+	enum Dec64 TRUE	 = One;
+	enum Dec64 FALSE	 = Zero;
 
 unittest {
 	write("sizeof...");
@@ -374,7 +374,7 @@ unittest {
 
 	/// Creates a Dec64 from a boolean value.
 	public this(bool value) {
-		this = value ? ONE : ZERO;
+		this = value ? One : Zero;
 	}
 
 /* 	bool opCast(T:bool)() const {
@@ -386,10 +386,10 @@ unittest {
 		Dec64 t, f;
 		t = Dec64(true);
 		assertTrue(t);
-		assertEqual(t, ONE);
+		assertEqual(t, One);
 		f = Dec64(false);
 		assertFalse(f);
-		assertEqual(f, ZERO);
+		assertEqual(f, Zero);
 		writeln("passed");
 	}
 
@@ -632,8 +632,8 @@ public:
 	int exponent(int expo) {
 		// check for overflow
 		if (expo > maxExpo) {
-			this = signed ? NEG_INF : INFINITY;
-			contextFlags.setFlags(OVERFLOW);
+			this = signed ? negInf : Infinity;
+			contextFlags.setFlags(Overflow);
 			return 0;
 		}
 		// check for underflow
@@ -641,10 +641,10 @@ public:
 			// if the exponent is too small even for a subnormal number,
 			// the number is set to zero.
 			if (expo < tinyExpo) {
-				this = signed ? NEG_ZERO : ZERO;
+				this = signed ? negZero : Zero;
 				expoEx = tinyExpo + BIAS;
-				contextFlags.setFlags(SUBNORMAL);
-				contextFlags.setFlags(UNDERFLOW);
+				contextFlags.setFlags(Subnormal);
+				contextFlags.setFlags(Underflow);
 				return tinyExpo;
 			}
 			// at this point the exponent is between minExpo and tinyExpo.
@@ -662,7 +662,7 @@ public:
 		}
 		// if this point is reached the number is either infinity or NaN;
 		// these have undefined exponent values.
-		contextFlags.setFlags(INVALID_OPERATION);
+		contextFlags.setFlags(InvalidOperation);
 		this = nan;
 		return 0;
 	}
@@ -878,11 +878,11 @@ public:
 //--------------------------------
 
 	static Dec64 zero(bool signed = false) {
-		return signed ? NEG_ZERO : ZERO;
+		return signed ? negZero : Zero;
 	}
 
 	static Dec64 one(bool signed = false) {
-		return signed ? NEG_ONE : ONE;
+		return signed ? negOne : One;
 	}
 
 	static Dec64 max(bool signed = false) {
@@ -890,43 +890,43 @@ public:
 	}
 
 	static Dec64 infinity(bool signed = false) {
-		return signed ? NEG_INF : INFINITY;
+		return signed ? negInf : Infinity;
 	}
 
 	static Dec64 nan(ushort payload = 0) {
 		if (payload) {
-			Dec64 result = NAN;
+			Dec64 result = NaN;
 			result.payload = payload;
 			return result;
 		}
-		return NAN;
+		return NaN;
 	}
 
 	static Dec64 snan(ushort payload = 0) {
 		if (payload) {
-			Dec64 result = SNAN;
+			Dec64 result = sNaN;
 			result.payload = payload;
 			return result;
 		}
-		return SNAN;
+		return sNaN;
 	}
 
 	/// Maximum length of the coefficient in decimal digits.
 	public enum int precision = PRECISION;
 	/// Maximum value of the exponent.
-	public enum int maxExpo = MAX_EXPO;
+	public enum int maxExpo = MaxExpo;
 	/// Maximum value of the adjusted exponent.
-	public enum int maxAdjustedExpo = MAX_EXPO - (PRECISION - 1);
+	public enum int maxAdjustedExpo = MaxExpo - (PRECISION - 1);
 	/// Smallest normalized exponent.
-	public enum int minExpo = 1 - MAX_EXPO;
+	public enum int minExpo = 1 - MaxExpo;
 	/// Smallest non-normalized exponent.
-	public enum int tinyExpo = 2 - MAX_EXPO - PRECISION;
+	public enum int tinyExpo = 2 - MaxExpo - PRECISION;
 	/// Rounding mode.
 	/// Returns the radix (always 10 for decimal numbers)
 	public enum int radix = 10;
 
 	// floating point properties
-	public enum Dec64 init    		= NAN;
+	public enum Dec64 init    		= NaN;
 //	public enum Dec64 epsilon 		= EPSILON;
 //	public enum Dec64 min     		= MIN_SUB;
 //	public enum Dec64 min_normal	= MIN_NRM;
@@ -1167,7 +1167,7 @@ public:
 		assertTrue(num.isIntegralValued);
 		num = 201E-2;
 		assertFalse(num.isIntegralValued);
-		num = Dec64.INFINITY;
+		num = Dec64.Infinity;
 		assertFalse(num.isIntegralValued);
 		writeln("passed");
 	}
@@ -1178,7 +1178,7 @@ public:
 
 	int toInt() const {
 		if (isNaN) {
-			contextFlags.setFlags(INVALID_OPERATION);
+			contextFlags.setFlags(InvalidOperation);
 			return 0;
 		}
 		if (this > Dec64(int.max) || (isInfinite && !isSigned)) return int.max;
@@ -1207,7 +1207,7 @@ public:
 	long toLong() const {
 		long n;
 		if (isNaN) {
-			contextFlags.setFlags(INVALID_OPERATION);
+			contextFlags.setFlags(InvalidOperation);
 			return 0;
 		}
 		if (this > long.max || (isInfinite && !isSigned)) return long.max;
@@ -1228,7 +1228,7 @@ public:
 		assert(num.toLong == 1000000);
 		num = -1.0E60;
 		assert(num.toLong == long.min);
-		num = Dec64.NEG_INF;
+		num = Dec64.negInf;
 		assert(num.toLong == long.min);
 		writeln("passed");
 	}

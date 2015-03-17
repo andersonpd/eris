@@ -26,30 +26,56 @@ unittest {
 	writeln("==========================");
 }
 
-version(unittest) {
+import std.stdio;
+
+version(unittest)
+{
 	import std.stdio;
 	import eris.assertion;
 }
 
-public T roundToPrecision(T)(in T num, Context context, bool noFlags = false) if (isDecimal!T)
+public T roundToPrecision(T)(in T num) if (isDecimal!T)
 {
-	return roundToPrecision(num, context.precision, context.rounding, noFlags);
+	return roundToPrecision(num, T.context);
+}
+
+public T roundToPrecision(T)(in T num, Context context) if (isDecimal!T)
+{
+	return roundToPrecision(num, context.precision, context.maxExpo, context.rounding, false);
+}
+
+public T roundToPrecision(T)(in T num,
+		Context context, bool noFlags) if (isDecimal!T)
+{
+	return roundToPrecision(num, context.precision, context.maxExpo, context.rounding, noFlags);
 }
 
 public T roundToPrecision(T)(in T num, Rounding rounding) if (isDecimal!T)
 {
-	return roundToPrecision(num, T.precision, rounding, noFlags);
+	return roundToPrecision(num, T.precision, T.maxExpo, rounding, false);
+}
+
+public T roundToPrecision(T)(in T num,
+		int precision) if (isDecimal!T)
+{
+	return roundToPrecision(num, precision, T.maxExpo, T.rounding, false);
+}
+
+public T roundToPrecision(T)(in T num,
+		int precision, Rounding rounding) if (isDecimal!T)
+{
+	return roundToPrecision(num, precision, T.maxExpo, rounding, false);
 }
 
 /// Rounds the referenced number using the precision and rounding mode of
 /// the context parameter.
-/// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
+/// Flags: Subnormal, Clamped, Overflow, Inexact, Rounded.
 //@safe
-public T roundToPrecision(T)(in T num, int precision = T.precision,
-		Rounding rounding = T.rounding, bool noFlags = false) if (isDecimal!T)
+public T roundToPrecision(T)(in T num, int precision,
+		int maxExpo, Rounding rounding, bool noFlags) if (isDecimal!T)
 {
 	T result = num.dup;	// copy the input
-	if (rounding == Rounding.NONE) return result;
+	if (rounding == Rounding.none) return result;
 
 	// special values aren't rounded
 	if (!num.isFinite) return result;
@@ -58,7 +84,7 @@ public T roundToPrecision(T)(in T num, int precision = T.precision,
 	// subnormal and out of range exponents.
 	if (num.isZero) {
 		if (num.exponent < T.minExpo) {
-			contextFlags.setFlags(SUBNORMAL);
+			contextFlags.setFlags(Subnormal);
 			if (num.exponent < T.tinyExpo) {
 				int temp = T.tinyExpo;
 				result.exponent = T.tinyExpo;
@@ -69,7 +95,7 @@ public T roundToPrecision(T)(in T num, int precision = T.precision,
 
 	// handle subnormal numbers
 	if (num.isSubnormal()) {
-		contextFlags.setFlags(SUBNORMAL);
+		contextFlags.setFlags(Subnormal);
 		int diff = T.minExpo - result.adjustedExponent;
 		// use the subnormal precision and round
 		int subprecision = precision - diff;
@@ -80,19 +106,21 @@ public T roundToPrecision(T)(in T num, int precision = T.precision,
 		// the clamped flag is set. (Spec. p. 51)
 		if (result.isZero) {
 			result.exponent = T.tinyExpo;
-			contextFlags.setFlags(CLAMPED);
+			contextFlags.setFlags(Clamped);
 		}
 		return result;
 	}
 
-	// Don't round the number if it is too large to represent
-	if (overflow(result, rounding, noFlags)) {
+//writefln("num.toExact = %s", num.toExact);
+	// if the number is too large to represent, return the overflow value
+	if (overflow(result, rounding, maxExpo, noFlags)) {
+//writefln("result = %s", result);
 		return result;
-    }
+	}
 	// round the number
 	roundByMode(result, precision, rounding);
 	// check again for an overflow
-	overflow(result, rounding, noFlags);
+	overflow(result, rounding, maxExpo, noFlags);
 	return result;
 } // end roundToPrecision()
 
@@ -158,44 +186,47 @@ unittest {	// roundToPrecision
 /// Returns true if the number is too large to be represented
 /// and adjusts the number according to the rounding mode.
 /// Implements the 'overflow' processing in the specification. (p. 53)
-/// Flags: OVERFLOW, ROUNDED, INEXACT.
+/// Flags: Overflow, Rounded, Inexact.
 /// Precondition: number must be finite.
 //@safe
 private bool overflow(T)(ref T num,	Rounding mode = T.rounding,
-		bool noFlags = false) if (isDecimal!T)
+		int maxExpo = T.maxExpo, bool noFlags = false) if (isDecimal!T)
 {
-	if (num.adjustedExponent <= T.maxExpo) return false;
+//writefln("maxExpo = %s", maxExpo);
+//writefln("num.adjustedExponent = %s", num.adjustedExponent);
+	if (num.adjustedExponent <= maxExpo) return false;
+	// TODO: if the number has not been normalized will this work?
 
 	switch (mode)
 	{
-		case Rounding.NONE: 	// can this branch be reached? should it be?
-		case Rounding.HALF_UP:
-		case Rounding.HALF_EVEN:
-		case Rounding.HALF_DOWN:
-		case Rounding.UP:
+		case Rounding.none: 	// can this branch be reached? should it be?
+		case Rounding.halfUp:
+		case Rounding.halfEven:
+		case Rounding.halfDown:
+		case Rounding.up:
 			num = T.infinity(num.sign);
 			break;
-		case Rounding.DOWN:
+		case Rounding.down:
 			num = num.sign ? T.max.copyNegate : T.max;
 			break;
-		case Rounding.CEILING:
+		case Rounding.ceiling:
 			num = num.sign ? T.max.copyNegate : T.infinity;
 			break;
-		case Rounding.FLOOR:
+		case Rounding.floor:
 			num = num.sign ? T.infinity(true) : T.max;
 			break;
 		default:
 			break;
 	}
-	if (!noFlags) contextFlags.setFlags(OVERFLOW | INEXACT | ROUNDED);
+	if (!noFlags) contextFlags.setFlags(Overflow | Inexact | Rounded);
 	return true;
 }
 
 // Returns true if the rounding mode is half-even, half-up, or half-down.
 private bool halfRounding(Rounding rounding) {
-	return (rounding == Rounding.HALF_EVEN ||
-	 		rounding == Rounding.HALF_UP ||
-	 		rounding == Rounding.HALF_DOWN);
+	return (rounding == Rounding.halfEven ||
+	 		rounding == Rounding.halfUp ||
+	 		rounding == Rounding.halfDown);
 }
 
 /// Rounds the number to the context precision
@@ -204,7 +235,7 @@ private void roundByMode(T)(ref T num,
 		int precision, Rounding mode) if (isDecimal!T)
 {
 
-	if (mode == Rounding.NONE) return;
+	if (mode == Rounding.none) return;
 
 	// calculate the remainder
 	T remainder = getRemainder(num, precision);
@@ -219,26 +250,26 @@ private void roundByMode(T)(ref T num,
 	}
 
 	switch (mode) {
-		case Rounding.UP:
+		case Rounding.up:
 			incrementAndRound(num);
 			return;
-		case Rounding.DOWN:
+		case Rounding.down:
 			return;
-		case Rounding.CEILING:
+		case Rounding.ceiling:
 			if (!num.sign) incrementAndRound(num);
 			return;
-		case Rounding.FLOOR:
+		case Rounding.floor:
 			if (num.sign) incrementAndRound(num);
 			return;
-		case Rounding.HALF_UP:
+		case Rounding.halfUp:
 			if (firstDigit(remainder.coefficient) >= 5)
 				incrementAndRound(num);
 			return;
-		case Rounding.HALF_DOWN:
+		case Rounding.halfDown:
 			if (testFive(remainder.coefficient) > 0)
 				incrementAndRound(num);
 			return;
-		case Rounding.HALF_EVEN:
+		case Rounding.halfEven:
 			switch (testFive(remainder.coefficient)) {
 				case -1:
 					break;
@@ -261,32 +292,32 @@ unittest {	// roundByMode
 	write("-- roundByMode......");
 	dec9 num;
 	num = 1000;
-	roundByMode(num, 5, Rounding.HALF_EVEN);
+	roundByMode(num, 5, Rounding.halfEven);
 	assertEqual(num.coefficient, 1000);
 	assertEqual(num.exponent, 0);
 	assertEqual(num.digits, 4);
 	num = 1000000;
-	roundByMode(num, 5, Rounding.HALF_EVEN);
+	roundByMode(num, 5, Rounding.halfEven);
 	assertEqual(num.coefficient, 10000);
 	assertEqual(num.exponent, 2);
 	assertEqual(num.digits, 5);
 	num = 99999;
-	roundByMode(num, 5, Rounding.HALF_EVEN);
+	roundByMode(num, 5, Rounding.halfEven);
 	assertEqual(num.coefficient, 99999);
 	assertEqual(num.exponent, 0);
 	assertEqual(num.digits, 5);
 	num = 1234550;
-	roundByMode(num, 5, Rounding.HALF_EVEN);
+	roundByMode(num, 5, Rounding.halfEven);
 	assertEqual(num.coefficient, 12346);
 	assertEqual(num.exponent, 2);
 	assertEqual(num.digits, 5);
 	num = 1234550;
-	roundByMode(num, 5, Rounding.DOWN);
+	roundByMode(num, 5, Rounding.down);
 	assertEqual(num.coefficient, 12345);
 	assertEqual(num.exponent, 2);
 	assertEqual(num.digits, 5);
 	num = 1234550;
-	roundByMode(num, 5, Rounding.UP);
+	roundByMode(num, 5, Rounding.up);
 	assertEqual(num.coefficient, 12346);
 	assertEqual(num.exponent, 2);
 	assertEqual(num.digits, 5);
@@ -299,7 +330,7 @@ unittest {	// roundByMode
 /// number is unchanged and the remainder is zero.
 /// Otherwise the rounded flag is set, and if the remainder is not zero
 /// the inexact flag is also set.
-/// Flags: ROUNDED, INEXACT.
+/// Flags: Rounded, Inexact.
 private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 {
 	T remainder = T.zero;
@@ -307,7 +338,7 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 	if (diff <= 0) {
 		return remainder;
 	}
-	contextFlags.setFlags(ROUNDED);
+	contextFlags.setFlags(Rounded);
 	xint divisor = pow10(diff);
 	xint dividend = x.coefficient;
 	xint quotient = dividend/divisor;
@@ -317,7 +348,7 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 		remainder.digits = diff;
 		remainder.exponent = x.exponent;
 		remainder.coefficient = mant;
-		contextFlags.setFlags(INEXACT);
+		contextFlags.setFlags(Inexact);
 	}
 	x.coefficient = quotient;
 	x.digits = numDigits(quotient); //precision;
@@ -444,7 +475,7 @@ public enum ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
 public int numDigits(in xint x)
 {
 	// special cases
-    if (x.getDigitLength == 1) return numDigits(x.getDigit(0));
+	if (x.getDigitLength == 1) return numDigits(x.getDigit(0));
 	if (x == 0) return 0;
 
 	int count = 0;
@@ -462,11 +493,11 @@ unittest {	// numDigits(xint)
 /// Returns the number of digits in the argument,
 /// where the argument is an unsigned long integer.
 public int numDigits(ulong n) {
-    // special cases:
+	// special cases:
 	if (n == 0) return 0;
 	if (n < 10) return 1;
 	if (n >= TENS[18]) return 19;
-    // use a binary search to count the digits
+	// use a binary search to count the digits
 	int min = 2;
 	int max = 18;
 	while (min <= max) {
@@ -513,20 +544,20 @@ unittest // numDigits
 
 	static S[] tests =
 	[
-		{                  7,  1 },
-		{                 13,  2 },
-		{                999,  3 },
-		{               9999,  4 },
-		{              25978,  5 },
-		{            2008617,  7 },
-		{         1234567890, 10 },
-		{        10000000000, 11 },
-		{    123456789012345, 15 },
-		{   1234567890123456, 16 },
-		{ 123456789012345678, 18 },
-		{           long.max, 19 },
-		{          ulong.max, 19 },
-		{          ulong.min,  0 },
+		{				  7,  1 },
+		{				 13,  2 },
+		{				999,  3 },
+		{			   9999,  4 },
+		{			  25978,  5 },
+		{			2008617,  7 },
+		{		 1234567890, 10 },
+		{		10000000000, 11 },
+		{	123456789012345, 15 },
+		{  1234567890123456, 16 },
+		{123456789012345678, 18 },
+		{		   long.max, 19 },
+		{		  ulong.max, 19 },
+		{		  ulong.min,  0 },
 	];
 
 	foreach (i, s; tests)

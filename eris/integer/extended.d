@@ -266,10 +266,41 @@ public struct ExtendedInt {
 // opCast
 //--------------------------------
 
-    ///
+	///
 	@safe
 	T opCast(T:bool)() {
 		return !isZero();
+	}
+
+	///
+	@safe
+	T opCast(T:int)() {
+		return cast(int)digits[0];
+	}
+
+	///
+	@safe
+	T opCast(T:uint)() {
+		return cast(uint)digits[0];
+	}
+
+	///
+	@safe
+	T opCast(T:long)() {
+		if (digits.length < 2) return cast(long) digits[0];
+		return cast(long)pack(digits[1],digits[0]);
+	}
+
+	///
+	@safe
+	T opCast(T:ulong)() {
+		if (digits.length < 2) return cast(ulong) digits[0];
+		return pack(digits[1],digits[0]);
+	}
+
+	unittest {
+		write("casts...");
+		writeln("test missing");
 	}
 
 //--------------------------------
@@ -333,7 +364,7 @@ public struct ExtendedInt {
 		assertEqual(a.toHexString, "0x7FFFFFFF_FFFFFFFF");
 		assertEqual(a.abs.toHexString, "0x7FFFFFFF_FFFFFFFF");
 		assertEqual(a.sqr.toHexString, "0x3FFFFFFF_FFFFFFFF_00000000_00000001");
-        a = -1;
+		a = -1;
 		assertEqual(a, -1);
 		assertEqual(a.sqr, 1);
 		assertEqual(a.abs, 1);
@@ -586,7 +617,7 @@ public struct ExtendedInt {
 		if (this.digits.length == that.digits.length) {
 			return (this.digits == that.digits);
 		}
-        else {
+		else {
 			return trimDigits(this.digits) == trimDigits(that.digits);
 		}
 	}
@@ -846,48 +877,48 @@ public struct ExtendedInt {
 		}
 	}
 
-    public void formatDecimal(scope void delegate(const (char)[]) sink,
+	public void formatDecimal(scope void delegate(const (char)[]) sink,
 			ref FormatSpec!char f) const {
 
-        string str = toDecimalString(false);
+		string str = toDecimalString(false);
 		char signChar = isNegative() ? '-' : 0;
-        auto minw = str.length + (signChar ? 1 : 0);
+		auto minw = str.length + (signChar ? 1 : 0);
 
-        if (!signChar && (f.width == 0 || minw < f.width))
-        {
-            if (f.flPlus)
-                signChar = '+', ++minw;
-            else if (f.flSpace)
-                signChar = ' ', ++minw;
-        }
+		if (!signChar && (f.width == 0 || minw < f.width))
+		{
+			if (f.flPlus)
+				signChar = '+', ++minw;
+			else if (f.flSpace)
+				signChar = ' ', ++minw;
+		}
 
-        auto maxw = minw < f.width ? f.width : minw;
-        auto difw = maxw - minw;
+		auto maxw = minw < f.width ? f.width : minw;
+		auto difw = maxw - minw;
 
-        if (!f.flDash && !f.flZero)
-            foreach (i; 0 .. difw)
-                sink(" ");
+		if (!f.flDash && !f.flZero)
+			foreach (i; 0 .. difw)
+				sink(" ");
 
-        if (!f.flDash && f.flZero)
-            foreach (i; 0 .. difw)
-                sink("0");
+		if (!f.flDash && f.flZero)
+			foreach (i; 0 .. difw)
+				sink("0");
 
-        if (signChar)
-            sink((&signChar)[0..1]);
+		if (signChar)
+			sink((&signChar)[0..1]);
 
-        sink(str);
+		sink(str);
 
-        if (f.flDash)
-            foreach (i; 0 .. difw)
-                sink(" ");
+		if (f.flDash)
+			foreach (i; 0 .. difw)
+				sink(" ");
 	}
 
-    public void formatHex(
+	public void formatHex(
 			scope void delegate(const (char)[]) sink) const {
 		sink(toHexString);
 	}
 
-    public void formatBinary(
+	public void formatBinary(
 			scope void delegate(const (char)[]) sink) const {
 		sink(toBinaryString);
 	}
@@ -897,8 +928,7 @@ public struct ExtendedInt {
 		uint[] from = this.digits.dup;
 		uint n = numDigits(from);
 		if (n == 0) return "0";
-		while (n > 0)
-		{
+		while (n > 0) {
 			uint mod;
 			char[1] ch;
 			from = divmodDigit(from, n, 10, mod);
@@ -1253,7 +1283,7 @@ public struct ExtendedInt {
 	/// Divides one extended integer by another and returns the integer quotient.
 	@safe
 	private static xint div(in xint x, in xint y) {
-        if (y == 0) throw new DivByZeroException("division by zero");
+		if (y == 0) throw new DivByZeroException("division by zero");
 		uint[] xd;
 		int nx = copyDigits(x.digits, xd);
 		if (nx == 0) return ZERO.dup;
@@ -1265,7 +1295,7 @@ public struct ExtendedInt {
 	}
 
 	unittest {
-		writeln("-- division.........");
+		write("-- division.........");
 		xint x = 6;
 		xint y = 2;
 		assertEqual(x/y, xint(3));
@@ -1341,7 +1371,7 @@ public struct ExtendedInt {
 	/// Divides one extended integer by another and returns the quotient and the remainder.
 	@safe
 	public static xint divmod(xint x, xint y, out xint mod) {
-        if (y == 0) throw new DivByZeroException("division by zero");
+		if (y == 0) throw new DivByZeroException("division by zero");
 		uint[] xd;
 		int nx = copyDigits(x.digits, xd);
 		if (nx == 0) return ZERO.dup;
@@ -1429,7 +1459,7 @@ public struct ExtendedInt {
 	}
 
 unittest {
-	write("shr...");
+	write("-- shr..............");
 	xint a = "1_000_000_000_000_000";
 	uint b = 15;
 	xint c = shr(a,b);
@@ -1493,7 +1523,7 @@ unittest {
 
  	// TODO: (testing) more testing, please!!
 	unittest {
-		writeln("-- logical ops......");
+		write("-- logical ops......");
 
 		xint A = "0x80000000_00000000_00001111";
 		xint B = "0xFF00FF00_88883333_AAAA5555";
@@ -1555,7 +1585,7 @@ unittest {
 	// the bit array.
 	public static std.bitmanip.BitArray toBitArray(xint a) {
 		digit[] copy = a.digits.dup;
-        std.bitmanip.BitArray ba;
+		std.bitmanip.BitArray ba;
 		ba.init(cast(void[])copy, copy.length*32);
 		return ba;
 	}
@@ -1600,13 +1630,13 @@ unittest {
 		x.setBit(3, false);
 		assertEqual(x, xint(0x00100000));
 		xint y = xint([0x123U, 0x345U, 0x123456U]);
-        y.setBit(60);
+		y.setBit(60);
 		assertEqual(y, xint("0x00123456_10000345_00000123"));
-        assertFalse(y.testBit(95));
+		assertFalse(y.testBit(95));
 		y.setBit(95);
-        assertTrue(y.testBit(95));
+		assertTrue(y.testBit(95));
 		assertEqual(y, xint("0x80123456_10000345_00000123"));
-        y.setBit(100);
+		y.setBit(100);
 		assertEqual(y, xint("0x80123456_10000345_00000123"));
 		y.setBit(1,false);
 		assertEqual(y, xint("0x80123456_10000345_00000121"));

@@ -20,7 +20,7 @@ import std.string;
 import std.format;
 
 import eris.decimal;
-import eris.decimal.context;
+//import eris.decimal.context;
 import eris.decimal.rounding;
 import eris.integer.extended;
 
@@ -35,7 +35,7 @@ version(unittest) {
 	import eris.assertion;
 }
 
-public enum DEFAULT_PRECISION = 6;
+public enum DefaultPrecision = 6;
 
 //--------------------------------
 //   to!string conversions
@@ -68,7 +68,7 @@ public string toString(T)(in T num, string fmStr = "%S") if (isDecimal!T)
 	else if (fm.flSpace) str = " ";
 	bool noPrecision = (fm.precision == fm.UNSPECIFIED);
 	// if precision is unspecified it defaults to 6
-	int precision = noPrecision ? DEFAULT_PRECISION : fm.precision;
+	int precision = noPrecision ? DefaultPrecision : fm.precision;
 	str ~= formatDecimal!T(num, fm.spec, precision);
 	// add trailing zeros
 	if (fm.flHash && str.indexOf('.' < 0)) {
@@ -124,9 +124,9 @@ unittest  // toString
 		{ "12.345",		"%012G",	"00012.345000" },
 		// zero flag ignored if precision is specified
 		{ "12.345",		 "%012.4G",	"     12.3450" },
-		// zero flag ignored if infinity or nan
-		{ "Inf",		 "%012.4G",	"    INFINITY" },
-		{ "NaN",		 "%012.4g",	"         nan" },
+		// zero flag, upper/lower case  ignored if infinity or nan
+		{ "Inf",		 "%012.4G",	"    Infinity" },
+		{ "NaN",		 "%012.4g",	"         NaN" },
 		// if hash, print trailing zeros.
 		{ "1234567.89",	 "%.0G",	"1234568" },
 		{ "1234567.89",	 "%.0F",	"1234568" },
@@ -229,18 +229,18 @@ public string engForm(T)(in T num) if (isDecimal!T)
 	int adjx = expo + mant.length - 1;
 	// if exponent is small, don't use exponential notation
 	if (expo <= 0 && adjx >= -6) {
-		// if exponent is not zero, insert a dec9 point
+		// if exponent is not zero, insert a decimal point
 		if (expo != 0) {
 			int point = std.math.abs(expo);
 			// if coefficient is too small, pad with zeroes
 			if (point > mant.length) {
 				mant = rightJustify(mant, point, '0');
 			}
-			// if no chars precede the dec9 point, prefix a zero
+			// if no chars precede the decimal point, prefix a zero
 			if (point == mant.length) {
 				mant = "0." ~ mant;
 			}
-			// otherwise insert a dec9 point
+			// otherwise insert a decimal point
 			else {
 				insertInPlace(mant, mant.length - point, ".");
 			}
@@ -307,10 +307,8 @@ unittest // engForm
 	writeln("passed");
 }
 
-private string specialForm(T)(in T num, bool shortForm = false,
-	bool lower = false, bool upper = false) if (isDecimal!T)
+private string specialForm(T)(in T num, bool shortForm = false) if (isDecimal!T)
 {
-
 	string str = num.sign ? "-" : "";
 	if (num.isInfinite) {
 		str ~= shortForm ? "Inf" : "Infinity";
@@ -321,8 +319,8 @@ private string specialForm(T)(in T num, bool shortForm = false,
 			str ~= to!string(num.payload);
 		}
 	}
-	if (lower) str = toLower(str);
-	else if (upper) str = toUpper(str);
+//	if (lower) str = toLower(str);
+//	else if (upper) str = toUpper(str);
 	return str;
 }
 
@@ -357,7 +355,7 @@ unittest  // specialForm
 
 /// Converts a decimal number to a string in decimal format (xxx.xxx).
 private string decimalForm(T)(in T number,
-	int precision = DEFAULT_PRECISION) if (isDecimal!T)
+	int precision = DefaultPrecision) if (isDecimal!T)
 {
 	if (number.isSpecial) {
 		return specialForm(number);
@@ -376,11 +374,11 @@ private string decimalForm(T)(in T number,
 	auto sign = num.isSigned;
 	if (expo >= 0) {
 		if (expo > 0) {
-			// add zeros up to the dec9 point
+			// add zeros up to the decimal point
 			str ~= replicate("0", expo);
 		}
 		if (precision) {
-			// add zeros trailing the dec9 point
+			// add zeros trailing the decimal point
 			str ~= "." ~ replicate("0", precision);
 		}
 	}
@@ -390,11 +388,11 @@ private string decimalForm(T)(in T number,
 		if (point > str.length) {
 			str = rightJustify(str, point, '0');
 			}
-		// if no chars precede the dec9 point, prefix a zero
+		// if no chars precede the decimal point, prefix a zero
 		if (point == str.length) {
 			str = "0." ~ str;
 		}
-		// otherwise insert a dec9 point
+		// otherwise insert a decimal point
 		else {
 			insertInPlace(str, str.length - point, ".");
 		}
@@ -436,7 +434,7 @@ unittest // decimalForm
 
 
 /// Converts a decimal number to a string using exponential notation.
-private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
+private string exponentForm(T)(in T number, int precision = DefaultPrecision,
 	const bool lowerCase = false, const bool padExpo = true) if (isDecimal!T)
 {
 
@@ -499,7 +497,7 @@ private string formatDecimal(T)(in T num,
 
 	// special values
 	if (num.isSpecial) {
-		return specialForm!T(num, false, lowerCase, upperCase);
+		return specialForm!T(num, false);
 	}
 
 	switch (std.uni.toUpper(formatChar)) {
@@ -690,7 +688,7 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 	}
 	// at this point, num must be finite
 	num = T.zero(sign);
-                         	// check for exponent
+	// check for exponent
 	int pos = indexOf(str, 'e');
 	if (pos > 0) {
 		// if it's just a trailing 'e', return NaN
@@ -747,7 +745,7 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 	} else {
 		num.exponent = 0;
 	}
-	// remove trailing dec9 point
+	// remove trailing decimal point
 	if (endsWith(str, ".")) {
 		str = str[0..$ -1];
 		// check for empty string (input was ".")
@@ -833,6 +831,7 @@ private T setPayload(T)(T num, char[] str, int len) if (isDecimal!T)
 	}
 	// payload has a max length of 6 digits
 	if (str.length > 6) return num;
+	// TODO: can put previous checks into this foreach
 	// ensure string is all digits
 	foreach(char c; str) {
 		if (!isDigit(c)) {

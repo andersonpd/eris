@@ -26,19 +26,19 @@ version(unittest) {
 }
 
 /// The available rounding modes. For cumulative operations use the
-/// HALF_EVEN mode to prevent accumulation of errors. Otherwise, the
-/// HALF_UP and HALF_DOWN modes are satisfactory. The UP, DOWN, FLOOR,
-/// and CEILING modes are also useful for some operations.
+/// halfEven mode to prevent accumulation of errors. Otherwise, the
+/// halfUp and halfDown modes are satisfactory. The up, down, floor,
+/// and ceiling modes are also useful for some operations.
 /// General Decimal Arithmetic Specification, p. 13-14.
 public enum Rounding {
-	NONE,
-    HALF_EVEN,
-    HALF_DOWN,
-    HALF_UP,
-    DOWN,
-    UP,
-    FLOOR,
-    CEILING,
+	none,
+    halfEven,
+    halfDown,
+    halfUp,
+    down,
+    up,
+    floor,
+    ceiling,
 }
 
 /// The available flags and trap-enablers.
@@ -46,15 +46,16 @@ public enum Rounding {
 /// If more than one flag is set by an operation and traps are enabled,
 /// the flag with higher precedence will throw its exception.
 /// General Decimal Arithmetic Specification, p. 15.
-public enum : ubyte {
-	INVALID_OPERATION  = 0x80,
-	DIVISION_BY_ZERO   = 0x40,
-	OVERFLOW           = 0x20,
-	SUBNORMAL          = 0x10,
-	INEXACT            = 0x08,
-	ROUNDED            = 0x04,
-	UNDERFLOW          = 0x02,
-	CLAMPED            = 0x01
+public enum : ubyte
+{
+	InvalidOperation   = 0x80,
+	DivisionByZero     = 0x40,
+	Overflow           = 0x20,
+	Subnormal          = 0x10,
+	Inexact            = 0x08,
+	Rounded            = 0x04,
+	Underflow          = 0x02,
+	Clamped            = 0x01
 }
 
 
@@ -106,29 +107,29 @@ private struct ContextFlags {
 	// trap-enabler is set, an exception is thrown.
 	@safe
 	 public void checkFlags(ubyte flags) {
-		if (flags & INVALID_OPERATION && traps & INVALID_OPERATION) {
-			throw new InvalidOperationException("INVALID_OPERATION");
+		if (flags & InvalidOperation && traps & InvalidOperation) {
+			throw new InvalidOperationException("InvalidOperation");
 		}
-		if (flags & DIVISION_BY_ZERO && traps & DIVISION_BY_ZERO) {
-			throw new DivByZeroException("DIVISION_BY_ZERO");
+		if (flags & DivisionByZero && traps & DivisionByZero) {
+			throw new DivByZeroException("DivisionByZero");
 		}
-		if (flags & OVERFLOW && traps & OVERFLOW) {
-			throw new OverflowException("OVERFLOW");
+		if (flags & Overflow && traps & Overflow) {
+			throw new OverflowException("Overflow");
 		}
-		if (flags & SUBNORMAL && traps & SUBNORMAL) {
-			throw new SubnormalException("SUBNORMAL");
+		if (flags & Subnormal && traps & Subnormal) {
+			throw new SubnormalException("Subnormal");
 		}
-		if (flags & INEXACT && traps & INEXACT) {
-			throw new InexactException("INEXACT");
+		if (flags & Inexact && traps & Inexact) {
+			throw new InexactException("Inexact");
 		}
-		if (flags & ROUNDED && traps & ROUNDED) {
-			throw new RoundedException("ROUNDED");
+		if (flags & Rounded && traps & Rounded) {
+			throw new RoundedException("Rounded");
 		}
-		if (flags & UNDERFLOW && traps & UNDERFLOW) {
-			throw new UnderflowException("UNDERFLOW");
+		if (flags & Underflow && traps & Underflow) {
+			throw new UnderflowException("Underflow");
 		}
-		if (flags & CLAMPED && traps & CLAMPED) {
-			throw new ClampedException("CLAMPED");
+		if (flags & Clamped && traps & Clamped) {
+			throw new ClampedException("Clamped");
 		}
 	}
 

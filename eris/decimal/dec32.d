@@ -37,7 +37,7 @@ version(unittest) {
 	import eris.assertion;
 }
 
-public enum Context CONTEXT_32 = Context(7, 90, Rounding.HALF_UP);
+public enum Context CONTEXT_32 = Context(7, 90, Rounding.halfUp);
 
 // BigDecimal with the same context as Dec32
 private alias Big32 = BigDecimal!(CONTEXT_32);
@@ -242,7 +242,7 @@ private:
 		POS_NAN = 0x7C000000,
 		NEG_NAN = 0xFC000000,
 		POS_INF = 0x78000000,
-		NEG_INF = 0xF8000000,
+		negInf = 0xF8000000,
 		POS_ZRO = 0x32800000,
 		NEG_ZRO = 0xB2800000,
 		POS_MAX = 0x77F8967F,
@@ -253,7 +253,7 @@ private:
 		MIN_SUB = 0x03000001,
 
 		POS_ONE = 0x32800001,
-		NEG_ONE = 0xB2800001,
+		negOne = 0xB2800001,
 		POS_TWO = 0x32800002,
 		NEG_TWO = 0xB2800002,
 		POS_FIV = 0x32800005,
@@ -290,14 +290,14 @@ private:
 
 public:
 	// special values
-	enum Dec32 NAN 	 	= Dec32(Bits.POS_NAN);
+	enum Dec32 NaN 	 	= Dec32(Bits.POS_NAN);
 	enum Dec32 NEG_NAN  = Dec32(Bits.NEG_NAN);
-	enum Dec32 SNAN	 	= Dec32(Bits.POS_SIG);
+	enum Dec32 sNaN	 	= Dec32(Bits.POS_SIG);
 	enum Dec32 NEG_SNAN = Dec32(Bits.NEG_SIG);
-	enum Dec32 INFINITY = Dec32(Bits.POS_INF);
-	enum Dec32 NEG_INF	= Dec32(Bits.NEG_INF);
-	enum Dec32 ZERO		= Dec32(Bits.POS_ZRO);
-	enum Dec32 NEG_ZERO = Dec32(Bits.NEG_ZRO);
+	enum Dec32 Infinity = Dec32(Bits.POS_INF);
+	enum Dec32 negInf	= Dec32(Bits.negInf);
+	enum Dec32 Zero		= Dec32(Bits.POS_ZRO);
+	enum Dec32 negZero = Dec32(Bits.NEG_ZRO);
 	enum Dec32 MAX		= Dec32(Bits.POS_MAX);
 	enum Dec32 NEG_MAX  = Dec32(Bits.NEG_MAX);
 	enum Dec32 EPSILON  = Dec32(Bits.EPSILON);
@@ -305,13 +305,13 @@ public:
 	enum Dec32 MIN_SUB  = Dec32(Bits.MIN_SUB);
 
 	// small integers
-	enum Dec32 ONE		= Dec32(Bits.POS_ONE);
-	enum Dec32 NEG_ONE	= Dec32(Bits.NEG_ONE);
-	enum Dec32 TWO		= Dec32(Bits.POS_TWO);
+	enum Dec32 One		= Dec32(Bits.POS_ONE);
+	enum Dec32 negOne	= Dec32(Bits.negOne);
+	enum Dec32 Two		= Dec32(Bits.POS_TWO);
 	enum Dec32 NEG_TWO	= Dec32(Bits.NEG_TWO);
-	enum Dec32 FIVE		= Dec32(Bits.POS_FIV);
+	enum Dec32 Five		= Dec32(Bits.POS_FIV);
 	enum Dec32 NEG_FIVE	= Dec32(Bits.NEG_FIV);
-	enum Dec32 TEN		= Dec32(Bits.POS_TEN);
+	enum Dec32 Ten		= Dec32(Bits.POS_TEN);
 	enum Dec32 NEG_TEN	= Dec32(Bits.NEG_TEN);
 
 	// mathamatical constants
@@ -335,8 +335,8 @@ public:
 	enum Dec32 GAMMA	= Dec32(Bits.GAMMA);
 
 	// boolean constants
-	enum Dec32 TRUE		= ONE;
-	enum Dec32 FALSE	= ZERO;
+	enum Dec32 TRUE		= One;
+	enum Dec32 FALSE	= Zero;
 
 
 //--------------------------------
@@ -373,7 +373,7 @@ public:
 
 	/// Creates a Dec32 from a boolean value.
 	public this(bool value) {
-		this = value ? ONE : ZERO;
+		this = value ? One : Zero;
 	}
 
 	unittest {
@@ -381,10 +381,10 @@ public:
 		Dec32 t, f;
 		t = Dec32(true);
 		assertTrue(t);
-		assertEqual(t, ONE);
+		assertEqual(t, One);
 		f = Dec32(false);
 		assertFalse(f);
-		assertEqual(f, ZERO);
+		assertEqual(f, Zero);
 		writeln("passed");
 	}
 
@@ -609,8 +609,8 @@ public:
 	int exponent(int expo) {
 		// check for overflow
 		if (expo > maxExpo) {
-			this = signed ? NEG_INF : INFINITY;
-			contextFlags.setFlags(OVERFLOW);
+			this = signed ? negInf : Infinity;
+			contextFlags.setFlags(Overflow);
 			return 0;
 		}
 		// check for underflow
@@ -618,10 +618,10 @@ public:
 			// if the exponent is too small even for a subnormal number,
 			// the number is set to zero.
 			if (expo < tinyExpo) {
-				this = signed ? NEG_ZERO : ZERO;
+				this = signed ? negZero : Zero;
 				expoEx = tinyExpo + BIAS;
-				contextFlags.setFlags(SUBNORMAL);
-				contextFlags.setFlags(UNDERFLOW);
+				contextFlags.setFlags(Subnormal);
+				contextFlags.setFlags(Underflow);
 				return tinyExpo;
 			}
 			// at this point the exponent is between minExpo and tinyExpo.
@@ -639,7 +639,7 @@ public:
 		}
 		// if this point is reached the number is either infinity or NaN;
 		// these have undefined exponent values.
-		contextFlags.setFlags(INVALID_OPERATION);
+		contextFlags.setFlags(InvalidOperation);
 		this = nan;
 		return 0;
 	}
@@ -852,11 +852,11 @@ public:
 //--------------------------------
 
 	static Dec32 zero(bool signed = false) {
-		return signed ? NEG_ZERO : ZERO;
+		return signed ? negZero : Zero;
 	}
 
 	static Dec32 one(bool signed = false) {
-		return signed ? NEG_ONE : ONE;
+		return signed ? negOne : One;
 	}
 
 	static Dec32 max(bool signed = false) {
@@ -864,25 +864,25 @@ public:
 	}
 
 	static Dec32 infinity(bool signed = false) {
-		return signed ? NEG_INF : INFINITY;
+		return signed ? negInf : Infinity;
 	}
 
 	static Dec32 nan(ushort payload = 0) {
 		if (payload) {
-			Dec32 result = NAN;
+			Dec32 result = NaN;
 			result.payload = payload;
 			return result;
 		}
-		return NAN;
+		return NaN;
 	}
 
 	static Dec32 snan(ushort payload = 0) {
 		if (payload) {
-			Dec32 result = SNAN;
+			Dec32 result = sNaN;
 			result.payload = payload;
 			return result;
 		}
-		return SNAN;
+		return sNaN;
 	}
 
 	/// Maximum length of the coefficient in decimal digits.
@@ -900,7 +900,7 @@ public:
 	public enum int radix = 10;
 
 	// floating point properties
-	public enum Dec32 init    		= NAN;
+	public enum Dec32 init    		= NaN;
 	public enum Dec32 epsilon 		= EPSILON;
 	public enum Dec32 min     		= MIN_SUB;
 	public enum Dec32 min_normal	= MIN_NRM;
@@ -1141,7 +1141,7 @@ public:
 		assertTrue(num.isIntegralValued);
 		num = 201E-2;
 		assertFalse(num.isIntegralValued);
-		num = Dec32.INFINITY;
+		num = Dec32.Infinity;
 		assertFalse(num.isIntegralValued);
 		writeln("passed");
 	}
@@ -1152,7 +1152,7 @@ public:
 
 	int toInt() const {
 		if (isNaN) {
-			contextFlags.setFlags(INVALID_OPERATION);
+			contextFlags.setFlags(InvalidOperation);
 			return 0;
 		}
 		if (this > Dec32(int.max) || (isInfinite && !isSigned)) return int.max;
@@ -1181,7 +1181,7 @@ public:
 	long toLong() const {
 		long n;
 		if (isNaN) {
-			contextFlags.setFlags(INVALID_OPERATION);
+			contextFlags.setFlags(InvalidOperation);
 			return 0;
 		}
 		if (this > long.max || (isInfinite && !isSigned)) return long.max;
@@ -1202,7 +1202,7 @@ public:
 		assert(num.toLong == 1000000);
 		num = -1.0E60;
 		assert(num.toLong == long.min);
-		num = Dec32.NEG_INF;
+		num = Dec32.negInf;
 		assert(num.toLong == long.min);
 		writeln("passed");
 	}
