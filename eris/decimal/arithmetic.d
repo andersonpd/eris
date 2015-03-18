@@ -535,8 +535,17 @@ unittest {
 // comparison functions
 //--------------------------------
 
-// TODO: (behavior) compares to full precision, not context precision.
 /// Compares two operands numerically to the current precision.
+///
+/// Note: The operands are rounded before they are compared.
+/// This may result in unexpected results. For instance,
+/// if both operands are too large (small) for the context
+/// they will both be rounded to infinity (zero) and the function will
+/// return 0, indicating that they are equal, even though they are
+/// numerically different before rounding.
+///
+/// To compare numbers without rounding, use compareTotal.
+///
 /// Returns -1, 0, or +1 if the second operand is, respectively,
 /// less than, equal to, or greater than the first operand.
 /// Implements the 'compare' function in the specification. (p. 27)
@@ -582,8 +591,6 @@ public int compare(T)(in T x, in T y,
 	T yy = y.dup;
 
 	// TODO: (testing) test compare at precision limits.
-	// FIXTHIS: does not compare overflow numbers properly:
-	// Infinity == Infinity = true;
 	// restrict operands to current precision
 	if (xx.digits > context.precision) {
 		xx = roundToPrecision(xx, context);
@@ -978,7 +985,7 @@ unittest {	// sameQuantum
 
 /// Returns the maximum of the two operands (or NaN).
 /// If either is a signaling NaN, or both are quiet NaNs, a NaN is returned.
-/// Otherwise, Any finite or infinite number is larger than a NaN.
+/// Otherwise, any finite or infinite number is larger than a NaN.
 /// If they are not numerically equal, the larger is returned.
 /// If they are numerically equal:
 /// 1) If the signs differ, the one with the positive sign is returned.
@@ -1053,7 +1060,6 @@ unittest {	// max
 public T maxMagnitude(T)(T x, T y,
 		Context context = T.context) if (isDecimal!T)
 {
-// FIXTHIS: special values...
 	// both positive
 	if (x >= 0 && y >= 0) {
 		return max(x, y, context);
@@ -1153,18 +1159,39 @@ unittest {
 }
 
 /// Returns the smaller of the two operands (or NaN). Returns the same result
-/// as the 'max' function if the signs of the operands are ignored.
+/// as the 'min' function if the signs of the operands are ignored.
 /// Implements the 'min-magnitude' function in the specification. (p. 33)
 /// Flags: INVALID OPERATION, Rounded.
 public T minMagnitude(T)(T x, T y,
 		Context context = T.context) if (isDecimal!T)
 {
-	return min(copyAbs!T(x), copyAbs!T(y), context);
+	// both positive
+	if (x >= 0 && y >= 0) {
+		return min(x, y, context);
+	}
+	// both negative
+	if (x < 0 && y < 0) {
+		return max(x, y, context);
+	}
+	// one of each
+	if (x.copyAbs > y.copyAbs) {
+		return roundToPrecision(y, context);
+	}
+	return roundToPrecision(x, context);
 }
 
 unittest {
-	write("minMagnitude...");
-	writeln("test missing");
+	write("-- minMagnitude.....");
+	dec9 x, y;
+	x = -1; y = -2;
+	assertEqual(minMagnitude(x, y), x);
+	x =  1; y = -2;
+	assertEqual(minMagnitude(x, y), x);
+	x =  1; y =  2;
+	assertEqual(minMagnitude(x, y), x);
+	x = -1; y =  2;
+	assertEqual(minMagnitude(x, y), x);
+	writeln("passed");
 }
 
 /// Returns a number with a coefficient of 1 and

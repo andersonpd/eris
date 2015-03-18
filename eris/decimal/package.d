@@ -373,7 +373,6 @@ unittest {
 		}
 		enum uint bias = 16383, signBits = 1, exponentBits = 15,
 				integerBits = 1, fractionBits = 63;
-//				integerBits = 1, fractionBits = 63;
 	}
 
 	/// Constructs a decimal number from a real value.
@@ -520,32 +519,43 @@ unittest {
 
 	// Returns a real number constructed from
 	// a long coefficient and an integer exponent.
-	private static real longToReal(const decimal x) {
-		// NOTE: actually better here to use a longer coefficient and smaller exponent.
-//writefln("x.adjustedExponent = %s", x.adjustedExponent);
-// if (x.adjustedExponent > x.expo) { // room for more digits
-//writefln("x = %s", x.toExact);
+	private static real longToReal(const decimal x)
+	{
+		// quick check for zero exponent
+		if (x.expo == 0) return 1.0;
+
+		// convert the coefficient to a real number
 		real r;
 		r = cast(ulong)x.coefficient;
 		if (x.sign) r = -r;
-		if (x.expo == 0) return r;
+		if (x.expo == 1) return r;
+
+		// scale by the decimal exponent
 		real tens = 10.0L ^^ std.math.abs(x.expo);
 		if (x.expo > 0) return r * tens;
-		return r / tens;
-//		real rx = x.expo > 0 10.0L^^x.expo;
-//		return r * rx;
+		else            return r/tens;
 	}
 
 
+	/// Converts a decimal number to a real number. The decimal will be
+	/// rounded to the RealContext before conversion, if necessary.
 	public real toReal() const
 	{
-		// if this number is too large to be a real, return infinity
+		// special values
+		if (this.isNaN) return real.nan;
+		if (this.isInfinite) return sign ? -real.infinity : real.infinity;
+		if (this.isZero) return sign ? -0.0 : 0.0;
+		int realMinExpo = 1 - RealContext.maxExpo;// TODO: need to make this
+		if (this.isSubnormal(realMinExpo)) return real.nan;
+
+		// if this number is larger than the largest real value,
+		// return infinity
 		if (this.expo >= real.max_10_exp) {
 			if (this > RealMax)	return  real.infinity;
 			if (this < RealMin) return -real.infinity;
 		}
 
-		// if too small, return zero
+		// if smaller than the smallest value, return zero
 		if (this.expo <= real.min_10_exp) {
 			if (this.copyAbs < RealMinNorm) return this.sign ? -0.0 : 0.0;
         }
@@ -556,23 +566,11 @@ unittest {
 			return longToReal(this);
 		}
 
+		// the reduced coefficient will fit
 		decimal reduced = this.reduce(RealContext);
 		if (reduced.coefficient.getDigitLength <= 2)
 		{
 			return longToReal(reduced);
-		}
-		// TODO: Uncertain if these last two steps are necessary
-
-		decimal rounded = roundToPrecision(reduced, RealContext);
-		if (rounded.coefficient.getDigitLength <= 2)
-		{
-			return longToReal(rounded);
-		}
-
-		decimal rr = rounded.reduce(RealContext);
-		if (rr.coefficient.getDigitLength <= 2)
-		{
-			return longToReal(rr);
 		}
 
 		return real.nan;
@@ -1378,18 +1376,18 @@ writefln("rep.sign = %s", rep.sign);*/
 
 	/// Returns true if this number is subnormal.
 	@safe
-	const bool isSubnormal()
+	const bool isSubnormal(int minExponent = minExpo)
 	{
 		if (!isFinite) return false;
-		return adjustedExponent < minExpo;
+		return adjustedExponent < minExponent;
 	}
 
 	/// Returns true if this number is normal.
 	@safe
-	const bool isNormal()
+	const bool isNormal(int minExponent = minExpo)
 	{
 		if (isFinite && !isZero) {
-			return adjustedExponent >= minExpo;
+			return adjustedExponent >= minExponent;
 		}
 		return false;
 	}

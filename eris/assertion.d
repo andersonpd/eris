@@ -320,7 +320,6 @@ bool assertThrows(T:Throwable = Exception, E)(lazy E expression,
 		return true;
 	}
 	catch (Throwable exc) {
-		// FIXTHIS: unhelpful error message
 		writeln("failed at ", baseName(file), "(", line, "):",
 				" Did not throw \"", msg, "\".");
 		return false;
