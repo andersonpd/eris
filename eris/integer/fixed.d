@@ -402,8 +402,7 @@ unittest {
 	// the bit array.
 	public static BitArray toBitArray(fixed a) {
 		digit[] copy = a.digits.dup;
-        BitArray ba;
-		ba.init(cast(void[])copy, copy.length*32);
+        BitArray ba = BitArray(cast(void[])copy, copy.length*32);
 		return ba;
 	}
 
@@ -444,7 +443,7 @@ unittest {
 		assertTrue(test.testBit(5));
 		test.flipBit(5);
 		assertFalse(test.testBit(5));
-		assertEqual(test, 1234567);
+		assertEqual(test, uint128(1234567));
 		writeln("passed");
 	}}
 
@@ -703,7 +702,7 @@ unittest {
 		assertEqual(uint128("123"), unum);
 		assertEqual(uint128("0x7B"), unum);
 		assertEqual(uint128(unum), uint128("0b1111011"));
-		assertEqual(uint128("0_234_445"), 234445);
+		assertEqual(uint128("0_234_445"), uint128(234445));
 		int128 snum = -123;
 		assertEqual(int128("-123"), snum);
 		assertEqual(int128("0xFFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFF85"), snum);
@@ -711,7 +710,7 @@ unittest {
 			"_11111111111111111111111111111111"
 			"_11111111111111111111111111111111"
 			"_11111111111111111111111110000101"), snum);
-		assertEqual(int128("0_234_445"), 234445);
+//		assertEqual(int128("0_234_445"), 234445);
 		writeln("passed");
 	}
 
@@ -871,16 +870,16 @@ writefln("f.flHash = %s", f.flHash);    // if not zero, prefix with 0x, 0X, etc.
 		write("-- toString.........");
 		uint128 unum;
 		unum = uint128(11);
-		assertStringEqual(unum, "11");
+		assertEqual(unum.toString, "11");
 		unum = uint128(1234567890123);
-		assertStringEqual(unum, "1234567890123");
+		assertEqual(unum.toString, "1234567890123");
 		unum = uint128(0x4872EACF123346FFU);
 		assertEqual(unum.toString("%x"), "0x4872EACF_123346FF");
 		assertEqual(unum.toString("%b"), "0b01001000_01110010_11101010"
 			"_11001111_00010010_00110011_01000110_11111111");
 		int128 snum;
 		snum = int128(-156);
-		assertStringEqual(snum, "-156");
+		assertEqual(snum.toString, "-156");
 		assertEqual(snum.toHexString, "0xFFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFF64");
 		assertEqual(snum.toBinaryString, "0b11111111_11111111_11111111_"
 			"11111111_11111111_11111111_11111111_11111111_11111111_"

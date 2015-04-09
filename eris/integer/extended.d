@@ -142,72 +142,72 @@ public struct ExtendedInt {
 		// TODO: move most of these to the test module
 		long slg;
 		slg = long.max;
-		assertStringEqual(xint(slg), slg);
+		assertEqual(xint(slg).toLong, slg);
 		slg = short.max;
-		assertStringEqual(xint(slg), slg);
+		assertEqual(xint(slg).toLong, slg);
 		slg = long.min;
-		assertStringEqual(xint(slg), slg);
+		assertEqual(xint(slg).toLong, slg);
 		slg = long.min+1;
-		assertStringEqual(xint(slg), slg);
+		assertEqual(xint(slg).toLong, slg);
 		slg = long.min+2;
-		assertStringEqual(xint(slg), slg);
+		assertEqual(xint(slg).toLong, slg);
 		slg = long.min+3;
-		assertStringEqual(xint(slg), slg);
+		assertEqual(xint(slg).toLong, slg);
 		slg = int.min;
-		assertStringEqual(xint(slg), slg);
+		assertEqual(xint(slg).toLong, slg);
 		slg = long.max;
-		assertStringEqual(xint(slg), slg);
+		assertEqual(xint(slg).toLong, slg);
 
 		int sin;
 		sin = short.min;
-		assertStringEqual(xint(sin), cast(long)sin);
+		assertEqual(xint(sin).toLong, cast(long)sin);
 		sin = -1;
-		assertStringEqual(xint(sin), cast(long)sin);
+		assertEqual(xint(sin).toLong, cast(long)sin);
 		sin = 1;
-		assertStringEqual(xint(sin), cast(long)sin);
+		assertEqual(xint(sin).toLong, cast(long)sin);
 
 		short ssh;
 		ssh = short.min;
-		assertStringEqual(xint(ssh), cast(long)ssh);
+		assertEqual(xint(ssh).toLong, cast(long)ssh);
 		ssh = -1;
-		assertStringEqual(xint(ssh), cast(long)ssh);
+		assertEqual(xint(ssh).toLong, cast(long)ssh);
 		ssh = 1;
-		assertStringEqual(xint(ssh), cast(long)ssh);
+		assertEqual(xint(ssh).toLong, cast(long)ssh);
 
 		bool test = true;
-		assertStringEqual(xint(test), test);
+		assertEqual(xint(test), test);
 
 		ulong unl;
 		unl = ulong.max;
-		assertStringEqual(xint(unl), unl);
+		assertEqual(xint(unl), unl);
 		unl = short.max;
-		assertStringEqual(xint(unl), unl);
+		assertEqual(xint(unl), unl);
 		unl = ulong.min;
-		assertStringEqual(xint(unl), unl);
+		assertEqual(xint(unl), unl);
 		unl = -1;
-		assertStringEqual(xint(unl), unl);
+		assertEqual(xint(unl), unl);
 		unl = 2;
-		assertStringEqual(xint(unl), unl);
+		assertEqual(xint(unl), unl);
 
 		uint uni;
 		uni = uint.max;
-		assertStringEqual(xint(uni), cast(ulong)uni);
+		assertEqual(xint(uni), cast(ulong)uni);
 		uni = short.max;
-		assertStringEqual(xint(uni), cast(ulong)uni);
+		assertEqual(xint(uni), cast(ulong)uni);
 		uni = uint.min;
-		assertStringEqual(xint(uni), cast(ulong)uni);
+		assertEqual(xint(uni), cast(ulong)uni);
 		uni = -1;
-		assertStringEqual(xint(uni), cast(ulong)uni);
+		assertEqual(xint(uni), cast(ulong)uni);
 		uni = 2;
-		assertStringEqual(xint(uni), cast(ulong)uni);
+		assertEqual(xint(uni), cast(ulong)uni);
 
 		ushort uns;
 		uns = ushort.min;
-		assertStringEqual(xint(uns), cast(ulong)uns);
+		assertEqual(xint(uns), cast(ulong)uns);
 		uns = ushort.max;
-		assertStringEqual(xint(uns), cast(ulong)uns);
+		assertEqual(xint(uns), cast(ulong)uns);
 		uns = 1;
-		assertStringEqual(xint(uns), cast(ulong)uns);
+		assertEqual(xint(uns), cast(ulong)uns);
 		writeln("passed");
 	}
 
@@ -510,23 +510,28 @@ public struct ExtendedInt {
 	/// Returns a signed long integer with the value of this extended integer.
 	/// If the value is too large to be represented long.max is returned.
 	@safe
-	public long toLong() const {
+	public long toLong() const
+	{
 		// if too big to represent...
 		if (this > LONG_MAX) return long.max;
 		if (this < LONG_MIN) return long.min;
 		if (this.isZero) return 0;
 		// positive integers
-		if (this >= 0) {
+		if (this >= 0)
+		{
 			// if single digit...
 			if (this <= UINT_MAX) return cast(long)digits[0];
 			// else two digits...
 			return cast(long)pack(digits[1],digits[0]);
 		}
 		// negative integers
-		// if single digit...
-		if (this >= INT_MIN) return cast(long)digits[0];
-		// else two digits...
-		return cast(long)pack(digits[1],digits[0]);
+		else
+		{
+			// if single digit...
+			if (this >= INT_MIN) return -cast(long)digits[0];
+			// else two digits...
+			return -cast(long)pack(digits[1],digits[0]);
+		}
 	}
 
 
@@ -554,7 +559,7 @@ public struct ExtendedInt {
 		a = 0x80000000;
 		assertEqual(a.toLong, 0x80000000);
 		a = -a;
-		assertEqual(a.toLong, 0x80000000);
+		assertEqual(a.toLong, 0xFFFFFFFF_80000000);
 		a = LONG_MIN;
 		assertEqual(a.toLong, 0x80000000_00000000);
 		writeln("passed");
@@ -624,7 +629,7 @@ public struct ExtendedInt {
 
 	 /// Returns true if the argument is equal to this extended integer.
 	@safe
-	private const bool opEquals(T)(const T that) const const const {
+	private const bool opEquals(T)(const T that) {
 		return opEquals(xint(that));
 	}
 
@@ -659,7 +664,7 @@ public struct ExtendedInt {
 		}
 	}
 
-	private const int opCmp(T:xint)(const T that) const {
+	private const int opCmp(T:xint)(const T that) {
 		return compare(this, that);
 	}
 
@@ -1585,8 +1590,7 @@ unittest {
 	// the bit array.
 	public static std.bitmanip.BitArray toBitArray(xint a) {
 		digit[] copy = a.digits.dup;
-		std.bitmanip.BitArray ba;
-		ba.init(cast(void[])copy, copy.length*32);
+		std.bitmanip.BitArray ba = BitArray(cast(void[])copy, copy.length*32);
 		return ba;
 	}
 

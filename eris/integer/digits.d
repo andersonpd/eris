@@ -236,7 +236,8 @@ version(unittest) {
 	/// Leading zero digits are not counted.
 	/// If all digits are zero, returns 0.
 	@safe
-	public int numDigits(in digit[] digits) {
+	public int numDigits(in digit[] digits)
+	{
         // special cases --
 		int len = digits.length;
 		// check for zero length
@@ -250,7 +251,8 @@ version(unittest) {
 
 		// loop
 		int count;
-		for (count = len - 2; count > 0; count--) {
+		for (count = len - 2; count > 0; count--)
+		{
 			if (digits[count-1]) break;
 		}
 		return count;
@@ -502,8 +504,7 @@ version(unittest) {
 	// the bit array.
 	public BitArray toBitArray(in digit[] a) {
 		digit[] copy = a.dup;
-        BitArray ba;
-		ba.init(cast(void[])copy, copy.length*32);
+        BitArray ba = BitArray(cast(void[])copy, copy.length*32);
 		return ba;
 	}
 
@@ -514,7 +515,7 @@ version(unittest) {
 		bool[] t = new bool[32];
 		t[1] = true;
 		t[3] = true;
-		BitArray bb; bb.init(t);
+		BitArray bb = BitArray(t);
 		assertEqual(ba, bb);
 		writeln("passed");
 	}

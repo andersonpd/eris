@@ -16,22 +16,31 @@ import std.traits: isIntegral;
 
 /// Returns true if the actual value equals the expected value.
 /// Otherwise prints an error message and returns false.
-bool assertEqual(T,U)(in T actual, in U expected,
-		string file = __FILE__, int line = __LINE__ ) {
-	if (expected == actual)	{
+bool assertEqual(T, U : T)(in T actual, in T expected, uint index = -1,
+		string file = __FILE__, int line = __LINE__ )
+	{
+	if (expected == actual)
+	{
 		return true;
 	}
-	else {
-		writeln("failed at ", baseName(file), "(", line, "):",
-				" expected \"", expected, "\"",
-				" but found \"", actual, "\".");
+	else
+	{
+		if (index >= 0)
+		{
+			write("failed at ", baseName(file), "(", line, ")[", index + 1, "]:");
+		}
+		else
+		{
+			write("failed at ", baseName(file), "(", line, "):");
+		}
+		writeln(" expected \"", expected, "\" but found \"", actual, "\".");
 		return false;
 	}
 }
 
 /// Returns true if the actual value equals the expected value.
 /// Otherwise prints an error message and returns false.
-bool assertEqualIndexed(T,U)(uint index, in T actual, in U expected,
+bool assertEqual(T, U)(in T actual, in U expected, uint index = 0,
 		string file = __FILE__, int line = __LINE__ ) {
 	if (expected == actual)	{
 		return true;
@@ -44,13 +53,21 @@ bool assertEqualIndexed(T,U)(uint index, in T actual, in U expected,
 	}
 }
 
+/*/// Returns true if the actual value equals the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertEqual(T, U)(in T actual, in U expected, uint index = 0,
+		string file = __FILE__, int line = __LINE__ )
+{
+	return assertEqual!T(actual, T(expected), index, file, line);
+}*/
+
 private string toString(T)(T n) if (__traits(isIntegral, T)){
 	return std.string.format("%d", n);
 }
 
-private string toString(T:bool)(T v) {
+/*private string toString(T:bool)(T v) {
 	return std.string.format("%d", v);
-}
+}*/
 
 /// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
@@ -65,24 +82,24 @@ bool assertStringNotEqual(T,U)(in T actual, in U expected,
 /// Otherwise prints an error message and returns false.
 bool assertStringEqual(T,U)(in T actual, in U expected,
 		string file = __FILE__, int line = __LINE__ ) {
-	return assertEqual(actual.toString, expected.toString, file, line);
+	return assertEqual!string(actual.toString, expected.toString, 0, file, line);
 }
 
-/// Returns true if the string representation of the actual value
+/*/// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
 /// Otherwise prints an error message and returns false.
 bool assertStringEqual(T:long)(in T actual, in T expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(actual.toString, toString(expected), file, line);
-}
+}*/
 
-/// Returns true if the string representation of the actual value
+/*/// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
 /// Otherwise prints an error message and returns false.
 bool assertStringEqual(T:ulong)(in T actual, in T expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(actual.toString, toString(expected), file, line);
-}
+}*/
 
 /*/// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
@@ -92,37 +109,45 @@ bool assertStringEqual(T,U:uint)(in T actual, in U expected,
 	return assertEqual(actual.toString, toString(expected), file, line);
 }*/
 
-/// Returns true if the string representation of the actual value
+/*/// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
 /// Otherwise prints an error message and returns false.
 bool assertStringEqual(T,U:bool)(in T actual, in U expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(actual.toString, toString(expected), file, line);
-}
+}*/
 
-/// Returns true if the string representation of the actual value
+/*/// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
 /// Otherwise prints an error message and returns false.
 bool assertStringEqual(T,U:string)(in T actual, in U expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(actual.toString, expected, file, line);
-}
+}*/
 
-/// Returns true if the string representation of the actual value
+/*/// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
 /// Otherwise prints an error message and returns false.
-bool assertStringEqualIndexed(T,U:string)(int index, in T actual, in U expected,
+bool assertStringEqual(T,U:string)(int index, in T actual, in U expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqualIndexed(index, actual.toString, expected, file, line);
-}
+}*/
 
-/// Returns true if the string representation of the actual value
+/*/// Returns true if the string representation of the actual value
+/// equals the string representation of the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertStringEqualIndexed(T:string)(in T actual, in T expected, int index,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertEqual(actual, expected, index, file, line);
+}*/
+
+/*/// Returns true if the string representation of the actual value
 /// equals the string representation of the expected value.
 /// Otherwise prints an error message and returns false.
 bool assertStringEqual(T:string)(in T actual, in T expected,
 		string file = __FILE__, int line = __LINE__ ) {
 	return assertEqual(actual, expected, file, line);
-}
+}*/
 
 /*bool assertStringEqual(T)(T expected, string actual,
 		string file = __FILE__, int line = __LINE__ ) {
@@ -153,28 +178,28 @@ bool assertNotEqual(T,U = T)(in T actual, in U expected,
 /// Otherwise prints an error message and returns false.
 bool assertTrue(bool actual,
 		string file = __FILE__, int line = __LINE__ ) {
-	return assertEqual(actual, true, file, line);
+	return assertEqual(actual, true, 0, file, line);
 }
 
 /// Returns true if the actual value is true.
 /// Otherwise prints an error message and returns false.
 bool assertTrue(T)(T actual,
 		string file = __FILE__, int line = __LINE__ ) {
-	return assertEqual(cast(bool)actual, true, file, line);
+	return assertEqual(cast(bool)actual, true, 0, file, line);
 }
 
 /// Returns true if the actual value is false.
 /// Otherwise prints an error message and returns false.
 bool assertFalse(bool actual,
 		string file = __FILE__, int line = __LINE__ ) {
-	return assertEqual(actual, false, file, line);
+	return assertEqual(actual, false, 0, file, line);
 }
 
 /// Returns true if the actual value is false.
 /// Otherwise prints an error message and returns false.
 bool assertFalse(T)(T actual,
 		string file = __FILE__, int line = __LINE__ ) {
-	return assertEqual(cast(bool)actual, false, file, line);
+	return assertEqual(cast(bool)actual, false, 0, file, line);
 }
 
 /// Returns true if the value is null.
