@@ -215,31 +215,30 @@ unittest {
 /// Flags: InvalidOperation, Underflow, Overflow.
 public T scaleb(T)(in T x, in T y) if (isDecimal!T)
 {
-	T xx = x.dup;
-	T yy = y.dup;
+	T scaled = x.dup;
 
-	if (xx.isNaN || yy.isNaN) return invalidOperand(xx,yy);
+	if (x.isNaN || y.isNaN) return invalidOperand(x,y);
 
-	if (xx.isInfinite) return xx;
+	if (x.isInfinite) return scaled;
 
-	if (yy.isInfinite || yy.exponent != 0)
+	if (y.isInfinite || y.exponent != 0)
 	{
-		return invalidOperand(yy);
+		return invalidOperand(y);
 	}
-	if (yy > T.IntMax || yy < T.IntMin)
+	if (y > T.IntMax || y < T.IntMin)
 	{
-		return invalidOperand(yy);
+		return invalidOperand(y);
 	}
 
-	int scale = cast(int)yy.coefficient.toInt;
+	int scale = cast(int)y.coefficient.toInt;
 
-	if (yy.isSigned)
+	if (y.isSigned)
 	{
 		scale = -scale;
 	}
 	// TODO: (behavior) check for overflow/underflow (GDA "scaleb").
-	xx.exponent = xx.exponent + scale;
-	return xx;
+	scaled.exponent = scaled.exponent + scale;
+	return scaled;
 }
 
 unittest
@@ -310,12 +309,12 @@ unittest {	// reduce
 	[
 		{ "1.200", "1.2" },
 		{ "1.200", "1.3" },
-		{ "1.200", "1.20" },
+		{ "1.200", "1.20" },	// should fail
 		{ "1.2001", "1.2001" },
 		{ "1.200000001", "1.2" },
 	];
 	// NOTE: need to compare strings, not values
-	TestResults tr = testUnaryFctn!testDecimal("reduce", &reduce!(testDecimal), data);
+	TestResults tr = testUnaryFctn!testDecimal("reduce", &reduce!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -345,8 +344,9 @@ unittest {	// abs
 		{ "-Inf", "Inf" },
 		{ "101.5", "101.5" },
 		{ "-101.5", "101.5" },
+		{ "-1.23456789012E+23", "1.23456789E+23" },	// rounds the argument
 	];
-	TestResults tr = testUnaryFctn!testDecimal("abs", &abs!(testDecimal), data);
+	TestResults tr = testUnaryFctn!testDecimal("abs", &abs!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -370,7 +370,7 @@ unittest {	// sgn
 		{ "0.00", "0" },
 		{ "-Inf", "-1" },
 	];
-//	TestResults tr = testUnaryFctn!testDecimal("sgn", &sgn!(testDecimal), data);
+//	TestResults tr = testUnaryFctn!testDecimal("sgn", &sgn!testDecimal, data);
 //    writeln(tr.report);
 }
 
@@ -409,7 +409,7 @@ unittest {	// plus
 		{ "-101.5", "-101.5" },
 		{ "-101.5", "101.5" },
 	];
-	TestResults tr = testUnaryFctn!testDecimal("plus", &plus!(testDecimal), data);
+	TestResults tr = testUnaryFctn!testDecimal("plus", &plus!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -438,7 +438,7 @@ unittest {	// minus
 		{ "-101.5", "-101.5" },
 		{ "-101.5", "101.5" },
 	];
-	TestResults tr = testUnaryFctn!testDecimal("minus", &minus!(testDecimal), data);
+	TestResults tr = testUnaryFctn!testDecimal("minus", &minus!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -493,7 +493,7 @@ unittest {
 		{ "9.99999999E+99",	 "Infinity" },	// overflow flag should not be set!
 		{ "1E+101",	 "Infinity" },
 	];
-	TestResults tr = testUnaryFctn!testDecimal("nextPlus", &nextPlus!(testDecimal), data);
+	TestResults tr = testUnaryFctn!testDecimal("nextPlus", &nextPlus!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -541,7 +541,7 @@ unittest {	// nextMinus
 		{ "Infinity",			"9.99999999E+99" },
 		{ "-9.99999999E+99",	"-Infinity" },
 	];
-	TestResults tr = testUnaryFctn!testDecimal("nextMinus", &nextMinus!(testDecimal), data);
+	TestResults tr = testUnaryFctn!testDecimal("nextMinus", &nextMinus!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -573,7 +573,7 @@ unittest {
 		{ " 1",          "2", " 1.00000001" },
 		{ "-1.00000003", "0", "-1.00000002" },
 	];
-	TestResults tr = testBinaryFctn!testDecimal("nextToward", &nextToward!(testDecimal), data);
+	TestResults tr = testBinaryFctn!testDecimal("nextToward", &nextToward!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -667,8 +667,6 @@ public int compare(T)(in T x, in T y,
 		}
 	}
 	// align the operands
-// 	T xx = x.dup;
-//	T yy = y.dup;
 	alignOps(xx, yy);
 	// They have the same exponent after alignment.
 	// The only difference is in the coefficients.
@@ -677,30 +675,20 @@ public int compare(T)(in T x, in T y,
 }
 
 unittest {	// compare
-	write("-- compare..........");
-	dec9 x, y;
-	x = dec9(2.1);
-	y = dec9(3);
-	assertEqual(compare(y, x), 1);
-	y = -y;
-	assertEqual(compare(x, y), 1);
-	assertEqual(compare(y, x), -1);
-	x = dec9(2.1);
-	y = dec9(2.1);
-	assertEqual(compare(x, y), 0);
-	y = dec9(2.10);
-	assertEqual(compare(x, y), 0);
-	x = dec9.infinity;
-	y = dec9.infinity(true);
-	assertEqual(compare(x,y), 1);
-	y = -y;
-	assertEqual(compare(x,y), 0);
-	y = 12;
-	assertEqual(compare(x,y), 1);
-	x = -x;
-	assertEqual(compare(x,y), -1);
-	// TODO: (testing) test rounded to precision comparison.
-	writeln("passed");
+	BinaryTestData[] data =
+	[
+		{ " 3  ", " 2.1 ", " 1" },
+		{ "-3  ", " 2.1 ", "-1" },
+		{ " 2.1", "-3   ", " 1" },
+		{ " 2.1", " 2.1 ", " 0" },
+		{ " 2.1", " 2.10", " 0" },
+		{ " Inf", "-Inf ", " 1" },
+		{ " Inf", " Inf ", " 0" },
+		{ " Inf", " 12  ", " 1" },
+		{ "-Inf", " 12  ", "-1" },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("compare", &compare!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Returns true if the operands are equal to the context precision.
@@ -767,27 +755,17 @@ public bool equals(T)(in T x, in T y,
 }
 
 unittest {	// equals
-	write("-- equals...........");
-	dec9 x, y;
-	x = 123.4567;
-	y = 123.4568;
-	assertFalse(equals(x, y));
-	y = 123.4567;
-	assertTrue(equals(x, y));
-	// test for equality to precision
-	x = 123.45671234;
-	y = 123.4567121;
-	assertTrue(equals(x, y));
-	x = "1000000E-8";
-	y = "1E-2";
-	assertTrue(equals(x, y));
-	x = "+100000000E-08";
-	y = "+1E+00";
-	assertTrue(equals(x, y));
-	x = "1.00000000";
-	y = "1";
-	assertTrue(equals(x, y));
-	writeln("passed");
+	BinaryTestData[] data =
+	[
+		{ " 123.4567     ", " 123.4568   ", false},
+		{ " 123.4567     ", " 123.4567   ", true },
+		{ " 123.45671234 ", " 123.4567121", true }, // equals to precision
+		{ " 1000000E-8   ", " 1E-2       ", true },
+		{ "+100000000E-08", "+1E+00      ", true },
+		{ "-1.00000000   ", "-1          ", true },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("equals", &equals!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Returns true if the operands are equal to the specified precision. Special
@@ -885,7 +863,7 @@ unittest {
 /// Returns 0 only if the numbers are equal and have the same representation.
 /// Implements the 'compare-total' function in the specification. (p. 42-43)
 /// Flags: NONE.
-public int compareTotal(T)(T x, T y) if (isDecimal!T)
+public int compareTotal(T)(in T x, in T y) if (isDecimal!T)
 {
 	if (x.isFinite && y.isFinite
 		&& x.sign == y.sign
@@ -992,22 +970,14 @@ int compareTotalMagnitude(T)(T x, T y) if (isDecimal!T)
 }
 
 unittest {	// compareTotal
-	write("-- compareTotal.....");
-	dec9 x, y;
-	int result;
-	x = dec9("12.30");
-	y = dec9("12.3");
-	result = compareTotal(x, y);
-	assertEqual(result, -1);
-	x = dec9("12.30");
-	y = dec9("12.30");
-	result = compareTotal(x, y);
-	assertEqual(result, 0);
-	x = dec9("12.3");
-	y = dec9("12.300");
-	result = compareTotal(x, y);
-	assertEqual(result, 1);
-	writeln("passed");
+	BinaryTestData[] data =
+	[
+		{ " 12.30", " 12.3  ", -1},
+		{ " 12.30", " 12.30 ",  0},
+		{ " 12.3 ", " 12.300",  1},
+	];
+	TestResults tr = testBinaryFctn!testDecimal("compTotal", &compareTotal!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Returns true if the numbers have the same exponent.
@@ -1029,22 +999,12 @@ public bool sameQuantum(T)(in T x, in T y) if (isDecimal!T)
 unittest {	// sameQuantum
 	static BinaryTestData[] data =
 	[
-		{ "2.17", "0.0001", "false" },
-//		{ "7.50", "-3", "0.0750" },
+		{ "2.17", "0.001", false },
+		{ "2.17", "0.01 ", true },
+		{ "2.17", "0.1  ", false },
 	];
-	// NOTE: returns a boolean, not a decimal
-//	TestResults tr = testBinaryFctn("sameQuantum", &sameQuantum!testDecimal, data);
-//    writefln(tr.report);
-/*	write("-- sameQuantum......");
-	dec9 x, y;
-	x = 2.17;
-	y = 0.001;
-	assertFalse(sameQuantum(x, y));
-	y = 0.01;
-	assertTrue(sameQuantum(x, y));
-	y = 0.1;
-	assertFalse(sameQuantum(x, y));
-	writeln("passed");*/
+	TestResults tr = testBinaryFctn("sameQuant", &sameQuantum!testDecimal, data);
+    writefln(tr.report);
 }
 
 /// Returns the maximum of the two operands (or NaN).
@@ -1059,7 +1019,7 @@ unittest {	// sameQuantum
 /// The returned number will be rounded to the current context.
 /// Implements the 'max' function in the specification. (p. 32)
 /// Flags: InvalidOperation, Rounded.
-public T max(T)(T x, T y,
+public T max(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	// if both are NaNs or either is an sNan, return NaN.
@@ -1108,20 +1068,20 @@ public T max(T)(T x, T y,
 }
 
 unittest {	// max
-	write("-- max..............");
-	dec9 x, y;
-	x = 3; y = 2;
-	assertEqual(max(x, y), x);
-	x = -10; y = 3;
-	assertEqual(max(x, y), y);
-	writeln("passed");
+	BinaryTestData[] data =
+	[
+		{   3, 2, 3 },
+		{ -10, 3, 3 },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("max", &max!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Returns the larger of the two operands (or NaN). Returns the same result
 /// as the 'max' function if the signs of the operands are ignored.
 /// Implements the 'max-magnitude' function in the specification. (p. 32)
 /// Flags: NONE.
-public T maxMagnitude(T)(T x, T y,
+public T maxMagnitude(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	// both positive
@@ -1139,18 +1099,16 @@ public T maxMagnitude(T)(T x, T y,
 	return roundToPrecision(y, context);
 }
 
-unittest {	// max
-	write("-- maxMagnitude.....");
-	dec9 x, y;
-	x = -1; y = -2;
-	assertEqual(maxMagnitude(x, y), y);
-	x =  1; y = -2;
-	assertEqual(maxMagnitude(x, y), y);
-	x =  1; y =  2;
-	assertEqual(maxMagnitude(x, y), y);
-	x = -1; y =  2;
-	assertEqual(maxMagnitude(x, y), y);
-	writeln("passed");
+unittest {	// maxMagnitude
+	BinaryTestData[] data =
+	[
+		{   -1, -2, -2 },
+		{    1, -2, -2 },
+		{    1,  2,  2 },
+		{   -1,  2,  2 },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("maxMagnt", &maxMagnitude!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Returns the minimum of the two operands (or NaN).
@@ -1164,7 +1122,7 @@ unittest {	// max
 /// 4) Otherwise, they are indistinguishable; the first is returned.
 /// Implements the 'min' function in the specification. (p. 32-33)
 /// Flags: INVALID OPERATION, Rounded.
-public T min(T)(T x, T y,
+public T min(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	// if both are NaNs or either is an sNan, return NaN.
@@ -1210,23 +1168,21 @@ public T min(T)(T x, T y,
 	return roundToPrecision(min, context);
 }
 
-unittest {
-	write("-- min..............");
-	dec9 x, y;
-	x = 3; y = 2;
-	assertEqual(min(x,y), y);
-	x = -3; y = -2;
-	assertEqual(min(x,y), x);
-	x = -10; y = 3;
-	assertEqual(min(x,y), x);
-	writeln("passed");
+unittest {	// min
+	BinaryTestData[] data =
+	[
+		{   3, 2,   2 },
+		{ -10, 3, -10 },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("min", &min!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Returns the smaller of the two operands (or NaN). Returns the same result
 /// as the 'min' function if the signs of the operands are ignored.
 /// Implements the 'min-magnitude' function in the specification. (p. 33)
 /// Flags: INVALID OPERATION, Rounded.
-public T minMagnitude(T)(T x, T y,
+public T minMagnitude(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	// both positive
@@ -1244,38 +1200,32 @@ public T minMagnitude(T)(T x, T y,
 	return roundToPrecision(x, context);
 }
 
-unittest {
-	write("-- minMagnitude.....");
-	dec9 x, y;
-	x = -1; y = -2;
-	assertEqual(minMagnitude(x, y), x);
-	x =  1; y = -2;
-	assertEqual(minMagnitude(x, y), x);
-	x =  1; y =  2;
-	assertEqual(minMagnitude(x, y), x);
-	x = -1; y =  2;
-	assertEqual(minMagnitude(x, y), x);
-	writeln("passed");
+unittest {	// minMagnitude
+	BinaryTestData[] data =
+	[
+		{   -1, -2, -1 },
+		{    1, -2,  1 },
+		{    1,  2,  1 },
+		{   -1,  2, -1 },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("minMagnt", &minMagnitude!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Returns a number with a coefficient of 1 and
 /// the same exponent as the argument.
 /// Flags: NONE.
-public T quantum(T)(T x)  {
+public T quantum(T)(in T x)  {
 	return T(1, x.exponent);
 }
 
-unittest {	// quantum
-	dec9 f, expect, actual;
-	f = "23.14E-12";
-	expect = "1E-14";
-	actual = quantum(f);
-	assertEqual(actual, expect);
-}
-
-unittest {
-	write("quantum...");
-	writeln("test missing");
+unittest {	// plus
+	UnaryTestData[] data =
+	[
+		{ "23.14E-12", "1E-14" },
+	];
+	TestResults tr = testUnaryFctn!testDecimal("quantum", &quantum!testDecimal, data);
+    writeln(tr.report);
 }
 
 //--------------------------------
@@ -1289,7 +1239,7 @@ unittest {
 /// than -precision or greater than precision, an InvalidOperation is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T)(T x, T y,
+public T shift(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	// check for NaN
@@ -1299,7 +1249,7 @@ public T shift(T)(T x, T y,
 		y.coefficient < -context.precision) return invalidOperand(y);
 	int n = y.coefficient.toInt;
 	if (y.sign) n = -n;
-	return shift(x, n, context);
+	return shiftn(x, n, context);
 }
 
 /// Shifts the first operand by the specified number of DECIMAL digits.
@@ -1309,7 +1259,7 @@ public T shift(T)(T x, T y,
 /// than -precision or greater than precision, an InvalidOperation is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T)(T x, int n,
+public T shiftn(T)(in T x, int n,
 		Context context = T.context) if (isDecimal!T)
 {
 
@@ -1317,10 +1267,10 @@ public T shift(T)(T x, int n,
 	if (x.isNaN) return invalidOperand(x);
 
 	// shift by zero returns the argument
-	if (n == 0) return x;
+	if (n == 0) return x.dup;
 
 	// shift of an infinite number returns the argument
-	if (x.isInfinite) return x;
+	if (x.isInfinite) return x.dup;
 
 	int precision = context.precision;
 
@@ -1330,49 +1280,39 @@ public T shift(T)(T x, int n,
 		return invalidOperation!T;
 	}
 
+	auto xx = x.dup;
+
 	if (n > 0)
 	{
 		// shift left
-		x.coefficient = x.coefficient * pow10(n);
-		x.digits = numDigits(x.coefficient);
-		if (x.digits > context.precision)
+		xx.coefficient = xx.coefficient * pow10(n);
+		xx.digits = numDigits(xx.coefficient);
+		if (xx.digits > context.precision)
 		{
-			x.coefficient = x.coefficient % pow10(precision);
-			x.digits = precision;
+			xx.coefficient = xx.coefficient % pow10(precision);
+			xx.digits = precision;
 		}
 	}
 	else
 	{
 		// shift right
-		x.coefficient = x.coefficient / pow10(-n);
-		x.digits = numDigits(x.coefficient);
+		xx.coefficient = xx.coefficient / pow10(-n);
+		xx.digits = numDigits(xx.coefficient);
 	}
-	return x;
+	return xx;
 }
 
-unittest
-{
-	write("-- shift............");
-	dec9 x, y, z;
-	x = "34";
-	y = 8;
-	z = "400000000";
-	assertEqual(shift(x, y), z);
-	x = "12";
-	y = 9;
-	z = "0";
-	assertEqual(shift(x, y), z);
-	x = "123456789";
-	y = -2;
-	z = "1234567";
-	assertEqual(shift(x, y), z);
-	y = 0;
-	z = "123456789";
-	assertEqual(shift(x, y), z);
-	y = 2;
-	z = "345678900";
-	assertEqual(shift(x, y), z);
-	writeln("passed");
+unittest {	// shift
+	BinaryTestData[] data =
+	[
+		{ 34, 8, 400000000 },
+		{ 12, 9, 0 },
+		{ 123456789, -2, 1234567 },
+		{ 123456789,  0, 123456789 },
+		{ 123456789,  2, 345678900 },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("shift", &shift!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Rotates the first operand by the specified number of decimal digits.
@@ -1382,7 +1322,7 @@ unittest
 /// than -precision or greater than precision, an InvalidOperation is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T)(T x, T y,
+public T rotate(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
 	if (x.isNaN) return invalidOperand(x);
@@ -1402,7 +1342,7 @@ public T rotate(T)(T x, T y,
 /// than -precision or greater than precision, an InvalidOperation is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T)(T x, int n,
+public T rotate(T)(in T x, int n,
 		Context context = T.context) if (isDecimal!T)
 {
 
@@ -1410,10 +1350,10 @@ public T rotate(T)(T x, int n,
 	if (x.isNaN) return invalidOperand(x);
 
 	// shift by zero returns the argument
-	if (n == 0) return x;
+	if (n == 0) return x.dup;
 
 	// shift of an infinite number returns the argument
-	if (x.isInfinite) return x;
+	if (x.isInfinite) return x.dup;
 
 	int precision = context.precision;
 
@@ -1421,31 +1361,34 @@ public T rotate(T)(T x, int n,
 	if (n < -precision || n > precision) {
 		return invalidOperation!T;
 	}
-    // clip leading digits
-	if (x.digits > precision){
-		x.coefficient = x.coefficient % pow10(precision);
+
+	auto xx = x.dup;
+
+	// clip leading digits
+	if (xx.digits > precision){
+		xx.coefficient = xx.coefficient % pow10(precision);
 	}
 
 	if (n > 0) {
 		// rotate left
-		x.coefficient = x.coefficient * pow10(n);
-		x.digits = numDigits(x.coefficient);
-		if (x.digits > context.precision) {
+		xx.coefficient = xx.coefficient * pow10(n);
+		xx.digits = numDigits(xx.coefficient);
+		if (xx.digits > context.precision) {
 			xint rem;
-			xint div = xint.divmod(x.coefficient, pow10(precision), rem);
-			x.coefficient = div + rem;
-			x.digits = numDigits(x.coefficient);
+			xint div = xint.divmod(xx.coefficient, pow10(precision), rem);
+			xx.coefficient = div + rem;
+			xx.digits = numDigits(xx.coefficient);
 		}
 	}
 	else {
 		// rotate right
 		n = -n;
 		xint rem;
-		xint div = xint.divmod(x.coefficient, pow10(n), rem);
-		x.coefficient = rem * pow10(precision - n) + div;
-		x.digits = numDigits(x.coefficient);
+		xint div = xint.divmod(xx.coefficient, pow10(n), rem);
+		xx.coefficient = rem * pow10(precision - n) + div;
+		xx.digits = numDigits(xx.coefficient);
 	}
-	return x;
+	return xx;
 }
 
 unittest {
@@ -1722,7 +1665,7 @@ unittest {	// mul
 		{ "-7000", "3", "-21000" },
 		{ "Infinity", "3", "Infinity" },
 	];
-	TestResults tr = testBinaryFctn!testDecimal("mul", &mul!(testDecimal), data);
+	TestResults tr = testBinaryFctn!testDecimal("mul", &mul!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -2216,7 +2159,7 @@ unittest {	// quantize
 		{ "217", "1E+1", "2.2E+2" },
 		{ "217", "1E+2", "2E+2" },
 	];
-	auto tr = testBinaryFctnString!testDecimal("quantize", &quantize!(testDecimal), data);
+	auto tr = testBinaryFctnString!testDecimal("quantize", &quantize!testDecimal, data);
     writeln(tr.report);
 }
 
@@ -2450,17 +2393,19 @@ unittest {
 version(unittest)
 {
 
+	// test data structure for binary functions
 	public struct BinaryTestData
 	{
 		testDecimal x;
 		testDecimal y;
-		testDecimal z;
+		testDecimal expect;
 	}
 
+	// test data structure for unary functions
 	public struct UnaryTestData
 	{
 		testDecimal x;
-		testDecimal z;
+		testDecimal expect;
 	}
 
 	public struct TestResults
@@ -2502,7 +2447,7 @@ version(unittest)
 			"string file = __FILE__, int line = __LINE__) if (isDecimal!T){\n"
 			"auto tr = TestResults(name);\n"
 			"foreach(i, t; tests){\n"
-			"assertBinaryFctn(tr, name, t.x, t.y, t.z,\n"
+			"assertBinaryFctn(tr, name, t.x, t.y, t.expect,\n"
 			~ call ~ ", i, file, line);}\n"
 			"return tr;}\n");
 	}
@@ -2521,6 +2466,34 @@ version(unittest)
 		"fctn(t.x,t.y,T.context)"
 	);
 
+	// two arguments with context, returns int
+	mixin BinaryTest!
+	(
+		"int function(in T, in T, Context) fctn",
+		"T(fctn(t.x,t.y,T.context))"	// convert int to T
+	);
+
+	// two arguments, no context, returns int
+	mixin BinaryTest!
+	(
+		"int function(in T, in T) fctn",
+		"T(fctn(t.x, t.y,))"	// convert int to T
+	);
+
+	// two arguments, no context, returns bool
+	mixin BinaryTest!
+	(
+		"bool function(in T, in T) fctn",
+		"T(fctn(t.x, t.y))"		// convert bool to T
+	);
+
+	// two arguments with context, returns bool
+	mixin BinaryTest!
+	(
+		"bool function(in T, in T, Context) fctn",
+		"T(fctn(t.x,t.y,T.context))"	// convert bool to T
+	);
+
 	// two arguments with context and a boolean flag
 	mixin BinaryTest!
 	(
@@ -2535,7 +2508,7 @@ version(unittest)
 		auto tr = TestResults(name);
 		foreach(i, t; tests)
 		{
-			assertBinaryFctnString(tr, name, t.x, t.y, t.z,
+			assertBinaryFctnString(tr, name, t.x, t.y, t.expect,
 				fctn(t.x, t.y, T.context), i, file, line);
 		}
 		return tr;
@@ -2553,11 +2526,12 @@ version(unittest)
 		else
 		{
 			tr.fail++;
-			string str = format("failed at %s(%d)", baseName(file), line);
-			if (index >= 0) str ~= format(", test %d", index+1);
-			str ~= format(": <%s(%s, %s)> equals <%s> not <%s>.", fctn, x, y, act, exp);
+			string msg = format("failed at %s(%d)", baseName(file), line);
+			if (index >= 0) msg ~= format(", test %d", index+1);
+			msg ~= format(": <%s(%s, %s)> equals <%s> not <%s>.",
+				fctn, x, y, act, exp);
 			tr.messages.length++;
-			tr.messages[$-1] = str;
+			tr.messages[$-1] = msg;
 			return false;
 		}
 	}
@@ -2583,35 +2557,32 @@ version(unittest)
 		}
 	}
 
-	public enum TestResults testUnaryFctn(T)(
-		string name, T function(in T) fctn, UnaryTestData[] tests,
-		string file = __FILE__, int line = __LINE__)
-		if (isDecimal!T)
+    /// mixin template to create a test of a unary function
+	mixin template UnaryTest(string signature, string call)
 	{
-		auto tr = TestResults(name);
-		tr.name = name;
-		foreach(i, t; tests)
-		{
-			assertUnaryFctn(tr, name, t.x, t.z,
-				fctn(t.x), i, file, line);
-		}
-		return tr;
+		mixin ("public enum TestResults testUnaryFctn(T)(\n"
+			"string name, " ~ signature ~ ", UnaryTestData[] tests,\n"
+			"string file = __FILE__, int line = __LINE__) if (isDecimal!T){\n"
+			"auto tr = TestResults(name);\n"
+			"foreach(i, t; tests){\n"
+			"assertUnaryFctn(tr, name, t.x, t.expect,\n"
+			~ call ~ ", i, file, line);}\n"
+			"return tr;}\n");
 	}
 
-	public enum TestResults testUnaryFctn(T)(
-		string name, T function(in T, Context) fctn, UnaryTestData[] tests,
-		string file = __FILE__, int line = __LINE__)
-		if (isDecimal!T)
-	{
-		auto tr = TestResults(name);
-		tr.name = name;
-		foreach(i, t; tests)
-		{
-			assertUnaryFctn(tr, name, t.x, t.z,
-				fctn(t.x, T.context), i, file, line);
-		}
-		return tr;
-	}
+	// one argument, no context
+	mixin UnaryTest!
+	(
+		"T function(in T) fctn",
+		"fctn(t.x)"
+	);
+
+	// one argument with context
+	mixin UnaryTest!
+	(
+		"T function(in T, Context) fctn",
+		"fctn(t.x,T.context)"
+	);
 
 	private bool assertUnaryFctn(T)(ref TestResults tr,
 		string fctn, T x, T exp, T act,
