@@ -129,32 +129,34 @@ unittest {	// roundToPrecision
 	dec9 before = 9999;
 	dec9 after;
 	after = roundToPrecision(before, 3);
-	assertStringEqual(after, "1.00E+4");
+	assertEqual(after, "1.00E+4");
+	assertEqual(after, "1.00E+4");
+	assertEqual(after, dec9("1.00E+4"));
 	before = 1234567890;
 	after = roundToPrecision(before, 3);
-	assertStringEqual(after, "1.23E+9");
+	assertEqual(after, "1.23E+9");
 	after = roundToPrecision(before, 4);
-	assertStringEqual(after, "1.235E+9");
+	assertEqual(after, "1.235E+9");
 	after = roundToPrecision(before, 5);
-	assertStringEqual(after,  "1.2346E+9");
+	assertEqual(after,  "1.2346E+9");
 	after = roundToPrecision(before, 6);
-	assertStringEqual(after,  "1.23457E+9");
+	assertEqual(after,  "1.23457E+9");
 	after = roundToPrecision(before, 7);
-	assertStringEqual(after,  "1.234568E+9");
+	assertEqual(after,  "1.234568E+9");
 	after = roundToPrecision(before, 8);
-	assertStringEqual(after,  "1.2345679E+9");
+	assertEqual(after,  "1.2345679E+9");
 	before = 1235;
 	after = roundToPrecision(before, 3);
-	assertStringEqual(after.toAbstract(), "[0,124,1]");
+	assertEqual(after.toAbstract(), "[0,124,1]");
 	before = 12359;
 	after = roundToPrecision(before, 3);
-	assertStringEqual(after.toAbstract(), "[0,124,2]");
+	assertEqual(after.toAbstract(), "[0,124,2]");
 	before = 1245;
 	after = roundToPrecision(before, 3);
-	assertStringEqual(after.toAbstract(), "[0,124,1]");
+	assertEqual(after.toAbstract(), "[0,124,1]");
 	before = 12459;
 	after = roundToPrecision(before, 3);
-	assertStringEqual(after.toAbstract(), "[0,125,2]");
+	assertEqual(after.toAbstract(), "[0,125,2]");
 //	xint test = "18690473486004564289165545643685440097";
 //	long  count = reduceDigits(test);
 //	roundToPrecision(test);
@@ -562,7 +564,7 @@ unittest // numDigits
 
 	foreach (i, s; tests)
 	{
-		assertEqualIndexed(i, numDigits(s.n), s.d);
+		assertEqual(numDigits(s.n), s.d, i);
 	}
 }
 

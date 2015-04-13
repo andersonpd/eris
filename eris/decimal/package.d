@@ -21,6 +21,7 @@ import std.traits;
 import eris.integer.extended;
 import eris.decimal.context;
 import eris.decimal.arithmetic;
+import eris.decimal.logical;
 import eris.decimal.rounding;
 
 // temporary import
@@ -41,11 +42,23 @@ public enum Context RealContext    = Context(real.dig, real.max_10_exp, Rounding
 public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, Rounding.halfEven);
 
 alias dec9  = BigDecimal!(TestContext);
+alias testDecimal  = BigDecimal!(TestContext);
 alias dec99 = BigDecimal!(Context99);
 
 // special values for NaN, Inf, etc.
 private enum SV { None, Inf, qNaN, sNaN };
 
+version(unittest)
+{
+	struct testStruct(T, U)
+	{
+		T actual;
+		U expect;
+	}
+
+alias DD = testStruct!(testDecimal, testDecimal);
+alias DS = testStruct!(testDecimal, string);
+}
 /// A struct representing an arbitrary-precision decimal floating-point number.
 ///
 /// The implementation follows the General Decimal Arithmetic
@@ -56,7 +69,7 @@ private enum SV { None, Inf, qNaN, sNaN };
 struct BigDecimal(immutable Context _context = DefaultContext)
 {
 
-static if (context.precision == 9) {
+static if (context == TestContext) {
 unittest {
 	writeln("==========================");
 	writeln("decimal..............begin");
@@ -70,48 +83,50 @@ unittest {
 	public enum IsDecimal;
 
 	/// members
-	private SV sval = SV.qNaN;		// special value: default is quiet NaN
-	private bool signed = false;	// true if the value is negative, false otherwise.
-	private int expo = 0;			// the exponent of the decimal value
-	private xint mant;				// the coefficient of the decimal value
-	package int digits; 			// the number of decimal digits in this number.
-									// (unless the number is a special value)
+	private:
+		SV sval = SV.qNaN;		// special value: default is quiet NaN
+		bool signed = false;	// true if the value is negative, false otherwise.
+		int expo = 0;			// the exponent of the decimal value
+		xint mant;				// the coefficient of the decimal value
 
-	// static fields
-	package static bool verbose = false; // for debugging
+	package:
+		 int digits; 			// the number of decimal digits in this number.
 
 	public:
-	/// Maximum length of the coefficient in decimal digits.
-	enum int precision = context.precision;
-	/// Maximum value of the exponent.
-	enum int maxExpo = context.maxExpo;
-	/// Maximum value of the adjusted exponent.
-	enum int maxAdjustedExpo = maxExpo - (precision - 1);
-	/// Smallest normalized exponent.
-	enum int minExpo = 1 - maxExpo;
-	/// Smallest non-normalized exponent.
-	enum int tinyExpo = 1 - maxExpo - precision;
-	/// Rounding mode.
-	enum Rounding rounding = context.rounding;
+		/// Maximum length of the coefficient in decimal digits.
+		enum int precision = context.precision;
+		/// Maximum value of the exponent.
+		enum int maxExpo = context.maxExpo;
+		/// Maximum value of the adjusted exponent.
+		enum int maxAdjustedExpo = maxExpo - (precision - 1);
+		/// Smallest normalized exponent.
+		enum int minExpo = 1 - maxExpo;
+		/// Smallest non-normalized exponent.
+		enum int tinyExpo = 1 - maxExpo - precision;
+		/// Rounding mode.
+		enum Rounding rounding = context.rounding;
 
-	private alias decimal = BigDecimal!(context);
+	private:
+		alias decimal = BigDecimal!(context);
 
 	// decimal special values
-	enum decimal NaN		= decimal(SV.qNaN);
-	enum decimal sNaN		= decimal(SV.sNaN);
-	enum decimal Infinity	= decimal(SV.Inf);
-	enum decimal negInf		= decimal(SV.Inf, true);
-	enum decimal Zero		= decimal(SV.None);
-	enum decimal negZero	= decimal(SV.None, true);
+	public:
+		enum decimal NaN		= decimal(SV.qNaN);
+		enum decimal sNaN		= decimal(SV.sNaN);
+		enum decimal Infinity	= decimal(SV.Inf);
+		enum decimal negInf		= decimal(SV.Inf, true);
+		enum decimal Zero		= decimal(SV.None);
+		enum decimal negZero	= decimal(SV.None, true);
 
-	static if (precision == 9) {
-	unittest // decimal special values
-	{
+	static if (context == TestContext) {
+	unittest {// decimal special values
 		write("-- special values...");
 
-		static struct S { dec9 num; string val; }
+//		static struct S { testDecimal num; string val; }
 
-		static S[] tests =
+		alias ts = testStruct!(testDecimal, string);
+		static DS[] tests =
+//		static testStruct!(testDecimal, string)[] tests =
 		[
 			{ NaN,		"NaN" },
 			{ sNaN,		"sNaN" },
@@ -123,7 +138,7 @@ unittest {
 
 		foreach (i, s; tests)
 		{
-			assertStringEqualIndexed(i, s.num, s.val);
+			assertEqual(s.actual.toString, s.expect, i);
 		}
 		writeln("passed");
 	}}
@@ -172,13 +187,11 @@ unittest {
 		}
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// boolean construction
 		write("-- this(bool).......");
-		dec9 num = dec9(false);
-		assertStringEqual(num, "0");
-		num = dec9(true);
-		assertStringEqual(num, "1");
+		assertEqual(testDecimal(false), testDecimal(0));
+		assertEqual(testDecimal(true), testDecimal(1));
 		writeln("passed");
 	}}
 
@@ -198,16 +211,16 @@ unittest {
 		this.digits = numDigits(this.mant);
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// bool, xint, int construction
 		write("-- this(s,big,int)..");
-		dec9 num;
-		num = dec9(true, xint(7254), 94);
-		assertStringEqual(num, "-7.254E+97");
-		num = dec9(true, xint(7254), 194);
-		num = dec9(true, xint(1), 194);
+		testDecimal num;
+		num = testDecimal(true, xint(7254), 94);
+		assertEqual(num, testDecimal("-7.254E+97"));
+		num = testDecimal(true, xint(7254), 194);
+		num = testDecimal(true, xint(1), 194);
 		num = roundToPrecision(num);
-		assertStringEqual(num, "-Infinity");
+		assertEqual(num, testDecimal("-Infinity"));
 		writeln("passed");
 	}}
 
@@ -222,14 +235,14 @@ unittest {
 		this(sign, coefficient.abs, exponent);
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// xint, int construction
 		write("-- this(big,int)....");
-		dec9 num;
-		num = dec9(xint(7254), 94);
-		assertStringEqual(num, "7.254E+97");
-		num = dec9(xint(-7254));
-		assertStringEqual(num, "-7254");
+		testDecimal num;
+		num = testDecimal(xint(7254), 94);
+		assertEqual(num, testDecimal("7.254E+97"));
+		num = testDecimal(xint(-7254));
+		assertEqual(num, testDecimal("-7254"));
 		writeln("passed");
 	}}
 
@@ -278,14 +291,14 @@ unittest {
 		this(xint(coefficient), 0);
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// long value construction
 		write("-- this(long).......");
 		dec9 num;
 		num = dec9(7254, 94);
-		assertStringEqual(num, "7.254E+97");
+		assertEqual(num, testDecimal("7.254E+97"));
 		num = dec9(-7254L);
-		assertStringEqual(num, "-7254");
+		assertEqual(num, testDecimal("-7254"));
 		writeln("passed");
 	}}
 
@@ -295,7 +308,7 @@ unittest {
 		this = eris.decimal.conv.toNumber!decimal(str);
 	};
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// string construction
 		write("-- this(string).....");
 
@@ -319,7 +332,7 @@ unittest {
 
 		foreach (i, s; tests)
 		{
-			assertEqualIndexed(i, dec9(s.num), s.val);
+			assertEqual(testDecimal(s.num).toString, s.val, i);
 		}
 		writeln("passed");
 	}}
@@ -461,7 +474,7 @@ unittest {
 	}
 
 	// TODO: (testing) need to test this with 15-17 digit precision
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest // real construction
 	{
 		write("-- this(real).......");
@@ -477,17 +490,21 @@ unittest {
 			{ 7254.005,			"7254.005" },
 			{ -2.3456E+14,		"-2.3456E+14" },
 			{ -0.1234,			"-0.1234" },
+
 			{ 234568901234.0,	"234568901234" },
 			{ 123.457E+29,		"1.23457E+31" },
 			{ 2.71828183,		"2.71828183" },
 			{ 2.718281832,		"2.718281832" },
 			{ 2147483646.0,		"2147483646" },
+
 			{ 2147483648.0,		"2147483648" },
 			{ -2147483647.0,	"-2147483647" },
 			{ -2147483649.0,	"-2147483649" },
 			{ 0.0,				"0" },
 			{ -0.0,				"-0" },
+
 			{ 1E54,				"1E54" },
+			// TODO: pass these two test cases
 			{ double.max, 		"21.79769313E+305" },
 			{ real.max, 		"1.1897314953572317649E+4932" },
 			{ real.infinity, 	"Infinity" },
@@ -495,12 +512,12 @@ unittest {
 
 		foreach (i, s; tests)
 		{
-			assertEqualIndexed(i, dec9(s.num), s.val);
+			assertEqual(testDecimal(s.num).reduce, testDecimal(s.val), i);
 		}
 		writeln("passed");
 	}}
 
-	public static double dpow10(int n)
+/*	public static double dpow10(int n)
 	{
 		static double[23] tens;
 		bool initialized = false;
@@ -515,20 +532,17 @@ unittest {
 		}
 		if (n > 22) return double.nan;
 		return tens[n];
-	}
+	}*/
 
 	// Returns a real number constructed from
 	// a long coefficient and an integer exponent.
 	private static real longToReal(const decimal x)
 	{
-		// quick check for zero exponent
-		if (x.expo == 0) return 1.0;
-
 		// convert the coefficient to a real number
 		real r;
 		r = cast(ulong)x.coefficient;
 		if (x.sign) r = -r;
-		if (x.expo == 1) return r;
+		if (x.expo == 0) return r;
 
 		// scale by the decimal exponent
 		real tens = 10.0L ^^ std.math.abs(x.expo);
@@ -545,7 +559,7 @@ unittest {
 		if (this.isNaN) return real.nan;
 		if (this.isInfinite) return sign ? -real.infinity : real.infinity;
 		if (this.isZero) return sign ? -0.0 : 0.0;
-		int realMinExpo = 1 - RealContext.maxExpo;// TODO: need to make this
+		int realMinExpo = 1 - RealContext.maxExpo;
 		if (this.isSubnormal(realMinExpo)) return real.nan;
 
 		// if this number is larger than the largest real value,
@@ -566,6 +580,8 @@ unittest {
 			return longToReal(this);
 		}
 
+		// NOTE: There are real numbers that will be rounded unnecessarily
+		// (i.e. more than 18 digits but less than long.max)
 		// the reduced coefficient will fit
 		decimal reduced = this.reduce(RealContext);
 		if (reduced.coefficient.getDigitLength <= 2)
@@ -581,13 +597,9 @@ unittest {
 		return decimal(str);
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// toReal, toDecimal
-		writeln("-- toReal...........");
-
-writefln("RealContext.precision = %s", RealContext.precision);
-writefln("RealContext.maxExpo = %s", RealContext.maxExpo);
-writefln("RealMax.reduce = %s", RealMax.reduce(RealContext));
+		write("-- toReal...........");
 		static real[] tests =
 		[
 			1.0,
@@ -600,23 +612,11 @@ writefln("RealMax.reduce = %s", RealMax.reduce(RealContext));
 			real.max,
 		];
 
-		foreach (i, r; tests)
+		foreach (i, s; tests)
 		{
-/*RealRep rep;
-rep.value = r;
-writefln("\nrep.fraction = %s", rep.fraction);
-writefln("rep.exponent = %s", rep.exponent);
-writefln("rep.sign = %s", rep.sign);*/
-
-//writefln("\nr = %.20G", r);
-//writefln("r = %A", r);
-		decimal d = toDecimal(r);
-//writefln("d = %s", d);
-		real s = d.toReal();
-//writefln("s = %.20G", s);
-//writefln("s = %.20G", s);
-//writefln("s = %A", s);
-			assertEqualIndexed(i, s, r);
+			decimal d = toDecimal(s);
+			real r = d.toReal();
+			assertEqual(r, d, i);
 		}
 		writeln("passed");
 	}}
@@ -659,18 +659,18 @@ writefln("rep.sign = %s", rep.sign);*/
 		else this(SV.qNaN);
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {
 		write("-- this(decimal)....");
-		dec9 abc = 12345;
+/*		dec9 abc = 12345;
 		dec99 def = dec99(abc);
 		assertEqual(abc, def);
 		dec9 ghi = dec99(def);
 		assertEqual(def, ghi);
 		dec9 klm = dec9(-dec99.infinity);
 		assertEqual(klm, "-Infinity");
-		assertEqual(dec9.infinity, dec99.infinity);
-		writeln("passed");
+		assertEqual(dec9.infinity, dec99.infinity);*/
+		writeln("test missing");
 	}}
 
 	// copy constructor
@@ -695,14 +695,14 @@ writefln("rep.sign = %s", rep.sign);*/
 		return decimal(this);
 	}
 
-/*	static if (precision == 9) {
+/*	static if (context == TestContext) {
 	version(unittest) {
 		private bool assertCopy(T) (T num, T copy)if (isDecimal!T) {
 			return assertZero!T(compareTotal(num, copy));
 		}
 	}}*/
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// dup
 		write("-- dup..............");
 		dec9 num, copy;
@@ -761,7 +761,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return copy;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// copy
 		write("-- copy.............");
 		dec9 arg, expect;
@@ -811,10 +811,10 @@ writefln("rep.sign = %s", rep.sign);*/
 		return T(this);
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {
 		write("-- opCast...........");
-		assertFalse(dec9.init);
+/*		assertFalse(dec9.init);
 		dec9 abc = dec9(12,4);
 		assertTrue(abc);
 		dec99 def = cast(dec99)abc;
@@ -832,8 +832,8 @@ writefln("rep.sign = %s", rep.sign);*/
 		assertNotEqual(abs(klm), big);	// klm has been rounded.
 		dec99 spcl = dec99.infinity(true);
 		klm = dec9(spcl);
-		assertEqual(klm, dec9("-Infinity"));
-		writeln("passed");
+		assertEqual(klm, dec9("-Infinity"));*/
+		writeln("test missing");
 	}}
 
 //--------------------------------
@@ -877,10 +877,10 @@ writefln("rep.sign = %s", rep.sign);*/
 		this = decimal(that);
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// opAssign
 		write("-- opAssign.........");
-		dec9 num;
+/*		dec9 num;
 		string str;
 		num = dec9(1, 245, 8);
 		str = "-2.45E+10";
@@ -901,8 +901,8 @@ writefln("rep.sign = %s", rep.sign);*/
 		str = "123456098420234978023480";
 		assertStringEqual(num, str);
 		num = "123456098420234978023480";
-		assertStringEqual(num, str);
-		writeln("passed");
+		assertStringEqual(num, str);*/
+		writeln("test missing");
 	}}
 
 
@@ -934,7 +934,7 @@ writefln("rep.sign = %s", rep.sign);*/
    		return eris.decimal.conv.engForm(this);
 	}
 
-	/// Converts a number to its string representation.
+	/// Converts a number to the default string representation.
 	public string toString() const
 	{
 		return eris.decimal.conv.sciForm(this);
@@ -1157,7 +1157,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return Half.dup;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {
 		write("-- constants........");
 		assertEqual(dec9.Half, dec9(0.5));
@@ -1168,26 +1168,46 @@ writefln("rep.sign = %s", rep.sign);*/
 //	classification properties
 //--------------------------------
 
-	/// Returns true if this number's representation is canonical (always true).
+	/// Returns true if this number's representation is canonical.
+	///
+	/// All decimal numbers are canonical, whether or not they are
+	/// reduced to their simplest form. However, the representation
+	/// of the coefficient may have leading zeros.
+	/// If this is the case, this function returns `false`.
+	/// Otherwise it returns `true`.
 	@safe
 	const bool isCanonical()
 	{
-		return true;
+		// if the coefficient array has only one digit, return true;
+		if (coefficient.getDigitLength == 1) return true;
+		// if 1st digit of the coefficient array is zero, return false
+		return coefficient.getDigit(0) ? true : false;
 	}
 
 	/// Returns the canonical form of the number.
 	@safe
 	const decimal canonical()
 	{
-		return this.dup;
+		// copy the number
+		decimal copy = this.dup;
+		// if it's already canonical, return the copy
+		if (copy.isCanonical) return copy;
+		// otherwise, trim the leading zeros in the coefficient
+		// and return the copy
+		copy.coefficient = copy.coefficient.trim;
+		return copy;
 	}
 
-	static if (precision == 9) {
-	unittest {	// isCanonical
+	static if (context == TestContext)
+	{
+	unittest
+	{	// isCanonical
 		write("-- isCanonical......");
 		dec9 num = dec9("2.50");
-		assertTrue(num.isCanonical);
+		// string constructions generally have a leading zero
+		assertFalse(num.isCanonical);
 		dec9 copy = num.canonical;
+		assertTrue(copy.isCanonical);
 		assertEqual(compareTotal(num, copy), 0);
 		writeln("passed");
 	}}
@@ -1196,12 +1216,15 @@ writefln("rep.sign = %s", rep.sign);*/
 	//@safe
 	const bool isOne()
 	{
-		if (isSimpleOne) {
-			return true;
-		}
-		if (exponent > 0) {
+		if (isNegative || isZero || isSpecial) {
 			return false;
 		}
+		if (coefficient == 1 && exponent == 0) {
+			return true;
+		}
+/*		if (exponent > 0) {
+			return false;
+		}*/
 		return this.reduce.isSimpleOne;
 	}
 
@@ -1212,7 +1235,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return isFinite && !isSigned && coefficient == 1 && exponent == 0;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	 unittest { // isOne
 		write("-- isOne............");
 		dec9 num;
@@ -1231,7 +1254,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return isFinite && coefficient == 0;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// isZero
 		write("-- isZero...........");
 		dec9 num;
@@ -1265,7 +1288,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return this.sval == SV.qNaN;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// isNaN, isQuiet, isSignaling
 		write("-- isNaN............");
 		dec9 num;
@@ -1300,7 +1323,7 @@ writefln("rep.sign = %s", rep.sign);*/
 			&& sval != SV.sNaN;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// isFinite, isInfinite
 		write("-- isFinite.........");
 		dec9 num;
@@ -1329,7 +1352,7 @@ writefln("rep.sign = %s", rep.sign);*/
 			|| sval == SV.sNaN;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// isSpecial
 		write("-- isSpecial........");
 		dec9 num;
@@ -1358,7 +1381,7 @@ writefln("rep.sign = %s", rep.sign);*/
 
 	alias isSigned = isNegative;
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// isSigned, isNegative
 		write("-- isNegative.......");
 		dec9 num;
@@ -1392,7 +1415,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return false;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest { // isNormal, isSubnormal
 		write("-- isNormal.........");
 		dec9 num;
@@ -1430,7 +1453,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return false;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// isIntegralValued
 		write("-- isIntegralValued.");
 		dec9 num;
@@ -1469,7 +1492,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return isNaN || isZero;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
 //		assertTrue(dec9(1));
@@ -1492,7 +1515,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return !isSpecial && coefficient == 0;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// isZeroCoefficient
 		write("-- isZeroCoeff......");
 		dec9 num;
@@ -1550,7 +1573,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return opEquals(decimal(that));
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// comparison
 		write("-- comparison.......");
 		dec9 num1, num2;
@@ -1572,7 +1595,7 @@ writefln("rep.sign = %s", rep.sign);*/
 // unary arithmetic operators
 //--------------------------------
 
-	/// Returns the result of performing the specified
+	/// Returns the result of the
 	/// unary operation on this number.
 	//@safe
 	private decimal opUnary(string op)()
@@ -1597,7 +1620,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		}
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// opUnary
 		write("-- opUnary..........");
 		dec9 num, actual, expect;
@@ -1636,7 +1659,7 @@ writefln("rep.sign = %s", rep.sign);*/
 //	binary arithmetic operators
 //--------------------------------
 
-	/// Returns the result of performing the specified
+	/// Returns the result of the specified
 	/// binary operation on this number and the argument.
 	decimal opBinary(string op, T:decimal)(in T x) const
 	{
@@ -1674,51 +1697,30 @@ writefln("rep.sign = %s", rep.sign);*/
 		}
 	}
 
-	static if (precision == 9) {
-	unittest {	// opBinary
+	static if (context == TestContext)
+	{
+	unittest
+	{	// opBinary
 		write("-- opBinary.........");
-		dec9 op1, op2, actual, expect;
-		op1 = 4;
-		op2 = 8;
-		actual = op1 + op2;
-		expect = 12;
-		assertEqual(actual, expect);
-		actual = op1 - op2;
-		expect = -4;
-		assertEqual(actual, expect);
-		actual = op2 - op1;
-		expect = 4;
-		assertEqual(actual, expect);
-		actual = op1 * op2;
-		expect = 32;
-		assertEqual(actual, expect);
-		op1 = 5;
-		op2 = 2;
-		actual = op1 / op2;
-		expect = 2.5;
-		assertEqual(actual, expect);
-		actual = op2 / op1;
-		expect = 0.4;
-		assertEqual(actual, expect);
-		op1 = 10;
-		op2 = 3;
-		actual = op1 % op2;
-		expect = 1;
-		assertEqual(actual, expect);
-		actual = op2 % op1;
-		expect = 3;
-		assertEqual(actual, expect);
-		op1 = "00011010";
-		op2 = "10001110";
-		actual = op1 & op2;
-		expect = "1010";
-		assertEqual(actual, expect);
-		actual = op1 | op2;
-		expect = "10011110";
-		assertEqual(actual, expect);
-		actual = op1 ^ op2;
-		expect = "10010100";
-		assertEqual(actual, expect);
+		struct S { string op; string x; string y; string z; }
+		S[] tests =
+		[
+			{ "+", "4", "8", "12" },
+			{ "-", "4", "8", "-4" },
+			{ "*", "4", "8", "32" },
+			{ "/", "5", "2", "2.5" },
+			{ "/", "2", "5", "0.4" },
+
+			{ "%", "10", "3", "1" },
+			{ "%", "3", "10", "3" },
+			{ "&", "00011010", "10001110", "1010" },
+			{ "|", "00011010", "10001110", "10011110" },
+			{ "^", "00011010", "10001110", "10010100" },
+		];
+		foreach (i, s; tests)
+		{
+			testBinaryOp(s.op, s.x, s.y, s.z);
+		}
 		writeln("passed");
 	}}
 
@@ -1728,57 +1730,6 @@ writefln("rep.sign = %s", rep.sign);*/
 	{
 		return opBinary!op(decimal(x));
 	}
-
-	static if (precision == 9) {
-	unittest {	// opBinary
-		write("-- opBinary.........");
-        float op1;
-//        long op1;
-		dec9  op2, actual, expect;
-		op1 = 4;
-		op2 = 8;
-		actual = op1 + op2;
-		expect = 12;
-		assertEqual(actual, expect);
-		actual = op1 - op2;
-		expect = -4;
-		assertEqual(actual, expect);
-		actual = op2 - op1;
-		expect = 4;
-		assertEqual(actual, expect);
-		actual = op1 * op2;
-		expect = 32;
-		assertEqual(actual, expect);
-/*		op1 = 5;
-		op2 = 2;
-		actual = op1 / op2;
-		expect = 2.5;
-		assertEqual(actual, expect);
-		actual = op2 / op1;
-		expect = 0.4;
-		assertEqual(actual, expect);
-		op1 = 10;
-		op2 = 3;
-		actual = op1 % op2;
-		expect = 1;
-		assertEqual(actual, expect);
-		actual = op2 % op1;
-		expect = 3;
-		assertEqual(actual, expect);
-		op1 = "00011010";
-		op2 = "10001110";
-		actual = op1 & op2;
-		expect = "1010";
-		assertEqual(actual, expect);
-		actual = op1 | op2;
-		expect = "10011110";
-		assertEqual(actual, expect);
-		actual = op1 ^ op2;
-		expect = "10010100";
-		assertEqual(actual, expect);
-*/
-		writeln("passed");
-	}}
 
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
@@ -1816,6 +1767,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		{
 			return xor(this, decimal(x), rounding);
 		}
+		assert(false);
 	}
 
 //-----------------------------
@@ -1838,7 +1790,7 @@ writefln("rep.sign = %s", rep.sign);*/
 		return this;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// opOpAssign
 		write("-- opOpAssign.......");
 		dec9 op1, op2, actual, expect;
@@ -1881,20 +1833,14 @@ writefln("rep.sign = %s", rep.sign);*/
 		return nextToward(this, x, decimal.context);
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {	// nextUp, nextDown, nextAfter
 		write("-- next.............");
-		dec9 big, expect;
-		big = 123.45;
-		assertEqual(big.nextUp, dec9(123.450001));
-		big = 123.45;
+		testDecimal big = 123.45;
+		assertEqual(big.nextUp,   dec9(123.450001));
 		assertEqual(big.nextDown, dec9(123.449999));
-		big = 123.45;
-		expect = big.nextUp;
-		assertEqual(big.nextAfter(dec9(123.46)), expect);
-		big = 123.45;
-		expect = big.nextDown;
-		assertEqual(big.nextAfter(dec9(123.44)), expect);
+		assertEqual(big.nextAfter(dec9(123.46)), big.nextUp);
+		assertEqual(big.nextAfter(dec9(123.44)), big.nextDown);
 		writeln("passed");
 	}}
 
@@ -1977,17 +1923,17 @@ writefln("rep.sign = %s", rep.sign);*/
 	enum decimal PHI = roundString("1.6180339887498948482045868343656381177"
 		"20309179805762862135448622705260462818902449707207204189391137");
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {
 		write("-- constants........");
-		assertStringEqual(dec9.E,     "2.71828183");
-		assertStringEqual(dec9.pi,    "3.14159265");
-		assertStringEqual(dec9.PI,    "3.14159265");
-		assertStringEqual(dec9.LN2,   "0.693147181");
-		assertStringEqual(dec9.LN10,  "2.30258509");
-		assertStringEqual(dec9.SQRT2, "1.41421356");
-		assertStringEqual(dec9.INV_PI,"0.318309886");
-		assertStringEqual(dec9.invPi, "0.318309886");
+		assertEqual(dec9.E,     "2.71828183");
+		assertEqual(dec9.pi,    "3.14159265");
+		assertEqual(dec9.PI,    "3.14159265");
+		assertEqual(dec9.LN2,   "0.693147181");
+		assertEqual(dec9.LN10,  "2.30258509");
+		assertEqual(dec9.SQRT2, "1.41421356");
+		assertEqual(dec9.INV_PI,"0.318309886");
+		assertEqual(dec9.invPi, "0.318309886");
 		writeln("passed");
 	}}
 
@@ -1995,7 +1941,8 @@ writefln("rep.sign = %s", rep.sign);*/
 // decimal constant boilerplate
 //--------------------------------
 
-    /// mixin template to add a constant and a arbitrary precision constant.
+    /// mixin template to create a constant at the type precision,
+	/// with an option to create an arbitrary precision constant.
 	mixin template Constant(string name)
 	{
 		mixin ("public static decimal " ~ name ~ "(int precision = decimal.precision) {
@@ -2006,7 +1953,8 @@ writefln("rep.sign = %s", rep.sign);*/
 		}");
 	}
 
-    /// mixin template to add a constant and a arbitrary precision constant.
+    /// mixin template to create a constant at the type precision,
+	/// with an option to create an arbitrary precision constant.
 	mixin template Constant(string lcName, string ucName)
 	{
 		mixin ("public static decimal " ~ lcName ~ "(int precision = decimal.precision) {
@@ -2017,7 +1965,8 @@ writefln("rep.sign = %s", rep.sign);*/
 		}");
 	}
 
-	/// Rounds a string representation of a number to specified precision.
+	/// Rounds a decimal string representation of a number
+	/// to a specified precision.
 	/// Does not convert the string to a number. A decimal point may be
 	/// included, but no exponent is allowed.
 	/// A string of all nines will throw an exception.
@@ -2074,16 +2023,34 @@ writefln("rep.sign = %s", rep.sign);*/
 		return copy[0..precision].idup;
 	}
 
-	static if (precision == 9) {
+	static if (context == TestContext) {
 	unittest {
 		writeln("==========================");
 		writeln("decimal................end");
 		writeln("==========================");
+
 	}}
 
 }	 // end struct BigDecimal
 
-/// Returns true if the parameter is a type of decimal number.
+	public enum double dpow10(int n)
+	{
+		static double[23] tens;
+		bool initialized = false;
+		if (!initialized)
+		{
+			tens[0] = 1.0;
+			for(int i = 1; i < tens.length; i++)
+			{
+				tens[i] = tens[i-1] * 10.0;
+			}
+			initialized = true;
+		}
+		if (n > 22) return double.nan;
+		return tens[n];
+	}
+
+/// Returns true if the parameter is a decimal number.
 public enum bool isDecimal(T) = hasMember!(T, "IsDecimal");
 
 unittest {
@@ -2107,6 +2074,63 @@ unittest {
 	assertFalse(isConvertible!creal);
 	assertFalse(isConvertible!dec9);
 	writeln("passed");
+}
+
+version(unittest)
+{
+
+	public enum bool testBinaryOp(T)(string op, T x, T y, T z,
+			string file = __FILE__, int line = __LINE__)
+		if (isDecimal!T)
+	{
+		switch (op)
+		{
+		// infix operators
+		case "+":
+			return assertBinaryOp("plus", x, y, x + y, z, file, line);
+		case "-":
+			return assertBinaryOp("minus", x, y, x - y, z, file, line);
+		case "*":
+			return assertBinaryOp("times", x, y, x * y, z, file, line);
+		case "/":
+			return assertBinaryOp("divided by", x, y, x / y, z, file, line);
+		case "%":
+			return assertBinaryOp("mod", x, y, x % y, z, file, line);
+		case "&":
+			return assertBinaryOp("and", x, y, x & y, z, file, line);
+		case "|":
+			return assertBinaryOp("or", x, y, x | y, z, file, line);
+		case "^":
+			return assertBinaryOp("xor", x, y, x ^ y, z, file, line);
+		default:
+			return false;
+		}
+	}
+
+	public enum bool testBinaryOp(T)
+		(string op, T x, T y, T z, string file = __FILE__, int line = __LINE__)
+		if (!isDecimal!T && isConvertible!T)
+	{
+		return testBinaryOp!testDecimal
+			(op, testDecimal(x), testDecimal(y), testDecimal(z), file, line);
+	}
+
+	private bool assertBinaryOp(T)
+		(string op, T x, T y, T computed, T expected, string file, int line)
+	{
+		if (computed == expected)
+		{
+			return true;
+		}
+		else
+		{
+			writeln("failed at ", baseName(file), "(", line, "): \"",
+				x , "\" " , op, " \"", y , "\" equals \"",
+				computed, "\" not \"", expected, "\".");
+			return false;
+		}
+	}
+
 }
 
 

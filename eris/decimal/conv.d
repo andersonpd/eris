@@ -136,7 +136,7 @@ unittest  // toString
 
 	foreach (i, s; tests)
 	{
-		assertEqualIndexed(i, toString(dec9(s.num), s.fmt), s.val);
+		assertEqual(toString(dec9(s.num), s.fmt), s.val, i);
 	}
 	writeln("passed");
 }
@@ -209,7 +209,7 @@ unittest // sciForm
 
 	foreach (i, s; tests)
 	{
-		assertEqualIndexed(i, sciForm(dec9(s.num)), s.val);
+		assertEqual(sciForm(dec9(s.num)), s.val, i);
 	}
 	writeln("passed");
 }
@@ -302,7 +302,7 @@ unittest // engForm
 
 	foreach (i, str; tests)
 	{
-		assertEqualIndexed(i, engForm(dec9(str)), str);
+		assertEqual(engForm(dec9(str)), str, i);
 	}
 	writeln("passed");
 }
@@ -337,7 +337,7 @@ unittest  // specialForm
 
 	foreach (i, str; tests)
 	{
-		assertEqualIndexed(i, dec9(str).specialForm, str);
+		assertEqual(dec9(str).specialForm, str, i);
 	}
 
 	tests =
@@ -348,7 +348,7 @@ unittest  // specialForm
 
 	foreach (i, str; tests)
 	{
-		assertEqualIndexed(i, dec9(str).specialForm(true), str);
+		assertEqual(dec9(str).specialForm(true), str, i);
 	}
 	writeln("passed");
 }
@@ -427,7 +427,7 @@ unittest // decimalForm
 
 	foreach (i, s; tests)
 	{
-		assertEqualIndexed(i, decimalForm(dec9(s.num), s.precision), s.val);
+		assertEqual(decimalForm(dec9(s.num), s.precision), s.val, i);
 	}
 	writeln("passed");
 }
@@ -483,7 +483,7 @@ unittest	// exponentForm
 
 	foreach (i, s; tests)
 	{
-		assertEqualIndexed(i, exponentForm(dec9(s.num), s.precision), s.val);
+		assertEqual(exponentForm(dec9(s.num), s.precision), s.val, i);
 	}
 	writeln("passed");
 }
@@ -591,7 +591,7 @@ unittest // toAbstract
 
 	foreach (i, s; tests)
 	{
-		assertEqualIndexed(i, dec9(s.num).toAbstract, s.abs);
+		assertEqual(dec9(s.num).toAbstract, s.abs, i);
 	}
 	writeln("passed");
 }
@@ -640,7 +640,7 @@ unittest // toExact
 
 	foreach (i, str; tests)
 	{
-		assertEqualIndexed(i, dec9(str).toExact, str);
+		assertEqual(dec9(str).toExact, str, i);
 	}
 	writeln("passed");
 }
@@ -787,7 +787,7 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 		}
 	}
 	// convert coefficient string to xint
-	num.coefficient = xint(str.idup);
+	num.coefficient = xint(str.idup); //.trim; TODO: determine if trimming is too costly
 	num.digits = numDigits(num.coefficient);
 	return num;
 }
@@ -799,6 +799,7 @@ unittest // toNumber
 
 	static S[] tests =
 	[
+		{ "2.50",		"2.50" },
 		{ "1.0",		"1.0" },
 		{ "-123",		"-123" },
 		{ "1.23E3",		"1.23E+3" },
@@ -812,7 +813,18 @@ unittest // toNumber
 
 	foreach (i, s; tests)
 	{
-		assertStringEqualIndexed(i, dec9(s.num), s.val);
+		assertEqual(dec9(s.num).toString, s.val, i);
+		auto num = dec9(s.num);
+writefln("\nnum = %s", num);
+	auto len = num.coefficient.getDigitLength;
+	for (int j = 0; j < len; j++)
+	{
+		auto digit = num.coefficient.getDigit(j);
+//writefln("i = %s", i);
+		writefln("digit = %s", digit);
+//			writefln("num.coefficient.getDigit(i) = %s", num.coefficient.getDigit(i));
+//writefln("num.coefficient.getDigit(i) = %s", num.coefficient.getDigit(i);
+	}
 	}
 	writeln("passed");
 }
@@ -864,7 +876,7 @@ unittest // setPayload
 
 	foreach (i, s; tests)
 	{
-		assertStringEqualIndexed(i, dec9(s.num), s.val);
+		assertEqual(dec9(s.num).toString, s.val, i);
 	}
 	writeln("passed");
 }

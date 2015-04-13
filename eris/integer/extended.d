@@ -124,55 +124,82 @@ public struct ExtendedInt {
 	}
 
 	unittest {
-		write("-- this(long).......");
+		write("-- this(integral)...");
 		xint num;
-		num = xint(1);
-		assertEqual(num, 1);
-		num = xint(12);
-		assertEqual(num, 12);
-		num = xint(-12);
-		assertEqual(num, -12);
-		num = xint([12u]);
-		assertEqual(num, 12);
 		num = xint([0xFFFFFFFF, 12]);
 		assertEqual(num, 0x0000000C_FFFFFFFF);
 		num = xint([12U, 9, -33]);
 		assertEqual(num, xint("0xFFFFFFDF_00000009_0000000C"));
 
-		// TODO: move most of these to the test module
-		long slg;
-		slg = long.max;
-		assertEqual(xint(slg).toLong, slg);
-		slg = short.max;
-		assertEqual(xint(slg).toLong, slg);
-		slg = long.min;
-		assertEqual(xint(slg).toLong, slg);
-		slg = long.min+1;
-		assertEqual(xint(slg).toLong, slg);
-		slg = long.min+2;
-		assertEqual(xint(slg).toLong, slg);
-		slg = long.min+3;
-		assertEqual(xint(slg).toLong, slg);
-		slg = int.min;
-		assertEqual(xint(slg).toLong, slg);
-		slg = long.max;
-		assertEqual(xint(slg).toLong, slg);
+		// longs
+		static long[] longs =
+		[
+			1L,
+			12L,
+			-12L,
+			12U,	// ???
+			long.max,
+			short.max,
+			long.min,
+			long.min+1,
+			long.min+2,
+			int.min
+		];
+		foreach (i, n; longs)
+		{
+		   // TODO: this test is tautological
+			assertEqual(xint(n), n, i);
+		}
 
-		int sin;
-		sin = short.min;
-		assertEqual(xint(sin).toLong, cast(long)sin);
-		sin = -1;
-		assertEqual(xint(sin).toLong, cast(long)sin);
-		sin = 1;
-		assertEqual(xint(sin).toLong, cast(long)sin);
+		// ints
+		static int[] ints =
+		[
+			1,
+			0,
+			-1,
+			3425999,
+			-123095L,
+			int.min,
+			int.min + 1,
+			int.max,
+			int.max - 1,
+			short.min,
+			short.max,
+		];
+		foreach (i; ints)
+		{
+			assertEqual(xint(i), i, i);
+		}
 
-		short ssh;
-		ssh = short.min;
-		assertEqual(xint(ssh).toLong, cast(long)ssh);
-		ssh = -1;
-		assertEqual(xint(ssh).toLong, cast(long)ssh);
-		ssh = 1;
-		assertEqual(xint(ssh).toLong, cast(long)ssh);
+		// shorts
+		static short[] shorts =
+		[
+			1, 0, -1,
+			short.min,
+			short.min + 1,
+			short.max,
+			short.max - 1,
+		];
+		foreach (i, s; shorts)
+		{
+			assertEqual(xint(s), s, i);
+		}
+
+		// booleans
+		static bool[] bools =
+		[
+			true,
+			false,
+			1,
+			0,
+			bool.min,
+			bool.max,
+		];
+		foreach (i, s; bools)
+		{
+			assertEqual(xint(s), cast(long)s, i);
+		}
+
 
 		bool test = true;
 		assertEqual(xint(test), test);
@@ -234,7 +261,7 @@ public struct ExtendedInt {
 		return xint(this);
 	}
 
-	/// Returns a copy of an extended integer.
+	/// Returns a copy of an extended integer ignoring the sign, if any.
 	@safe
 	public xint copyAbs() const {
 		xint copy = this.dup;
@@ -242,7 +269,7 @@ public struct ExtendedInt {
 		return copy;
 	}
 
-	/// Returns a copy of an extended integer.
+	/// Returns a copy of an extended integer with the sign inverted.
 	@safe
 	public xint copyNegate() const {
 		xint copy = this.dup;
@@ -594,14 +621,7 @@ public struct ExtendedInt {
 		writeln("passed");
 	}
 
-	/// Performs an operation on this and assigns the result to this.
-	@safe
-	private ref xint opOpAssign(string op, T:xint)(const T that) {
-		this = opBinary!op(that);
-		return this;
-	}
-
-	/// Performs an operation on this and assigns the result to this.
+	/// Performs an operation on 'this' and assigns the result to 'this'.
 	@safe
 	private ref xint opOpAssign(string op, T)(const T that) {
 		this = opBinary!op(that);

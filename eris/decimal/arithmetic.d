@@ -13,19 +13,31 @@
 **/
 
 
-/// Most of the arithmetic operations accept values for precision and
+/// Most of these arithmetic operations accept values for precision and
 /// rounding modes, but these parameters are not generally available to
 /// the ordinary user. They are included to allow algorithm designers to
 /// carry out internal operations at a precision higher than the type
 /// precision.
 
-// TODO: (testing) ensure context flags are being set and cleared properly.
+/*
+	TODO: For each function --
+		1. Ensure algorithm is properly implemented.
+		2. Ensure context flags are being set properly.
+		3. Ensure function passes GDA tests.
+		4. Determine additional tests needed and implement them.
+		5. Ensure all special cases are enumerated.
+		6. Automate all tests, if possible.
+		7. Determine what effect the context has on the function and
+			if it should be explained.
+		8. Ensure all documentation is complete:
+			a. Header - description, inputs, return value(s)
+			b. Code - variables, control statements, branches, return points.
+		9. Move most tests to the test module.
+*/
 
 // TODO: (testing) opEquals unit test should include numerically equal testing.
 
 // TODO: (testing) write some test cases for flag setting. test the add/sub/mul/div functions
-
-// TODO: (behavior?) to/from real or double (float) values needs definition and implementation.
 
 module eris.decimal.arithmetic;
 
@@ -49,6 +61,7 @@ import std.stdio;
 version(unittest) {
 	import std.stdio;
 	import eris.assertion;
+//	import eris.decimal: BinaryTestStruct;
 }
 
 alias xcompare = eris.integer.extended.xint.compare;
@@ -61,6 +74,7 @@ alias xcompare = eris.integer.extended.xint.compare;
 /// Classes are: sNaN, NaN, Infinity, Zero, Normal, and Subnormal.
 /// The sign of any NaN values is ignored in the classification.
 /// The argument is not rounded and no flags are changed.
+///
 /// Implements the 'class' function in the specification. (p. 42)
 public string classify(T)(T x) if (isDecimal!T)
 {
@@ -77,18 +91,18 @@ public string classify(T)(T x) if (isDecimal!T)
 
 unittest {	// classify
 	write("-- classify.........");
-	static struct S { dec9 actual; string expect; }
+	static struct S { testDecimal actual; string expect; }
 	static S[] tests =
 	[
-		{ dec9.nan,			"NaN" },
-		{ dec9.snan,		"sNaN" },
-		{ dec9.infinity,	"+Infinity" },
-		{ dec9("1E-10"),	"+Normal" },
-		{ dec9("-0"),		"-Zero" },
-		{ dec9("-0.1E-99"),	"-Subnormal" },
+		{ testDecimal.nan,			"NaN" },
+		{ testDecimal.snan,		"sNaN" },
+		{ testDecimal.infinity,	"+Infinity" },
+		{ testDecimal("1E-10"),	"+Normal" },
+		{ testDecimal("-0"),		"-Zero" },
+		{ testDecimal("-0.1E-99"),	"-Subnormal" },
 	];
 	foreach (i, s; tests)
-		assertEqualIndexed(i, classify(s.actual), s.expect);
+		assertEqual(classify(s.actual), s.expect, i);
 	writeln("passed");
 }
 
@@ -98,8 +112,11 @@ unittest {	// classify
 /// (As though the operand were truncated to a single digit
 /// while maintaining the value of that digit and without
 /// limiting the resulting exponent)".
-/// May set the InvalidOperation and DivisionByZero flags.
+///
 /// Implements the 'logb' function in the specification. (p. 47)
+///
+/// Flags: InvalidOperation, DivisionByZero.
+///
 public int ilogb(T)(T x) if (isDecimal!T)
 {
 	if (x.isNaN) {
@@ -113,6 +130,25 @@ public int ilogb(T)(T x) if (isDecimal!T)
 		return int.min;
 	}
 	return x.digits + x.exponent - 1;
+}
+
+unittest {
+	write("ilogb...");
+	// test ilogb
+	static struct S { testDecimal actual; int expect; }
+	static S[] utests =
+	[
+		{ testDecimal(250), 	2 },
+		{ testDecimal("2.50"),	0 },
+		{ testDecimal("0.03"),	-2 },
+		{ testDecimal.infinity, int.max },
+		{ testDecimal.zero,	int.min },
+	];
+	foreach (i, s; utests)
+	{
+		assertEqual(ilogb(s.actual), s.expect, i);
+	}
+	writeln("passed");
 }
 
 /// Returns the truncated base 10 logarithm of the argument.
@@ -149,33 +185,20 @@ unittest {
 		];
 		foreach (i, s; tests)
 		{
-			assertEqualIndexed(i, logb(s.actual), s.expect);
+			assertEqual(logb(s.actual), s.expect, i);
 		}
-		// separate tests needed because NaNs are never equal to anything.
-		static struct T { dec9 actual; string expect; }
+		// separate tests needed because NaNs can't be tested for equality.
+		static struct T { testDecimal actual; string expect; }
 		static T[] ttests =
 		[
-			{ dec9.nan,		"NaN" },
-			{ dec9.snan,	"NaN" },
+			{ testDecimal.nan,	"NaN" },
+			{ testDecimal.snan,	"NaN" },
 		];
 		foreach (i, t; ttests)
 		{
-			assertStringEqualIndexed!dec9(i, logb(t.actual), t.expect);
+			assertEqual(logb(t.actual).toString, t.expect, i);
 		}
-		// test ilogb
-		static struct U { dec9 actual; int expect; }
-		static U[] utests =
-		[
-			{ dec9(250), 	2 },
-			{ dec9("2.50"),	0 },
-			{ dec9("0.03"),	-2 },
-			{ dec9.infinity, int.max },
-			{ dec9.zero,	int.min },
-		];
-		foreach (i, u; utests)
-		{
-			assertEqualIndexed(i, ilogb(u.actual), u.expect);
-		}
+
 	writeln("passed");
 }
 
@@ -183,63 +206,81 @@ unittest {
 /// If the first operand is infinite then that operand is returned,
 /// otherwise the result is the first operand modified by
 /// adding the value of the second operand to its exponent.
-/// The second operand must be a finite integer with an exponent of zero.
+/// The second operand must be a finite integer (<= int.max && >= int.min)
+///	with an exponent of zero.
 /// The result may overflow or underflow.
-/// Flags: InvalidOperation, Underflow, Overflow.
+///
 /// Implements the 'scaleb' function in the specification. (p. 48)
-public T scaleb(T)(T x, T y) if (isDecimal!T)
+///
+/// Flags: InvalidOperation, Underflow, Overflow.
+public T scaleb(T)(in T x, in T y) if (isDecimal!T)
 {
-	if (x.isNaN || y.isNaN) return invalidOperand(x,y);
+	T xx = x.dup;
+	T yy = y.dup;
 
-	if (x.isInfinite) return x;
+	if (xx.isNaN || yy.isNaN) return invalidOperand(xx,yy);
 
-	if (y.isInfinite || y.exponent != 0) {
-		return invalidOperand(y);
+	if (xx.isInfinite) return xx;
+
+	if (yy.isInfinite || yy.exponent != 0)
+	{
+		return invalidOperand(yy);
 	}
-	int scale = cast(int)y.coefficient.toInt;
-	if (y.isSigned) {
+	if (yy > T.IntMax || yy < T.IntMin)
+	{
+		return invalidOperand(yy);
+	}
+
+	int scale = cast(int)yy.coefficient.toInt;
+
+	if (yy.isSigned)
+	{
 		scale = -scale;
 	}
 	// TODO: (behavior) check for overflow/underflow (GDA "scaleb").
-	x.exponent = x.exponent + scale;
-	return x;
+	xx.exponent = xx.exponent + scale;
+	return xx;
 }
 
-unittest {	// scaleb
-	write("-- scaleb...........");
-	dec9 expect, actual;
-	auto x = dec9("7.50");
-	auto y = dec9("-2");
-	expect = dec9("0.0750");
-	actual = scaleb(x, y);
-	assertEqual(actual, expect);
-	writeln("passed");
+unittest
+{	// scaleb
+	static BinaryTestData[] data =
+	[
+		{ "7.50", "-2", "0.0750" },
+//		{ "7.50", "-3", "0.0750" },
+	];
+	TestResults tr = testBinaryFctn("scaleb", &scaleb!testDecimal, data);
+    writefln(tr.report);
 }
 
 //--------------------------------
-// reduce, absolute value, unary plus and minus functions
+// reduce (normalize), absolute value, sgn,
+// unary plus and minus functions
 //--------------------------------
 
+///
 /// Returns the operand reduced to its simplest form.
-/// It has the same semantics as the plus operation,
-/// except that if the final result is finite it is
+///
+/// <code>reduce</code> has the same semantics as the plus operation,
+/// except that a finite result is
 /// reduced to its simplest form, with all trailing
 /// zeros removed and its sign preserved.
+///
 /// Implements the 'reduce' function in the specification. (p. 37)
 /// "This operation was called 'normalize' prior to
 /// version 1.68 of the specification." (p. 37)
+///
 /// Flags: InvalidOperation
+///
 public T reduce(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
-	// TODO: (language) remove constness from x.
 	// special cases
 	if (x.isNaN) return invalidOperand(x);
 	if (!x.isFinite) return x.dup;
 
-//writefln("--- x.toExact = %s", x.toExact);
 	T reduced = plus(x, context);
-//writefln("reduced.toExact = %s", reduced.toExact);
+
 	// have to check again -- rounding may have made it infinite
 	if (!reduced.isFinite) return reduced;
 
@@ -251,104 +292,109 @@ public T reduce(T)(in T x,
 		reduced.digits = digits - zeros;
 		reduced.exponent = reduced.exponent + zeros;
 	}
+	// remove leading zeros from the coefficient.
+	// NOTE: is this the place??
 	reduced.coefficient = reduced.coefficient.trim;
 	return reduced;
 }
 
-/*// just a wrapper
+// just a wrapper
 public T normalize(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
 	return reduce(x, context);
-}*/
-
-unittest {	// reduce
-	write("-- reduce...........");
-	dec9 x;
-	dec9 expect, actual;
-	x = dec9("1.200");
-	expect = dec9("1.2");
-	actual = reduce(x);
-	assertNotEqual(x.toString, expect.toString);
-	assertStringEqual(actual, expect);
-	x = dec9("12.34");
-	expect = dec9("1.234");
-	actual = reduce(x);
-	assertStringEqual(actual, x);
-	assertStringNotEqual(x, expect);
-	assertStringNotEqual(actual, expect);
-	writeln("passed");
 }
 
+unittest {	// reduce
+	UnaryTestData[] data =
+	[
+		{ "1.200", "1.2" },
+		{ "1.200", "1.3" },
+		{ "1.200", "1.20" },
+		{ "1.2001", "1.2001" },
+		{ "1.200000001", "1.2" },
+	];
+	// NOTE: need to compare strings, not values
+	TestResults tr = testUnaryFctn!testDecimal("reduce", &reduce!(testDecimal), data);
+    writeln(tr.report);
+}
+
+///
 /// Returns the absolute value of the argument.
 /// This operation rounds the result and may set flags.
 /// The result is equivalent to plus(x) for positive numbers
 /// and to minus(x) for negative numbers.
+///
 /// To return the absolute value without rounding or setting flags
 /// use the 'copyAbs' function.
+///
 /// Implements the 'abs' function in the specification. (p. 26)
+///
 /// Flags: InvalidOperation
-public T abs(T)(T x,
-		Context context = T.context) if (isDecimal!T)
+///
+public T abs(T)(in T x, Context context = T.context) if (isDecimal!T)
 {
 	if (x.isNaN) return invalidOperand(x);
+
 	return roundToPrecision(x.copyAbs, context);
 }
 
 unittest {	// abs
-	write("-- abs..............");
-	dec9 x;
-	dec9 expect;
-	x = dec9("-Inf");
-	expect = dec9("Inf");
-	assertEqual(abs(x), expect);
-	x = 101.5;
-	expect = 101.5;
-	assertEqual(abs(x), expect);
-	x = -101.5;
-	assertEqual(abs(x), expect);
-	writeln("passed");
+	UnaryTestData[] data =
+	[
+		{ "-Inf", "Inf" },
+		{ "101.5", "101.5" },
+		{ "-101.5", "101.5" },
+	];
+	TestResults tr = testUnaryFctn!testDecimal("abs", &abs!(testDecimal), data);
+    writeln(tr.report);
 }
 
+///
 /// Returns -1, 0, or 1 if the argument is
 /// negative, zero, or positive, respectively.
-/// The sign of zero is ignored. Returns 0 for +0 or -0.
-public int sgn(T)(T x) if (isDecimal!T)
+/// The sign of zero is ignored: returns 0 for +0 or -0.
+///
+public int sgn(T)(in T x) if (isDecimal!T)
 {
 	if (x.isZero) return 0;
 	return x.isNegative ? -1 : 1;
 }
 
 unittest {	// sgn
-	write("-- sgn..............");
-	dec9 x;
-	x = -123;
-	assertEqual(sgn(x), -1);
-	x = 2345;
-	assertEqual(sgn(x), 1);
-	x = dec9("0.0000");
-	assertEqual(sgn(x), 0);
-	x = dec9.infinity(true);
-	assertEqual(sgn(x), -1);
-	xint n = -5;
-	assertEqual(sgn(n), -1);
-	writeln("passed");
+	UnaryTestData[] data =
+	[
+		{ "-123", "-1" },
+		{ "2345", "1" },
+		{ "2345", "-1" },
+		{ "0.00", "0" },
+		{ "-Inf", "-1" },
+	];
+//	TestResults tr = testUnaryFctn!testDecimal("sgn", &sgn!(testDecimal), data);
+//    writeln(tr.report);
 }
 
+///
 /// Returns -1, 0, or 1
 /// if the argument is negative, zero, or positive, respectively.
+///
 public int sgn(T:xint)(T x) {
 	if (x < 0) return -1;
 	if (x > 0) return 1;
 	return 0;
 }
 
-/// Returns a copy of the argument with same sign as the argument.
+///
+/// Returns a copy of the argument with the same sign as the argument.
+/// The result is equivalent to add('0', x).
+///
 /// This operation rounds the result and may set flags.
-/// The result is equivalent to add('0', arg).
 /// To copy without rounding or setting flags use the 'copy' function.
+///
 /// Implements the 'plus' function in the specification. (p. 33)
+///
 /// Flags: InvalidOperation
+///
 public T plus(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
@@ -356,12 +402,28 @@ public T plus(T)(in T x,
 	return roundToPrecision(x, context);
 }
 
+unittest {	// plus
+	UnaryTestData[] data =
+	[
+		{ "1.3", "1.3" },
+		{ "-101.5", "-101.5" },
+		{ "-101.5", "101.5" },
+	];
+	TestResults tr = testUnaryFctn!testDecimal("plus", &plus!(testDecimal), data);
+    writeln(tr.report);
+}
+
+///
 /// Returns a copy of the argument with the opposite sign.
+/// The result is equivalent to subtract('0', x).
+///
 /// This operation rounds the argument and may set flags.
-/// Result is equivalent to subtract('0', x).
 /// To copy without rounding or setting flags use the 'copyNegate' function.
+///
 /// Implements the 'minus' function in the specification. (p. 37)
+///
 /// Flags: InvalidOperation
+///
 public T minus(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
@@ -369,39 +431,31 @@ public T minus(T)(in T x,
 	return roundToPrecision(x.copyNegate, context);
 }
 
-unittest {	// plus
-	write("-- plus, minus......");
-	dec9 zero = dec9.zero;
-	dec9 x, expect, actual;
-	x = 1.3;
-	expect = add(zero, x);
-	actual = plus(x);
-	assertEqual(actual, expect);
-	x = -1.3;
-	expect = add(zero, x);
-	actual = plus(x);
-	assertEqual(actual, expect);
-	// minus
-	x = 1.3;
-	expect = sub(zero, x);
-	actual = minus(x);
-	assertEqual(actual, expect);
-	x = -1.3;
-	expect = sub(zero, x);
-	actual = minus(x);
-	assertEqual(actual, expect);
-	writeln("passed");
+unittest {	// minus
+	UnaryTestData[] data =
+	[
+		{ "1.3", "-1.3" },
+		{ "-101.5", "-101.5" },
+		{ "-101.5", "101.5" },
+	];
+	TestResults tr = testUnaryFctn!testDecimal("minus", &minus!(testDecimal), data);
+    writeln(tr.report);
 }
 
 //-----------------------------------
 // next-plus, next-minus, next-toward
 //-----------------------------------
 
+///
 /// Returns the smallest representable number that is larger than
 /// the argument.
+///
 /// Implements the 'next-plus' function in the specification. (p. 34)
+///
 /// Note that the overflow flag is not set by this operation.
+///
 /// Flags: InvalidOperation
+///
 public T nextPlus(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
@@ -430,9 +484,7 @@ public T nextPlus(T)(in T x,
 }
 
 unittest {
-	write("-- nextPlus.........");
-	static struct S { string x; string plus; }
-	static S[] tests =
+	UnaryTestData[] data =
 	[
 		{ "1", 			 "1.00000001" },
 		{ "-1E-107", 	 "-0E-107" },
@@ -441,17 +493,19 @@ unittest {
 		{ "9.99999999E+99",	 "Infinity" },	// overflow flag should not be set!
 		{ "1E+101",	 "Infinity" },
 	];
-	foreach (i, s; tests)
-	{
-		assertEqualIndexed(i, nextPlus(dec9(s.x)).toString, dec9(s.plus).toString);
-	}
-	writeln("passed");
+	TestResults tr = testUnaryFctn!testDecimal("nextPlus", &nextPlus!(testDecimal), data);
+    writeln(tr.report);
 }
+
+///
 /// Returns the largest representable number that is smaller than
 /// the argument.
+///
 /// Implements the 'next-minus' function in the specification. (p. 34)
-/// Note that the overflow flag is not set by this operation.
+///
 /// Flags: InvalidOperation.
+/// Note that the overflow flag is not set by this operation.
+///
 public T nextMinus(T)(in T x,
 		Context context = T.context) if (isDecimal!T)
 {
@@ -478,10 +532,8 @@ public T nextMinus(T)(in T x,
 	return y;
 }
 
-unittest {
-	write("-- nextMinus........");
-	static struct S { string x; string minus; }
-	static S[] tests =
+unittest {	// nextMinus
+	UnaryTestData[] data =
 	[
 		{ "1", 					"0.999999999" },
 		{ "1E-107",				"0E-107" },
@@ -489,15 +541,16 @@ unittest {
 		{ "Infinity",			"9.99999999E+99" },
 		{ "-9.99999999E+99",	"-Infinity" },
 	];
-	foreach (i, s; tests)
-	{
-		assertEqualIndexed(i, nextMinus(dec9(s.x)).toString, dec9(s.minus).toString);
-	}
-	writeln("passed");
+	TestResults tr = testUnaryFctn!testDecimal("nextMinus", &nextMinus!(testDecimal), data);
+    writeln(tr.report);
 }
+
+///
 /// Returns the representable number that is closest to the first operand
 /// in the direction of the second operand.
+///
 /// Implements the 'next-toward' function in the specification. (p. 34-35)
+///
 /// Flags: InvalidOperation
 // TODO: anomalous flag settings
 public T nextToward(T)(in T x, in T y,
@@ -506,29 +559,22 @@ public T nextToward(T)(in T x, in T y,
    	T nan;
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 
-	// compare them but don't round
+	// compare them but don't round yet
 	int comp = compare(x, y, context);
 	if (comp < 0) return nextPlus(x, context);
 	if (comp > 0) return nextMinus(x, context);
+
 	return roundToPrecision(x.copySign(y), context);
 }
 
 unittest {
-	write("-- nextToward.......");
-	dec9 arg, expect, actual;
-	// nextToward
-	dec9 arg1, arg2;
-	arg1 = 1;
-	arg2 = 2;
-	expect = 1.00000001;
-	actual = nextToward(arg1, arg2);
-	assertEqual(actual, expect);
-	arg1 = -1.00000003;
-	arg2 = 0;
-	expect = -1.00000002;
-	actual = nextToward(arg1, arg2);
-	assertEqual(actual, expect);
-	writeln("passed");
+	BinaryTestData[] data =
+	[
+		{ " 1",          "2", " 1.00000001" },
+		{ "-1.00000003", "0", "-1.00000002" },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("nextToward", &nextToward!(testDecimal), data);
+    writeln(tr.report);
 }
 
 //--------------------------------
@@ -660,10 +706,18 @@ unittest {	// compare
 /// Returns true if the operands are equal to the context precision.
 /// Finite numbers are equal if they are numerically equal
 /// to the context precision.
-/// A NaN is not equal to any number, not even another NaN or itself.
 /// Infinities are equal if they have the same sign.
 /// Zeros are equal regardless of sign.
-/// A decimal NaN is not equal to itself (this != this).
+/// A NaN is not equal to any number, not even another NaN.
+/// In particular, a decimal NaN is not equal to itself (this != this).
+///
+/// Note: The operands are rounded before they are compared.
+/// This may result in unexpected results. For instance,
+/// if both operands are too large (small) for the context
+/// they will both be rounded to infinity (zero) and the function will
+/// return true, indicating that they are equal, even though they are
+/// numerically different before rounding.
+///
 /// Flags: InvalidOperation
 public bool equals(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
@@ -819,14 +873,16 @@ unittest {
 }
 
 
+/// Takes two numbers and compares the operands using their
+///	abstract representation rather than their numerical value.
 /// Numbers (representations which are not NaNs) are ordered such that
 /// a larger numerical value is higher in the ordering.
 /// If two representations have the same numerical value
 /// then the exponent is taken into account;
 /// larger (more positive) exponents are higher in the ordering.
-/// Compares the operands using their abstract representation rather than
-/// their numerical value.
-/// Returns 0 if the numbers are equal and have the same representation.
+/// Returns -1 If the first operand is lower in the total ordering
+/// and returns 1 if the first operand is higher in the total ordering.
+/// Returns 0 only if the numbers are equal and have the same representation.
 /// Implements the 'compare-total' function in the specification. (p. 42-43)
 /// Flags: NONE.
 public int compareTotal(T)(T x, T y) if (isDecimal!T)
@@ -924,7 +980,7 @@ public int compareTotal(T)(T x, T y) if (isDecimal!T)
 
 /// compare-total-magnitude takes two numbers and compares them
 /// using their abstract representation rather than their numerical value
-/// and with their sign ignored and assumed to be 0.
+/// with their sign ignored and assumed to be 0.
 /// The result is identical to that obtained by using compare-total
 /// on two operands which are the copy-abs copies of the operands.
 /// Implements the 'compare-total-magnitude' function in the specification.
@@ -959,7 +1015,7 @@ unittest {	// compareTotal
 /// both operands are NaN or Infinity, respectively.
 /// No context flags are set.
 /// Implements the 'same-quantum' function in the specification. (p. 48)
-public bool sameQuantum(T)(T x, T y) if (isDecimal!T)
+public bool sameQuantum(T)(in T x, in T y) if (isDecimal!T)
 {
 	if (x.isNaN || y.isNaN) {
 		return x.isNaN && y.isNaN;
@@ -971,7 +1027,15 @@ public bool sameQuantum(T)(T x, T y) if (isDecimal!T)
 }
 
 unittest {	// sameQuantum
-	write("-- sameQuantum......");
+	static BinaryTestData[] data =
+	[
+		{ "2.17", "0.0001", "false" },
+//		{ "7.50", "-3", "0.0750" },
+	];
+	// NOTE: returns a boolean, not a decimal
+//	TestResults tr = testBinaryFctn("sameQuantum", &sameQuantum!testDecimal, data);
+//    writefln(tr.report);
+/*	write("-- sameQuantum......");
 	dec9 x, y;
 	x = 2.17;
 	y = 0.001;
@@ -980,7 +1044,7 @@ unittest {	// sameQuantum
 	assertTrue(sameQuantum(x, y));
 	y = 0.1;
 	assertFalse(sameQuantum(x, y));
-	writeln("passed");
+	writeln("passed");*/
 }
 
 /// Returns the maximum of the two operands (or NaN).
@@ -1203,8 +1267,8 @@ public T quantum(T)(T x)  {
 
 unittest {	// quantum
 	dec9 f, expect, actual;
-	f = 23.14E-12;
-	expect = 1E-14;
+	f = "23.14E-12";
+	expect = "1E-14";
 	actual = quantum(f);
 	assertEqual(actual, expect);
 }
@@ -1213,71 +1277,6 @@ unittest {
 	write("quantum...");
 	writeln("test missing");
 }
-
-//--------------------------------
-// binary shift
-//--------------------------------
-
-// TODO: (behavior, language) these don't work because we don't want to truncate the coefficient.
-// shl is okay, but shr isn't.
-public T shl(T)(in T x, const int n,
-		const Rounding rounding = T.rounding) if (isDecimal!T)
-{
-	if (x.isNaN) return invalidOperand(x);
-	auto y = x;
-	with (y) {
-		coefficient = coefficient << n;
-		digits = numDigits(coefficient);
-	}
-	return roundToPrecision(y, T.precision, rounding);
-}
-
-unittest {	// shl
-/*	dec9 big, expect, actual;
-	big = dec9(4);
-	expect = dec9(16);
-	actual = shl(big, 2);
-	assertEqual(actual, expect);
-	big = dec9(437);
-	expect = dec9(1748);
-	actual = shl(big, 2);
-	assertEqual(actual, expect);
-	big = dec9(-0.07);
-	expect = dec9(-0.56);
-	actual = shl(big, 3);
-	assertEqual(actual, expect);*/
-}
-
-/*
-public Decimal shr(const Decimal arg,
-		const DecimalContext context = Decimal.context) {
-
-	Decimal result = Decimal.nan;
-	if (operandIsInvalid!Decimal(arg, result)) {
-		return result;
-	}
-	result = arg;
-	with (result) {
-	if (isOdd(coefficient)) {
-		coefficient = coefficient >> 1;
-		coefficient += 5;
-		exponent = exponent - 1;
-	}
-	else {
-		coefficient = coefficient >> 1;
-	}
-		digits = numDigits(coefficient);
-	}
-	return roundToPrecision(result, context);
-}
-
-public bool isOdd(const ExtendedInt big) {
-	ExtendedInt test = mutable(big);
-	test >>= 1;
-	test <<= 1;
-	return (test != big);
-}
-*/
 
 //--------------------------------
 // decimal shift and rotate
@@ -1351,7 +1350,8 @@ public T shift(T)(T x, int n,
 	return x;
 }
 
-unittest {
+unittest
+{
 	write("-- shift............");
 	dec9 x, y, z;
 	x = "34";
@@ -1504,7 +1504,7 @@ unittest {
 /// The result may be rounded and context flags may be set.
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: InvalidOperation, Overflow.
-public T add(T, U:T)(in T x, in U y,
+public T add(T)(in T x, in T y,
 		Context context = T.context, bool noFlags = false) if (isDecimal!T)
 {
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
@@ -1581,33 +1581,17 @@ public T add(T, U)(in T x, in U y,
 	return add(x, T(y), context, noFlags);
 }
 
-// TODO: (testing) change inputs to real numbers
-unittest {	// add, addLOng
-	write("-- add..............");
-	dec9 arg1, arg2, sum;
-	arg1 = dec9("12");
-	arg2 = dec9("7.00");
-	sum = add(arg1, arg2);
-	assertStringEqual(sum, "19.00");
-	arg1 = dec9("1E+2");
-	arg2 = dec9("1E+4");
-	sum = add(arg1, arg2);
-	assertStringEqual(sum, "1.01E+4");
-	dec9 arg12, arg22, sum2;
-	arg12 = dec9("12345678901");
-	arg22 = dec9("54321098765");
-	sum2 = add(arg12, arg22);
-	assertEqual(sum2, dec9("66666777700"));
-	long arg3;
-	arg3 = 12;
-	arg1 = dec9("7.00");
-	sum = add(arg1, arg3);
-	assertStringEqual(sum, "19.00");
-	arg1 = dec9("1E+2");
-	arg3 = 10000;
-	sum = add(arg1, arg3);
-	assertStringEqual(sum, "10100");
-	writeln("passed");
+unittest {	// add, addLong
+	BinaryTestData[] data =
+	[
+		{ "12", "7.00", "19.00" },
+		{ "1E+2", "1E+4", "1.01E+4" },
+		{ "12345678901", "54321098765", "66666777700" },
+		{ "1.3", "-2.07", "-0.77" },
+		{ "1.3", "2.07", "-0.77" }, // uncomment to test failure
+	];
+	TestResults tr = testBinaryFctn!testDecimal("add", &add!testDecimal, data);
+    writeln(tr.report);
 }
 
 /// Subtracts the second operand from the first operand.
@@ -1630,27 +1614,24 @@ public T sub(T, U)(in T x, U y,
 	return add(x, T(y).copyNegate, context, noFlags);
 }	// end sub(x, y)
 
-unittest {
-	write("-- subtract.........");
-	dec9 arg1, arg2, diff;
-	arg1 = dec9("1.3");
-	arg2 = dec9("1.07");
-	diff = sub(arg1, arg2);
-	assertStringEqual(diff, "0.23");
-	arg2 = dec9("1.30");
-	diff = sub(arg1, arg2);
-	assertStringEqual(diff, "0.00");
-	arg2 = dec9("2.07");
-	diff = sub(arg1, arg2);
-	assertStringEqual(diff, "-0.77");
-	writeln("passed");
+unittest
+{
+	BinaryTestData[] data =
+	[
+		{ "1.3", "1.07", "0.23" },
+		{ "1.3", "1.30", "0.00" },
+		{ "1.3", "2.07", "-0.77" },
+//		{ "1.3", "2.07", "0.77" },	// uncomment to test failure
+	];
+	TestResults tr = testBinaryFctn!testDecimal("sub", &sub!(testDecimal,testDecimal), data);
+    writeln(tr.report);
 }
 
 /// Multiplies the two operands.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'multiply' function in the specification. (p. 33-34)
-public T mul(T, U)(in T x, U y, Context context = T.context)
-		if (isDecimal!T && isDecimal!U)
+public T mul(T)(in T x, in T y, Context context = T.context)
+		if (isDecimal!T)
 //public T mul(T)(in T x, in T y,
 //		Context context = T.context) if (isDecimal!T)
 {
@@ -1689,7 +1670,7 @@ public T mul(T, U)(in T x, U y, Context context = T.context)
 /// The result may be rounded and context flags may be set.
 /// Not a required function, but useful because it avoids
 /// an unnecessary conversion to a decimal when multiplying by an integer.
-public T mul(T, U:long)(in T x, U n, Context context = T.context)
+public T mul(T, U : long)(in T x, in U n, Context context = T.context)
 //		if (isDecimal!T && isIntegral!U)
 //public T mul(T)(in T x, long n, Context context = T.context)
 		if (isDecimal!T)
@@ -1733,27 +1714,16 @@ public T mul(T, U)(in T x, in U y, Context context = T.context)
 }	// end mul(x, y)
 
 unittest {	// mul
-	write("-- multiply.........");
-	dec9 arg1, arg2, result;
-	arg1 = dec9("1.20");
-	arg2 = 3;
-	result = mul(arg1, arg2);
-	assertStringEqual(result, "3.60");
-	arg1 = 7;
-	result = mul(arg1, arg2);
-	assertStringEqual(result, "21");
-	short arg3;
-	arg1 = dec9("1.20");
-	arg3 = 3;
-//	result = mul!(dec9,long)(arg1, arg3);
-	result = mul(arg1, arg3);
-	assertStringEqual(result, "3.60");
-	arg1 = -7000;
-	result = mul(arg1, arg3);
-	assertStringEqual(result, "-21000");
-	result = mul(dec9.infinity, arg2);
-// TODO: test this result
-	writeln("passed");
+	BinaryTestData[] data =
+	[
+		{ "1.20", "3", "3.60" },
+		{ "1.20", "3", "3.61" },	// uncomment to test failure
+		{ "7", "3", "21" },
+		{ "-7000", "3", "-21000" },
+		{ "Infinity", "3", "Infinity" },
+	];
+	TestResults tr = testBinaryFctn!testDecimal("mul", &mul!(testDecimal), data);
+    writeln(tr.report);
 }
 
 /// Squares the argument and returns the xx.
@@ -1839,10 +1809,10 @@ public T div(T)(in T x, in T y,
 		xx.digits = xx.digits + shift;
 	}
 	// TODO: (behavior) is this check necessary? Why does it never exit?
-//	// divisor may have become zero. Check again.
-//	if (divisionIsInvalid!T(xx, yy, q)) {
-//		return nan;
-//	}
+	// divisor may have become zero. Check again.
+	if (yy.coefficient.isZero) { //.equals(T.zero)) {//divisionIsInvalid!T(xx, yy, q)) {
+		throw new Exception("Divisino by zero");
+	}
 	q.coefficient = xx.coefficient / yy.coefficient;
 	q.exponent = xx.exponent - yy.exponent;
 	q.sign = xx.sign ^ yy.sign;
@@ -1856,34 +1826,35 @@ public T div(T)(in T x, in T y,
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T,U:long)(T x, U n,
+public T div(T, U : long)(in T x, in U n,
 		Context context = T.context) if (isDecimal!T)
 {
 	// check for NaN and division by zero
 	if (x.isNaN) return invalidOperand(x);
 	if (n == 0) return divisionByZero(x, n);
 
+	auto xx = x.dup;
 	auto q = T.zero;
 
-	int diff = x.exponent;
+	int diff = xx.exponent;
 	if (diff > 0) {
-		x.coefficient = shiftLeft(x.coefficient, diff);
-		x.exponent = x.exponent - diff;
-		x.digits = x.digits + diff;
+		xx.coefficient = shiftLeft(xx.coefficient, diff);
+		xx.exponent = xx.exponent - diff;
+		xx.digits = xx.digits + diff;
 	}
-	int shift = 4 + context.precision + numDigits(n)- x.digits;
+	int shift = 4 + context.precision + numDigits(n)- xx.digits;
 	if (shift > 0) {
-		x.coefficient = shiftLeft(x.coefficient, shift);
-		x.exponent = x.exponent - shift;
-		x.digits = x.digits + shift;
+		xx.coefficient = shiftLeft(xx.coefficient, shift);
+		xx.exponent = xx.exponent - shift;
+		xx.digits = xx.digits + shift;
 	}
 //	// divisor may have become zero. Check again.
-//	if (divisionIsInvalid!T(x, n, q)) {
+//	if (divisionIsInvalid!T(xx, n, q)) {
 //		return nan;
 //	}
-	q.coefficient = x.coefficient / n;
-	q.exponent = x.exponent; // - n.exponent;
-	q.sign = x.sign ^ (n < 0);
+	q.coefficient = xx.coefficient / n;
+	q.exponent = xx.exponent; // - n.exponent;
+	q.sign = xx.sign ^ (n < 0);
 	q.digits = numDigits(q.coefficient);
 	q = roundToPrecision(q, context);
 	q = reduceToIdeal(q, diff);
@@ -1894,7 +1865,7 @@ public T div(T,U:long)(T x, U n,
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T, U)(in T x, U z, Context context = T.context)
+public T div(T, U)(in T x, in U z, Context context = T.context)
 		if (isDecimal!T && isConvertible!U)
 {
 	return div(x, T(z), context);
@@ -1926,69 +1897,22 @@ private T reduceToIdeal(T)(T x, int ideal) if (isDecimal!T) {
 }
 
 unittest {	// div
-	write("-- divide...........");
-	dec9 arg1, arg2, actual, expect;
-	arg1 = dec9("1");
-	arg2 = dec9("3");
-	expect = dec9("0.333333333");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("2");
-	arg2 = dec9("3");
-	expect = dec9("0.666666667");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("5");
-	arg2 = dec9("2");
-	expect = dec9("2.5");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("1");
-	arg2 = dec9("10");
-	expect = dec9("0.1");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("12");
-	arg2 = dec9("12");
-	expect = dec9("1");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("8.00");
-	arg2 = dec9("2");
-	expect = dec9("4.00");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("2.400");
-	arg2 = dec9("2.0");
-	expect = dec9("1.20");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("1000");
-	arg2 = dec9("100");
-	expect = dec9("10");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("1000");
-	arg2 = dec9("1");
-	expect = dec9("1000");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("2.40E+6");
-	arg2 = dec9("2");
-	expect = dec9("1.20E+6");
-	actual = div(arg1, arg2);
-	assertEqual(actual, expect);
-	assertStringEqual(actual, expect);
-	writeln("passed");
+	BinaryTestData[] data =
+	[
+		{ "1", "3", "0.333333333" },
+		{ "2", "3", "0.666666667" },
+		{ "5", "2", "2.5" },
+		{ "1", "10", "0.1" },
+		{ "12", "12", "1" },
+		{ "8.00", "2", "4.00" },
+		{ "2.400", "2.0", "1.20" },
+		{ "1000", "10", "100" },
+		{ "1000", "1", "1000" },
+		{ "2.4E+6", "2.0", "1.2E+6" },
+		{ "1.3", "2.07", "0.77" },	// uncomment to test failure
+	];
+	TestResults tr = testBinaryFctn!testDecimal("div", &div!testDecimal, data);
+    writeln(tr.report);
 }
 
 /*public T integerPart(T)(T x) if (isDecimal!T)
@@ -2087,7 +2011,7 @@ public T remquo(T)(in T x, in T y, out T quotient) if (isDecimal!T)
 }
 
 unittest {	// divideInteger
-	write("-- div..............");
+	write("-- divideInteger....");
 	dec9 arg1, arg2, actual, expect;
 	arg1 = 2;
 	arg2 = 3;
@@ -2272,86 +2196,28 @@ public T quantize(T)(in T x, in T y,
 }
 
 unittest {	// quantize
-	write("-- quantize.........");
-	dec9 arg1, arg2, actual, expect;
-	string str;
-	arg1 = dec9("2.17");
-	arg2 = dec9("0.001");
-	expect = dec9("2.170");
-	actual = quantize!dec9(arg1, arg2);
-	assertEqual(actual, expect);
-	arg1 = dec9("2.17");
-	arg2 = dec9("0.01");
-	expect = dec9("2.17");
-	actual = quantize(arg1, arg2);
-	assertEqual(actual, expect);
-	arg1 = dec9("2.17");
-	arg2 = dec9("0.1");
-	expect = dec9("2.2");
-	actual = quantize(arg1, arg2);
-	assertEqual(actual, expect);
-	arg1 = dec9("2.17");
-	arg2 = dec9("1e+0");
-	expect = dec9("2");
-	actual = quantize(arg1, arg2);
-	assertEqual(actual, expect);
-	arg1 = dec9("2.17");
-	arg2 = dec9("1e+1");
-	expect = dec9("0E+1");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("-Inf");
-	arg2 = dec9("Infinity");
-	expect = dec9("-Infinity");
-	actual = quantize(arg1, arg2);
-	assertEqual(actual, expect);
-	arg1 = dec9("2");
-	arg2 = dec9("Infinity");
-	expect = dec9("NaN");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("-0.1");
-	arg2 = dec9("1");
-	expect = dec9("-0");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("-0");
-	arg2 = dec9("1e+5");
-	expect = dec9("-0E+5");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("+35236450.6");
-	arg2 = dec9("1e-2");
-	expect = dec9("NaN");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("-35236450.6");
-	arg2 = dec9("1e-2");
-	expect = dec9("NaN");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("217");
-	arg2 = dec9("1e-1");
-	expect = dec9( "217.0");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("217");
-	arg2 = dec9("1e+0");
-	expect = dec9("217");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("217");
-	arg2 = dec9("1e+1");
-	expect = dec9("2.2E+2");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	arg1 = dec9("217");
-	arg2 = dec9("1e+2");
-	expect = dec9("2E+2");
-	actual = quantize(arg1, arg2);
-	assertStringEqual(actual, expect);
-	assertEqual(actual, expect);
-	writeln("passed");
+	BinaryTestData[] data =
+	[
+		{ "2.17", "0.001", "2.170" },
+		{ "2.17", "0.01", "2.17" },
+		{ "2.17", "0.1", "2.2" },
+		{ "2.17", "1", "2" },
+		{ "2.17", "1E+1", "0E+1" },
+
+		{ "-Infinity", "Infinity", "-Infinity" },
+		{ "2", "Infinity", "NaN" },
+		{ "-0.1", "1", "-0" },
+		{ "-0", "1E+5", "-0E+5" },
+		{ "+35236450.6", "1E-2", "NaN" },
+
+		{ "-35236450.6", "1E-2", "NaN" },
+		{ "217", "1E-1", "217.0" },
+		{ "217", "1E+0", "217" },
+		{ "217", "1E+1", "2.2E+2" },
+		{ "217", "1E+2", "2E+2" },
+	];
+	auto tr = testBinaryFctnString!testDecimal("quantize", &quantize!(testDecimal), data);
+    writeln(tr.report);
 }
 
 /// Returns the nearest integer value to the argument.
@@ -2477,249 +2343,12 @@ unittest { // alignOps
 }
 
 //--------------------------------
-// logical operations
-//--------------------------------
-
-/// Returns true if the argument is a valid logical string.
-/// All characters in a valid logical string must be either '1' or '0'.
-private bool isLogicalString(const string str) {
-	foreach(char ch; str) {
-		if (ch != '0' && ch != '1') return false;
-	}
-	return true;
-}
-
-/// Returns true if the argument is a valid logical decimal number.
-/// The sign and exponent must both be zero, and all decimal digits
-/// in the coefficient must be either '1' or '0'.
-public bool isLogical(T)(in T arg) if (isDecimal!T)
-{
-	if (arg.sign != 0 || arg.exponent != 0) return false;
-	string str = arg.coefficient.toString;
-	return isLogicalString(str);
-}
-
-/// Returns true and outputs a valid logical string if the argument is
-/// a valid logical decimal number.
-/// The sign and exponent must both be zero, and all decimal digits
-/// in the coefficient must be either '1' or '0'.
-private bool isLogicalOperand(T)(T x, string str) if (isDecimal!T)
-{
-	if (x.sign != 0 || x.exponent != 0) return false;
-	return isLogicalString(str);
-}
-
-unittest {	// logical string/number tests
- 	write("-- logical tests....");
-	assertTrue(isLogicalString("010101010101"));
-	assertTrue(isLogical(dec9("1010101")));
-	writeln("passed");
-}
-
-//--------------------------------
-// unary logical operations
-//--------------------------------
-
-/// Inverts and returns a decimal logical number.
-/// Implements the 'invert' function in the specification. (p. 44)
-public T invert(T)(T x) if (isDecimal!T)
-{
-	string xstr = x.coefficient.toString;
-	if (!isLogicalOperand(x, xstr))	return invalidOperand(x);
-	return T(invert(xstr));
-}
-
-/// Inverts and returns a logical string.
-/// Each '1' is changed to a '0', and vice versa.
-private T invert(T: string)(T str)
-{
-	char[] result = new char[str.length];
-	for(int i = 0; i < str.length; i++)
-	{
-		result[i] = str[i] == '0' ? '1' : '0';
-	}
-	return result.idup;
-}
-
-unittest {	// inverse
- 	write("-- logical inverse..");
-	// TODO: (behavior, language) why can't we compare ints and decimals?
-	dec9 num;
-	num = invert(dec9(101001));
-	assertStringEqual(num, 10110);
-	num = invert(dec9(1));
-	assertEqual(num, dec9(0));
-//	assertStringEqual(num, 0);
-	num = invert(dec9(0));
-	assertStringEqual(num, 1);
-	writeln("passed");
-}
-
-//--------------------------------
-// binary logical operations
-//--------------------------------
-
-/// called by opBinary.
-private T opLogical(string op, T)(in T x, in T y)
-		if (isDecimal!T)
-{
-//	int precision = T.precision;
-	string xstr = x.coefficient.toString;
-	if (!isLogicalOperand(x, xstr)) {
-		return invalidOperation!T;
-	}
-	string ystr = y.coefficient.toString;
-	if (!isLogicalOperand(y, ystr)) {
-		return invalidOperation!T;
-	}
-	static if (op == "and") {
-		string str = and(xstr, ystr);
-	}
-	static if (op == "or") {
-		string str = or(xstr, ystr);
-	}
-	static if (op == "xor") {
-		string str = xor(xstr, ystr);
-	}
-	return T(str);
-}
-
-/// Performs a logical 'and' of the arguments and returns the result
-/// Implements the 'and' function in the specification. (p. 41)
-public T and(T)(in T x, in T y) if(isDecimal!T)
-{
-	return opLogical!("and", T)(x, y);
-}
-
-/// Performs a logical 'and' of the (string) arguments and returns the result
-T and(T: string)(in T x, in T y)
-{
-	string str1, str2;
-	int length, diff;
-	if (x.length > y.length) {
-		length = y.length;
-		diff = x.length - y.length;
-		str2 = x;
-		str1 = rightJustify(y, x.length, '0');
-	}
-	else if (x.length < y.length) {
-		length = x.length;
-		diff = y.length - x.length;
-		str1 = rightJustify(x, y.length, '0');
-		str2 = y;
-	} else {
-		length = x.length;
-		diff = 0;
-		str1 = x;
-		str2 = y;
-	}
-	char[] result = new char[length];
-	for(int i = 0; i < length; i++) {
-		if (str1[i + diff] == '1' && str2[i + diff] == '1') {
-			result[i] = '1';
-		} else {
-			result[i] = '0';
-		}
-	}
-	return result.idup;
-}
-
-/// Performs a logical 'or' of the arguments and returns the result
-/// Implements the 'or' function in the specification. (p. 47)
-public T or(T)(in T x, in T y) if (isDecimal!T)
-{
-	return opLogical!("or", T)(x, y);
-}
-
-/// Performs a logical 'or' of the (string) arguments and returns the result
-private T or(T: string)(T xstr, T ystr)
-{
-	string str1, str2;
-	int length;
-	if (xstr.length > ystr.length) {
-		length = xstr.length;
-		str1 = xstr;
-		str2 = rightJustify(ystr, xstr.length, '0');
-	}
-	if (xstr.length < ystr.length) {
-		length = ystr.length;
-		str1 = rightJustify(xstr, ystr.length, '0');
-		str2 = ystr;
-	} else {
-		length = xstr.length;
-		str1 = xstr;
-		str2 = ystr;
-	}
-	char[] zstr = new char[length];
-	for(int i = 0; i < length; i++) {
-		if (str1[i] == '1' || str2[i] == '1') {
-			zstr[i] = '1';
-		} else {
-			zstr[i] = '0';
-		}
-	}
-	return zstr.idup;
-}
-
-/// Performs a logical 'xor' of the arguments and returns the result
-/// Implements the 'xor' function in the specification. (p. 49)
-public T xor(T)(in T x, in T y) if (isDecimal!T)
-{
-	return opLogical!("xor", T)(x, y);
-}
-
-/// Performs a logical 'xor' of the (string) arguments
-/// and returns the result.
-T xor(T: string)(in T x, in T y)
-{
-	string str1, str2;
-	int length;
-	if (x.length > y.length) {
-		length = x.length;
-		str1 = x;
-		str2 = rightJustify(y, x.length, '0');
-	}
-	if (x.length < y.length) {
-		length = y.length;
-		str1 = rightJustify(x, y.length, '0');
-		str2 = y;
-	} else {
-		length = x.length;
-		str1 = x;
-		str2 = y;
-	}
-	char[] result = new char[length];
-	for(int i = 0; i < length; i++) {
-		if (str1[i] != str2[i]) {
-			result[i] = '1';
-		} else {
-			result[i] = '0';
-		}
-	}
-	return result.idup;
-}
-
-unittest { // binary logical ops
-	dec9 op1, op2;
-	op1 = 10010101;
-	op2 = 11100100;
-//	assertEqual((op1 & op2), dec9(10000100));
-//	assert((op1 | op2) == dec9(11110101));
-//	assert((op1 ^ op2) == dec9( 1110001));
-	op1 =   100101;
-	op2 = 11100100;
-//	assert((op1 & op2) == dec9(  100100));
-//	assert((op1 | op2) == dec9(11100101));
-//	assert((op1 ^ op2) == dec9(11000001));
-}
-
-//--------------------------------
 // validity functions
 //--------------------------------
 
 /// Sets the invalid-operation flag and returns a quiet NaN.
 // TODO: combine this with invalidOperand?
-private T invalidOperation(T)(ushort payload = 0)
+package T invalidOperation(T)(ushort payload = 0)
 		if (isDecimal!T)
 {
 	contextFlags.setFlags(InvalidOperation);
@@ -2816,6 +2445,195 @@ private T divisionByZero(T, U:long)(in T dividend, U divisor)
 unittest {
 	write("divisionByZero......");
 	writeln("test missing");
+}
+
+version(unittest)
+{
+
+	public struct BinaryTestData
+	{
+		testDecimal x;
+		testDecimal y;
+		testDecimal z;
+	}
+
+	public struct UnaryTestData
+	{
+		testDecimal x;
+		testDecimal z;
+	}
+
+	public struct TestResults
+	{
+		string name;
+		int pass;
+		int fail;
+		string[] messages;
+
+		this(string name)
+		{
+			this.name = name;
+		}
+
+		string report()
+		{
+			string str = format("%-10s: %s (%d pass, %d fail).",
+				name, tests(pass + fail), pass, fail);
+			if (fail == 0) return str;
+			foreach(msg; messages)
+			{
+				str ~= format("\n  %s", msg);
+			}
+			return str;
+		}
+
+		private string tests(int n)
+		{
+			if (n == 1) return "1 test ";
+			else return format("%d tests", n);
+		}
+	}
+
+    /// mixin template to create a test of a binary function
+	mixin template BinaryTest(string signature, string call)
+	{
+		mixin ("public enum TestResults testBinaryFctn(T)(\n"
+			"string name, " ~ signature ~ ", BinaryTestData[] tests,\n"
+			"string file = __FILE__, int line = __LINE__) if (isDecimal!T){\n"
+			"auto tr = TestResults(name);\n"
+			"foreach(i, t; tests){\n"
+			"assertBinaryFctn(tr, name, t.x, t.y, t.z,\n"
+			~ call ~ ", i, file, line);}\n"
+			"return tr;}\n");
+	}
+
+	// two arguments, no context
+	mixin BinaryTest!
+	(
+		"T function(in T, in T) fctn",
+		"fctn(t.x,t.y)"
+	);
+
+	// two arguments with context
+	mixin BinaryTest!
+	(
+		"T function(in T, in T, Context) fctn",
+		"fctn(t.x,t.y,T.context)"
+	);
+
+	// two arguments with context and a boolean flag
+	mixin BinaryTest!
+	(
+		"T function(in T, in T, Context, bool) fctn",
+		"fctn(t.x,t.y,T.context,false)"
+	);
+
+	public enum TestResults testBinaryFctnString(T)(
+		string name, T function(in T,in T, Context) fctn, BinaryTestData[] tests,
+		string file = __FILE__, int line = __LINE__) if (isDecimal!T)
+	{
+		auto tr = TestResults(name);
+		foreach(i, t; tests)
+		{
+			assertBinaryFctnString(tr, name, t.x, t.y, t.z,
+				fctn(t.x, t.y, T.context), i, file, line);
+		}
+		return tr;
+	}
+
+	private bool assertBinaryFctn(T)(ref TestResults tr,
+		string fctn, T x, T y, T exp, T act,
+		int index = -1,	string file = __FILE__, int line = __LINE__)
+	{
+		if (act == exp)
+		{
+			tr.pass++;
+			return true;
+		}
+		else
+		{
+			tr.fail++;
+			string str = format("failed at %s(%d)", baseName(file), line);
+			if (index >= 0) str ~= format(", test %d", index+1);
+			str ~= format(": <%s(%s, %s)> equals <%s> not <%s>.", fctn, x, y, act, exp);
+			tr.messages.length++;
+			tr.messages[$-1] = str;
+			return false;
+		}
+	}
+
+	private bool assertBinaryFctnString(T)(ref TestResults tr,
+		string fctn, T x, T y, T act, T exp,
+		int index = -1,	string file = __FILE__, int line = __LINE__)
+	{
+		if (act.toString == exp.toString)
+		{
+			tr.pass++;
+			return true;
+		}
+		else
+		{
+			tr.fail++;
+			string str = format("failed at %s(%d)", baseName(file), line);
+			if (index >= 0) str ~= format(", test %d", index+1);
+			str ~= format(": <%s(%s, %s)> equals <%s> not <%s>.", fctn, x, y, act, exp);
+			tr.messages.length++;
+			tr.messages[$-1] = str;
+			return false;
+		}
+	}
+
+	public enum TestResults testUnaryFctn(T)(
+		string name, T function(in T) fctn, UnaryTestData[] tests,
+		string file = __FILE__, int line = __LINE__)
+		if (isDecimal!T)
+	{
+		auto tr = TestResults(name);
+		tr.name = name;
+		foreach(i, t; tests)
+		{
+			assertUnaryFctn(tr, name, t.x, t.z,
+				fctn(t.x), i, file, line);
+		}
+		return tr;
+	}
+
+	public enum TestResults testUnaryFctn(T)(
+		string name, T function(in T, Context) fctn, UnaryTestData[] tests,
+		string file = __FILE__, int line = __LINE__)
+		if (isDecimal!T)
+	{
+		auto tr = TestResults(name);
+		tr.name = name;
+		foreach(i, t; tests)
+		{
+			assertUnaryFctn(tr, name, t.x, t.z,
+				fctn(t.x, T.context), i, file, line);
+		}
+		return tr;
+	}
+
+	private bool assertUnaryFctn(T)(ref TestResults tr,
+		string fctn, T x, T exp, T act,
+		int index = -1,	string file = __FILE__, int line = __LINE__)
+	{
+		if (act == exp)
+		{
+			tr.pass++;
+			return true;
+		}
+		else
+		{
+			tr.fail++;
+			string str = format("failed at %s(%d)", baseName(file), line);
+			if (index >= 0) str ~= format(", test %d", index+1);
+			str ~= format(": <%s(%s)> equals <%s> not <%s>.", fctn, x, act, exp);
+			tr.messages.length++;
+			tr.messages[$-1] = str;
+			return false;
+		}
+	}
+
 }
 
 unittest {

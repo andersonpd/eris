@@ -9,24 +9,26 @@
 
 module eris.integer.exception;
 
-//import std.stdio;
-
-unittest {
+unittest
+{
 	writeln("==========================");
 	writeln("integer exceptions...begin");
 	writeln("==========================");
 }
 
-version(unittest) {
+version(unittest)
+{
 	import std.stdio;
 	import eris.assertion;
 }
 
 	/// The base class for integer arithmetic exceptions.
 	@safe
-	class IntegerException: object.Exception {
-		this(string msg = "Integer Exception", string file = __FILE__,
-				uint line = cast(uint)__LINE__, Throwable next = null) {
+	class IntegerException: object.Exception
+	{
+		this(string msg = "Integer Exception", string file =
+			__FILE__, uint line = cast(uint)__LINE__, Throwable next = null)
+		{
 			super(msg, file, line, next);
 		}
 	};
@@ -34,7 +36,8 @@ version(unittest) {
 	@safe
 	/// Raised when a result would be undefined or impossible.
 	/// General Decimal Arithmetic Specification, p. 15.
-	class IntegerOverflowException: IntegerException {
+	class IntegerOverflowException: IntegerException
+	{
 		this(string msg = "Integer Overflow", string file = __FILE__,
 		     	uint line = cast(uint)__LINE__, Throwable next = null) {
 			super(msg, file, line, next);
@@ -44,9 +47,11 @@ version(unittest) {
 	/// Raised when a result would be undefined or impossible.
 	/// General Decimal Arithmetic Specification, p. 15.
 	@safe
-	class InvalidOperationException: IntegerException {
-		this(string msg = "Invalid Integer Operation", string file = __FILE__,
-		     	uint line = cast(uint)__LINE__, Throwable next = null){
+	class InvalidOperationException: IntegerException
+	{
+		this(string msg = "Invalid Integer Operation", string file =
+			__FILE__, uint line = cast(uint)__LINE__, Throwable next = null)
+		{
 			super(msg, file, line, next);
 		}
 	};
@@ -54,14 +59,17 @@ version(unittest) {
 	/// Raised when a result would be undefined or impossible.
 	/// General Decimal Arithmetic Specification, p. 15.
 	@safe
-	class DivByZeroException: IntegerException {
-		this(string msg = "Integer Division by Zero", string file = __FILE__,
-		     	uint line = cast(uint)__LINE__, Throwable next = null) {
+	class DivByZeroException: IntegerException
+	{
+		this(string msg = "Integer Division by Zero", string file =
+			__FILE__, uint line = cast(uint)__LINE__, Throwable next = null)
+		{
 			super(msg, file, line, next);
 		}
 	};
 
-unittest {
+unittest
+{
 	writeln("==========================");
 	writeln("integer exceptions.....end");
 	writeln("==========================");

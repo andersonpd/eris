@@ -33,7 +33,24 @@ version(unittest) {
 	import eris.assertion;
 }
 
-/*mixin template checkNaN() {
+/*
+	TODO: For each function --
+		1. Ensure algorithm is properly implemented.
+		2. Ensure context flags are being set properly.
+		3. Ensure function passes GDA tests.
+		4. Determine additional tests needed and implement them.
+		5. Ensure all special cases are enumerated.
+		6. Automate all tests, if possible.
+		7. Determine what effect the context has on the function and
+			if it should be explained.
+		8. Ensure all documentation is complete:
+			a. Header - description, inputs, return value(s)
+			b. Code - variables, control statements, branches, return points.
+		9. Move most tests to the test module.
+*/
+
+/*
+mixin template checkNaN() {
 	if (x.isNaN) {
 		contextFlags.setFlags(InvalidOperation);
 		return T.nan;
@@ -198,7 +215,6 @@ const char[] Constant =
 	}";
 }
 
-// TODO: (behavior) add conversions from int and float.
 template UnaryFunction(string name)
 {
 const char[] UnaryFunction =
@@ -309,6 +325,7 @@ unittest {
 }
 mixin (Constant!("invPi"));
 // TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
+// TODO: shouldn't this be a calculation without a division?
 /// Calculates the value of 1/pi in the specified context.
 package T invPi(T)(Context inContext) if (isDecimal!T)
 {
@@ -453,6 +470,8 @@ mixin (UnaryFunction!("reciprocal"));
 mixin (UnaryFunction!("invSqrt"));
 mixin (UnaryFunction!("sqrt"));
 
+// TODO: what happens if x is very close to zero or one?
+// Does it try to work with the numbers anyway??
 package T reciprocal(T)(T x, Context inContext) if (isDecimal!T)
 {
 	// special values
@@ -503,6 +522,7 @@ unittest {	// reciprocal
 	writeln("passed");
 }
 
+// TODO: see note at reciprocal
 public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 {
 	// special values
@@ -564,6 +584,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 		contextFlags.setFlags(InvalidOperation);
 		return T.nan;
 	}
+	// TODO: what if x is very close to one or zero??
 	if (x.isOne) return T.one;
 	if (x.isZero) return T.zero;
 	if (x.isInfinite) return T.infinity;
@@ -682,18 +703,20 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 	// if too large return exp(x) - 1.
 	const T lower = T("-0.7");
 	const T upper = T("0.5");
-	if (x.copyAbs < lower || x.copyAbs > upper) {
+	// ??? what is this --> if (x.copyAbs < lower || x.copyAbs > upper) {
+	if (x < lower || x > upper) {
 		sum = sub(exp(x, context), 1, context);
 		return roundToPrecision(sum, inContext);
 	}
 
 	bool negative = x.isNegative;
 	if (negative) x = x.copyAbs;
-	// if too large return exp(x) - 1.
+/*	// if too large return exp(x) - 1.
 	if (x < lower || x > upper) {
 		sum = sub(exp(x, context), 1, context);
 		return roundToPrecision(sum, inContext);
-	}
+	}*/
+
 	// otherwise return expm1(x)
 	T term = x;
 	long n = 1;
@@ -702,7 +725,7 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 		n++;
 		term = mul(term, div(x, n, context), context);
 	}
-//	if (negative) sum = div(T.one, sum, context);
+	if (negative) sum = div(T.one, sum, context);
 	return roundToPrecision(sum, inContext);
 }
 
@@ -781,15 +804,31 @@ unittest {
  * log1p (== log(1 + x)).
  * Decimal version of std.math function.
  */
-// TODO: (behavior) use bounds like expm1?
 public T log1p(T)(T x, Context inContext) if (isDecimal!T)
 {
+	// special cases
+	if (x.isNaN || x < T.negOne) 	// use compare(x, T.negOne) == -1?
+	{
+		contextFlags.setFlags(InvalidOperation);
+		return T.nan;
+	}
+	// check for infinite argument
+	if (x.isInfinite) return T.infinity;
+
+	if (x.isZero) return T.zero(x.sign);
+
+	if (equals(x, T.negOne, inContext)) return T.infinity(true);
+
+	// TODO: There's probably a better breakeven point
+	if (x.copyAbs >= T.one) return log(add(T.one, x, inContext), inContext);
+
 	T term = x;
 	T pwr  = x;
 	T sum  = T.zero;
 	T n    = T.one;
 	auto context = guard(inContext);
-	while (term.copyAbs >= T.epsilon(context)) {
+	while (term.copyAbs >= T.epsilon(context))
+	{
 		sum = add(term, sum, context);
 		pwr = mul(-pwr, x, context);// * x;
 		n++;
@@ -917,20 +956,33 @@ unittest {
 //mixin (UnaryFunction!("cos"));
 
 // Returns the reduced argument and the quadrant.
-//o 0 <= pi/4 and sets the quadrant.
+// 0 <= pi/4 and sets the quadrant.
 // TODO: for very large angles (> 10^^4) adjust internal precision to ensure
 // remainder is accurate.
 package T reduceAngle(T)(T x, out int quadrant,
 		Context inContext) if (isDecimal!T)
 {
-	auto context = guard(inContext);
-	T c = mul(invPi!T(context), 2, context);
-	x = mul(x, c, context);
-	int k = trunc(x).toInt;
-	if (k < 0) k = 1 - k;
-	quadrant = k % 4;
-	T red = div(sub(x, k, context), c, context);
+	auto context = guard(inContext,20);
+	T C = "0.78539_81634";
+//writefln("\nC = %s", C);
+	T c = "1.27323_95448";
+//writefln("c = %s", c);
+	T p = "0.27323_95448";
+writefln("1-C*c = %s", 1-C*c);
+//writefln("p = %s", p);
+writefln("\nx = %s", x);
+	T N = round(x*c);
+writefln("N = %s", N.toExact);
+	T red = -fma!T(N, C, -x);
+writefln("red = %s", red);
+
+	quadrant = (N % 4).toInt;
 	return red;
+}
+
+unittest {
+	write("reduceAngle...\n");
+	writeln("test missing");
 }
 
 /// Decimal version of std.math function.
@@ -940,10 +992,12 @@ public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
 		contextFlags.setFlags(InvalidOperation);
 		return T.nan;
 	}
-	// TODO: (efficiency) setting the rounding to half-even is redundant.
+
 	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
+writefln("red = %s", red);
+writefln("quadrant = %s", quadrant);
 	switch(quadrant) {
 		case 0: return( sin( red, context));
 		case 1: return( cos( red, context));
@@ -951,6 +1005,7 @@ public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
 		case 3: return(-cos( red, context));
 		default: return T.nan;
 	}
+	return T.nan;
 }
 
 // Decimal version of std.math function.
@@ -979,6 +1034,12 @@ unittest {
 	assertEqual(sin(dec9.one), dec9("0.8414709848978965"));
 	assertEqual(sin(dec9.one, 16), dec9("0.8414709848978965"));
 	assertEqual(sin(dec9("0.333")), dec9("0.326879693"));
+//	dec9 difficult = dec9(5678900000);
+	dec9 difficult = dec9(5);
+writefln("difficult = %s", difficult);
+// FIXTHIS: throws div by zero exception...
+writefln("sin(difficult) = %s", sin(difficult));
+//	assertEqual(sin(difficult), dec9(0));
 	// TODO: (testing) one value from each quadrant, reduced value.
 	// TODO: (behavior) this is a notoriously difficult value "sin(10^^22)"
 	writeln("passed");
@@ -1007,18 +1068,27 @@ public T cos(T)(T x, int precision = T.precision) if (isDecimal!T)
 /// Precondition: x is in 1st quadrant.
 package T cos(T)(T x, Context inContext) {
 	auto context = guard(inContext);
+//writefln("\nx = %s", x);
 	T sum = 0;
 	int n = 0;
 	T powx = 1;
 	T sqrx = sqr(x, context);
 	T fact = 1;
 	T term = powx;
+//writefln("sum = %s", sum);
+//writefln("term = %s", term);
+//writefln("fact = %s", fact);
+//writefln("powx = %s", powx);
 	while (term.copyAbs > T.epsilon(context)) {
 		sum = add(sum, term, context);
 		n += 2;
 		powx = mul(powx.copyNegate, sqrx, context);
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
+//writefln("sum = %s", sum);
+//writefln("term = %s", term);
+//writefln("fact = %s", fact);
+//writefln("powx = %s", powx);
 	}
 	return roundToPrecision(sum, inContext);
 }
