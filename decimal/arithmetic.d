@@ -103,7 +103,7 @@ unittest {	// classify
 		{ TD("-0"),		"-Zero" },
 		{ TD("-0.1E-99"),	"-Subnormal" },
 	];
-	foreach (int i, s; tests)
+	foreach (i, s; tests)
 		assertEqual(classify(s.actual), s.expect, i);
 	writeln("passed");
 }

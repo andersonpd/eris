@@ -57,7 +57,7 @@ version(unittest)
 /// Returns true if the argument is a valid logical string.
 /// All characters in a valid logical string must be either '1' or '0'.
 private bool isLogicalString(const string str) {
-	foreach(char ch; str) {
+	foreach (char ch; str) {
 		if (ch != '0' && ch != '1') return false;
 	}
 	return true;
@@ -108,7 +108,7 @@ public T invert(T)(T x) if (isDecimal!T)
 private T invert(T: string)(T str)
 {
 	char[] result = new char[str.length];
-	for(size_t i = 0; i < str.length; i++)
+	for (size_t i = 0; i < str.length; i++)
 	{
 		result[i] = str[i] == '0' ? '1' : '0';
 	}
@@ -160,7 +160,7 @@ private T opLogical(string op, T)(in T x, in T y)
 
 /// Performs a logical 'and' of the arguments and returns the result
 /// Implements the 'and' function in the specification. (p. 41)
-public T and(T)(in T x, in T y) if(isDecimal!T)
+public T and(T)(in T x, in T y) if (isDecimal!T)
 {
 	return opLogical!("and", T)(x, y);
 }
@@ -188,7 +188,7 @@ T and(T: string)(in T x, in T y)
 		str2 = y;
 	}
 	char[] result = new char[length];
-	for(int i = 0; i < length; i++) {
+	for (size_t i = 0; i < length; i++) {
 		if (str1[i + diff] == '1' && str2[i + diff] == '1') {
 			result[i] = '1';
 		} else {
@@ -225,7 +225,7 @@ private T or(T: string)(T xstr, T ystr)
 		str2 = ystr;
 	}
 	char[] zstr = new char[length];
-	for(int i = 0; i < length; i++) {
+	for (size_t i = 0; i < length; i++) {
 		if (str1[i] == '1' || str2[i] == '1') {
 			zstr[i] = '1';
 		} else {
@@ -263,7 +263,7 @@ T xor(T: string)(in T x, in T y)
 		str2 = y;
 	}
 	char[] result = new char[length];
-	for(int i = 0; i < length; i++) {
+	for (size_t i = 0; i < length; i++) {
 		if (str1[i] != str2[i]) {
 			result[i] = '1';
 		} else {
@@ -315,7 +315,7 @@ version(unittest)
 			string str = format("%s: %s (%d pass, %d fail).",
 				name, tests(passed+failed), passed, failed);
 			if (failed == 0) return str;
-			foreach(msg; messages)
+			foreach (msg; messages)
 			{
 				str ~= format("\n  %s", msg);
 			}
@@ -340,7 +340,7 @@ version(unittest)
 	{
 		TestResults r;
 		r.name = name;
-		foreach(i, t; tests)
+		foreach (i, t; tests)
 		{
 			assertBinaryFctn(r, name, t.x, t.y,
 				fctn(t.x,t.y), t.z,	i, file, line);
@@ -354,7 +354,7 @@ version(unittest)
 	{
 		TestResults r;
 		r.name = name;
-		foreach(i, t; tests)
+		foreach (i, t; tests)
 		{
 			assertBinaryFctn(r, name, t.x, t.y,
 				fctn(t.x, t.y, T.context), t.z,	i, file, line);
@@ -368,7 +368,7 @@ version(unittest)
 	{
 		TestResults r;
 		r.name = name;
-		foreach(i, t; tests)
+		foreach (i, t; tests)
 		{
 			assertBinaryFctn(r, name,
 				t.x, t.y, fctn(t.x, t.y, T.context, false), t.z,

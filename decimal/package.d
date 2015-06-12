@@ -525,7 +525,7 @@ unittest {
 		if (!initialized)
 		{
 			tens[0] = 1.0;
-			for(int i = 1; i < tens.length; i++)
+			for (size_t i = 1; i < tens.length; i++)
 			{
 				tens[i] = tens[i-1] * 10.0;
 			}
@@ -2041,7 +2041,7 @@ unittest {
 		if (!initialized)
 		{
 			tens[0] = 1.0;
-			for(auto i = 1; i < tens.length; i++)
+			for (size_t i = 1; i < tens.length; i++)
 			{
 				tens[i] = tens[i-1] * 10.0;
 			}

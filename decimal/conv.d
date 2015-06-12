@@ -134,7 +134,7 @@ unittest  // toString
 		{ "123",		 "%#.0F",	"123.0" },
 	];
 
-	foreach (int i, s; tests)
+	foreach (i, s; tests)
 	{
 
 		assertEqual(toString(dec9(s.num), s.fmt), s.str, i);
@@ -208,7 +208,7 @@ unittest // sciForm
 		{ "inf",		"Infinity" },
 	];
 
-	foreach (int i, s; tests)
+	foreach (i, s; tests)
 	{
 		assertEqual(sciForm(dec9(s.num)), s.str, i);
 	}
@@ -263,11 +263,11 @@ public string engForm(T)(in T num) if (isDecimal!T)
 		dot = 1;
 		int count = 3 - std.math.abs(mod);
 		mant.length = 0;
-		for(size_t i = 0; i < count; i++) {
+		for (size_t i = 0; i < count; i++) {
 			mant ~= '0';
 		}
 	}
-	while(dot > mant.length) {
+	while (dot > mant.length) {
 		mant ~= '0';
 	}
 	if (mant.length > dot) {
@@ -718,13 +718,13 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 			return T.nan;
 		}
 		// ensure exponent is all digits
-		foreach(char c; xstr) {
+		foreach (char c; xstr) {
 			if (!isDigit(c)) {
 				return T.nan;
 			}
 		}
 		// trim leading zeros
-		while(xstr[0] == '0' && xstr.length > 1) {
+		while (xstr[0] == '0' && xstr.length > 1) {
 			xstr = xstr[1..$];
 		}
 		// make sure it will fit into an int
@@ -758,7 +758,7 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 		}
 	}
 	// strip leading zeros
-	while(str[0] == '0' && str.length > 1) {
+	while (str[0] == '0' && str.length > 1) {
 		str = str[1..$];
 	}
 	// make sure first char is a digit
@@ -785,7 +785,7 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 		return T.nan;
 	}
 	// ensure chars are all digits
-	foreach(char c; str) {
+	foreach (char c; str) {
 		if (!isDigit(c)) {
 			return T.nan;
 		}
@@ -839,14 +839,14 @@ private T setPayload(T)(T num, char[] str, int len) if (isDecimal!T)
 	// otherwise, get payload string
 	str = str[len..$];
 	// trim leading zeros
-	while(str[0] == '0' && str.length > 1) {
+	while (str[0] == '0' && str.length > 1) {
 		str = str[1..$];
 	}
 	// payload has a max length of 6 digits
 	if (str.length > 6) return num;
 	// TODO: can put previous checks into this foreach
 	// ensure string is all digits
-	foreach(char c; str) {
+	foreach (char c; str) {
 		if (!isDigit(c)) {
 			return num;
 		}

@@ -357,7 +357,7 @@ version(unittest) {
 		if (digits.length > 1) {
 			if (!digits.isNegative) return reduce(digits);
 			int count = 0;
-			foreach_reverse(i, digit d; digits) {
+			foreach_reverse (i, digit d; digits) {
 				if (i == 0 || d != uint.max) {
 					if (d <= int.max) {
 						count--;

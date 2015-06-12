@@ -47,7 +47,7 @@ version(unittest)
 			else
 			{
 				rep ~= format(" (%2d pass, %d fail).", pass, fail);
-				foreach(msg; messages)
+				foreach (msg; messages)
 				{
 					rep ~= format("\n  %s", msg);
 				}
@@ -82,7 +82,7 @@ version(unittest)
 			"string file = __FILE__, int line = __LINE__) if (isDecimal!T)"
 		"{"
 			"auto tr = TestResults(name);"
-			"foreach(int i, t; tests)"
+			"foreach (int i, t; tests)"
 			"{"
 				"assertFctn!(T,N,S)(tr, name, t, " ~  actual ~ ", i, file, line);"
 			"}"

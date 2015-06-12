@@ -280,7 +280,7 @@ private T roundByMode(T)(T num, int precision, Rounding mode,
 			break;
 		default:
 			break;
-	}	// end switch(mode)
+	}	// end switch (mode)
 	return checkOverflow(num, mode, maxExpo, setFlags);
 }	// end roundByMode()
 

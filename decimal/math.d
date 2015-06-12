@@ -691,7 +691,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 	x.exponent = x.exponent - k - 1;
 
 	// Newton's method
-	while(true) {
+	while (true) {
 		T b = a;
 		a = mul(T.half, add(b, div(x, b, context), context), context);
 		if (equals(a, b, context)) break;
@@ -1087,7 +1087,7 @@ public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
 	T red = reduceAngle(x, quadrant, context);
 writefln("red = %s", red);
 writefln("quadrant = %s", quadrant);
-	switch(quadrant) {
+	switch (quadrant) {
 		case 0: return( sin( red, context));
 		case 1: return( cos( red, context));
 		case 2: return(-sin( red, context));
@@ -1144,7 +1144,7 @@ public T cos(T)(T x, int precision = T.precision) if (isDecimal!T)
 	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
-	switch(quadrant) {
+	switch (quadrant) {
 		case 0: return( cos(red, context));
 		case 1: return(-sin(red, context));
 		case 2: return(-cos(red, context));
@@ -1196,7 +1196,7 @@ public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
 	sincos(red, sine, cosine, context);
-/*	switch(quadrant) {
+/*	switch (quadrant) {
 //sin:
 		case 0: break;
 		case 1:
@@ -1280,7 +1280,7 @@ public T tan(T)(T x, int precision = T.precision) if (isDecimal!T)
 	T sine;
 	T cosine;
 	sincos(red, sine, cosine, context);
-	switch(quadrant) {
+	switch (quadrant) {
 		case 0: return( sine/cosine);
 		case 1: return(-cosine/sine);
 		case 2: return( sine/cosine);
