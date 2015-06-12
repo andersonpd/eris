@@ -1,4 +1,4 @@
-﻿// Written in the D programming language
+// Written in the D programming language
 
 /**
  *	A D programming language implementation of the

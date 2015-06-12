@@ -13,7 +13,7 @@
 			"buildOptions-posix": ["debugInfo"],
 		},
 		"debug": {
-			"buildOptions": ["unittests", "debugMode", "verbose"],
+			"buildOptions": ["unittests", "debugMode"],
 			"dflags-dmd": ["-m64"],
 		}
 	},

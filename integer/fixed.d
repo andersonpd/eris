@@ -628,7 +628,6 @@ unittest {
 		if (chars[0] != '0') {
 			parseDecimal(chars, signed);
 		}
-//writefln("chars = %s", chars);
 		// Otherwise it may be hex or binary
 		chars = toLower(chars);
 		if (startsWith(chars, "0x")) {
@@ -893,19 +892,14 @@ writefln("f.flHash = %s", f.flHash);    // if not zero, prefix with 0x, 0X, etc.
 		int128 snum;
 		FixedInt!(256) dnum;
 		dnum = 1234;
-//writefln("dnum = %s", dnum);
 		num = uint128(dnum);
-//writefln("num = %s", num);
 		num = uint128(5);
 		snum = int128(-17);
 		num = uint128(snum);
-//writefln("num = %s", num);
 		cint64 cnum;
 		num = long.max;
 		num *= 3;
-//writefln("num = %s", num.toHexString);
 		cnum = cint64(num);
-//writefln("cnum = %s", cnum.toHexString);
 		writeln("test missing");
 	}
 

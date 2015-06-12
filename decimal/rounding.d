@@ -175,9 +175,6 @@ unittest {	// roundToPrecision
 // private methods
 //--------------------------------
 
-//writefln("maxExpo = %s", maxExpo);
-//writefln("num.adjustedExponent = %s", num.adjustedExponent);
-	// TODO: if the number has not been normalized will this work?
 /// Returns true if the number is too large to be represented
 /// and adjusts the number according to the rounding mode.
 /// Implements the 'overflow' processing in the specification. (p. 53)

@@ -371,8 +371,8 @@ private string decimalForm(T)(in T number,
 
 	// convert the coefficient to a string
 	char[] str = to!string(num.coefficient).dup;
-	auto expo = num.exponent;
-	auto sign = num.isSigned;
+	int expo = num.exponent;
+	bool sign = num.isSigned;
 	if (expo >= 0) {
 		if (expo > 0) {
 			// add zeros up to the decimal point
@@ -445,9 +445,9 @@ private string exponentForm(T)(in T number, int precision = DefaultPrecision,
 	T num = number.dup;
 	num = roundToPrecision(num, precision + 1);
 	char[] mant = to!string(num.coefficient).dup;
-	auto expo = num.exponent;
-	auto sign = num.isSigned;
-	auto adjx = expo + mant.length - 1;
+	int expo = num.exponent;
+	bool sign = num.isSigned;
+	int adjx = expo + cast(int)mant.length - 1;
 	if (mant.length > 1) {
 		insertInPlace(mant, 1, ".");
 	}
@@ -819,13 +819,13 @@ unittest // toNumber
 	{
 		assertEqual(dec9(s.num).toString, s.str, i);
 		auto num = dec9(s.num);
-	auto len = num.coefficient.getDigitLength;
+/*	auto len = num.coefficient.getDigitLength;
 	for (int j = 0; j < len; j++)
 	{
 		auto digit = num.coefficient.getDigit(j);
 		writefln("digit = %s", digit);
 //			writefln("num.coefficient.getDigit(i) = %s", num.coefficient.getDigit(i));
-	}
+	}*/
 	}
 	writeln("passed");
 }
