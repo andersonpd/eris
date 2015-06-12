@@ -127,7 +127,7 @@ public int ilogb(T)(in T x) if (isDecimal!T)
 	}
 	if (x.isZero)
 	{
-		contextFlags.setFlags(DivisionByZero);
+		contextFlags.set(DivisionByZero);
 		return int.init;
 	}
 	return x.digits + x.exponent - 1;
@@ -161,7 +161,7 @@ public T logb(T)(in T x) if (isDecimal!T)
 	if (x.isInfinite) return T.infinity;
 	if (x.isZero)
 	{
-		contextFlags.setFlags(DivisionByZero);
+		contextFlags.set(DivisionByZero);
 		return T.infinity(true);
 	}
 	int expo = x.digits + x.exponent - 1;
@@ -462,11 +462,12 @@ public T nextPlus(T)(in T x,
 	}
 
 	T y = T(1L, adjustedExpo);
-	T z = add(x, y, context, true);
+	T z = add(x, y, context, false);
 	if (z > T.max) {
 		z = T.infinity;
 	}
 
+	// FIXTHIS: need to pass setFlags value
 	return roundToPrecision(z);
 }
 
@@ -592,7 +593,7 @@ public int compare(T)(in T x, in T y,
 	// any operation with a signaling NaN is invalid.
 	// if both are signaling, return as if x > y.
 	if (x.isSignaling || y.isSignaling) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return x.isSignaling ? 1 : -1;
 	}
 
@@ -703,7 +704,7 @@ public bool equals(T)(in T x, in T y,
 {
 	// any operation with a signaling NaN is invalid.
 	if (x.isSignaling || y.isSignaling) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return false;
 	}
 	// if either is NaN...
@@ -814,7 +815,7 @@ public int compareSignal(T) (in T x, in T y,
 	// any operation with NaN is invalid.
 	// if both are NaN, return as if x > y.
 	if (x.isNaN || y.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return x.isNaN ? 1 : -1;
 	}
 	return (compare!T(x, y, context));
@@ -853,7 +854,7 @@ unittest {
 	y = dec9.nan;
 	value = compare(x, y);
 	assertFalse(contextFlags.getFlags(InvalidOperation));
-	contextFlags.setFlags(InvalidOperation, false);
+	contextFlags.set(InvalidOperation, false);
 	y = dec9.nan;
 	value = compareSignal(x, y);
 	assertTrue(contextFlags.getFlags(InvalidOperation));
@@ -1036,7 +1037,7 @@ public T max(T)(in T x, in T y,
 {
 	// if both are NaNs or either is an sNan, return NaN.
 	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	// if both are infinite, return the one with a positive sign
@@ -1141,7 +1142,7 @@ public T min(T)(in T x, in T y,
 {
 	// if both are NaNs or either is an sNan, return NaN.
 	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	// if both are infinite, return the one with a negative sign
@@ -1484,7 +1485,7 @@ unittest {	// rotate
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: InvalidOperation, Overflow.
 public T add(T)(in T x, in T y,
-		Context context = T.context, bool noFlags = false) if (isDecimal!T)
+		Context context = T.context, bool setFlags = true) if (isDecimal!T)
 {
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 
@@ -1545,7 +1546,7 @@ public T add(T)(in T x, in T y,
 	sum.digits = numDigits(sum.coefficient);
 	sum.exponent = xx.exponent;
 	// round the result
-	return roundToPrecision(sum, context, noFlags);
+	return roundToPrecision(sum, context, setFlags);
 }
 
 
@@ -1554,10 +1555,10 @@ public T add(T)(in T x, in T y,
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: InvalidOperation, Overflow.
 public T add(T, U)(in T x, in U y,
-		Context context = T.context, bool noFlags = false)
+		Context context = T.context, bool setFlags = true)
 		if (isDecimal!T && isConvertible!U)
 {
-	return add(x, T(y), context, noFlags);
+	return add(x, T(y), context, setFlags);
 }
 
 unittest {	// add, addLong
@@ -1577,9 +1578,9 @@ unittest {	// add, addLong
 /// The result may be rounded and context flags may be set.
 /// Implements the 'subtract' function in the specification. (p. 26)
 public T sub(T, U:T) (in T x, in U y,
-		Context context = T.context, bool noFlags = false) if (isDecimal!T)
+		Context context = T.context, bool setFlags = true) if (isDecimal!T)
 {
-	return add(x, y.copyNegate, context, noFlags);
+	return add(x, y.copyNegate, context, setFlags);
 }	 // end sub(x, y)
 
 
@@ -1587,10 +1588,10 @@ public T sub(T, U:T) (in T x, in U y,
 /// The result may be rounded and context flags may be set.
 /// Implements the 'subtract' function in the specification. (p. 26)
 public T sub(T, U)(in T x, U y,
-		Context context = T.context, bool noFlags = false)
+		Context context = T.context, bool setFlags = true)
 		if (isDecimal!T && isConvertible!U)
 {
-	return add(x, T(y).copyNegate, context, noFlags);
+	return add(x, T(y).copyNegate, context, setFlags);
 }	// end sub(x, y)
 
 unittest
@@ -2270,7 +2271,7 @@ unittest { // alignOps
 package T invalidOperation(T)(ushort payload = 0)
 		if (isDecimal!T)
 {
-	contextFlags.setFlags(InvalidOperation);
+	contextFlags.set(InvalidOperation);
 	return T.nan(payload);
 }
 
@@ -2296,7 +2297,7 @@ unittest {	// invalidOperation
 package T invalidOperand(T)(in T x) if (isDecimal!T)
 {
 	// flag the invalid operation
-	contextFlags.setFlags(InvalidOperation);
+	contextFlags.set(InvalidOperation);
 	// if the operand is a quiet NaN return it.
 	if (x.isQuiet) return x.dup;
 	// Otherwise change the signalling NaN to a quiet NaN.
@@ -2317,7 +2318,7 @@ package T invalidOperand(T)(in T x) if (isDecimal!T)
 package T invalidOperand(T)(in T x, in T y) if (isDecimal!T)
 {
 	// flag the invalid operation
-	contextFlags.setFlags(InvalidOperation);
+	contextFlags.set(InvalidOperation);
 	// if either operand is signaling return a quiet NaN.
 	// NOTE: sign is ignored.
 	if (x.isSignaling) return T.nan(x.payload);
@@ -2341,7 +2342,7 @@ private T divisionByZero(T)(in T dividend, in T divisor) if (isDecimal!T)
 	// division of zero by zero is undefined
 	if (dividend.isZero) return invalidOperation!T;
 	// set flag and return signed infinity
-	contextFlags.setFlags(DivisionByZero);
+	contextFlags.set(DivisionByZero);
 	return T.infinity(dividend.sign ^ divisor.sign);
 }
 
@@ -2357,7 +2358,7 @@ private T divisionByZero(T, U:long)(in T dividend, U divisor)
 	// division of zero by zero is undefined
 	if (dividend.isZero) return invalidOperation!T;
 	// set flag and return signed infinity
-	contextFlags.setFlags(DivisionByZero);
+	contextFlags.set(DivisionByZero);
 	return T.infinity(dividend.sign ^ (divisor < 0));
 }
 

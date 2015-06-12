@@ -43,85 +43,75 @@ public T roundToPrecision(T)(in T num) if (isDecimal!T)
 }
 
 /// Rounds the number to the precision of the context parameter.
-/// if noFlags is true no context flags will be set by this operation.
+/// if setFlags is false no context flags will be set by this operation.
 /// Returns the rounded number.
 /// Flags: Subnormal, Clamped, Overflow, Inexact, Rounded.
-public T roundToPrecision(T)(in T num, Context context, bool noFlags = false)
+public T roundToPrecision(T)(
+	in T num, Context context = T.context, bool setFlags = true)
 	if (isDecimal!T)
 {
 	return roundToPrecision(num,
-		context.precision, context.maxExpo, context.rounding, noFlags);
-}
-
-/// Rounds the number to the specified precision using the context rounding mode.
-/// Returns the rounded number.
-/// Flags: Subnormal, Clamped, Overflow, Inexact, Rounded.
-public T roundToPrecision(T)(in T num, int precision)
-	if (isDecimal!T)
-{
-	return roundToPrecision(num, precision, T.maxExpo, T.rounding, false);
+		context.precision, context.maxExpo, context.rounding, setFlags);
 }
 
 /// Rounds the number to the specified precision using the specified rounding mode.
-/// if noFlags is true none of the context flags will be set by this operation.
+/// if setFlags is false none of the context flags will be set by this operation.
 /// Flags: Subnormal, Clamped, Overflow, Inexact, Rounded.
 //@safe
-public T roundToPrecision(T)(
-	in T num, int precision, int maxExpo, Rounding rounding, bool noFlags = false)
+public T roundToPrecision(T)(in T num, int precision,
+	int maxExpo = T.maxExpo,
+	Rounding rounding = T.rounding,
+	bool setFlags = true)
 	if (isDecimal!T)
 {
-	T result = num.dup;	// copy the input
-	if (rounding == Rounding.none) return result;
+	// check for overflow before rounding and copy the input
+	T copy = checkOverflow(num, rounding, maxExpo, setFlags);
+
+	// check rounding mode
+	if (rounding == Rounding.none) return copy;
 
 	// special values aren't rounded
-	if (!num.isFinite) return result;
+	if (!copy.isFinite) return copy;
+
+	// smallest normalized exponent
+	int minExpo = 1 - maxExpo;
+	// smallest non-normalized exponent
+	int tinyExpo = 1 - maxExpo - precision;
 
 	// zero values aren't rounded, but they are checked for
 	// subnormal and out of range exponents.
-	/// Smallest normalized exponent.
-	int minExpo = 1 - maxExpo;
-	/// Smallest non-normalized exponent.
-	int tinyExpo = 1 - maxExpo - precision;
 	if (num.isZero) {
 		if (num.exponent < minExpo) {
-			contextFlags.setFlags(Subnormal);
+			if (setFlags) contextFlags.set(Subnormal);
 			if (num.exponent < tinyExpo) {
 				int temp = tinyExpo;
-				result.exponent = tinyExpo;
+				copy.exponent = tinyExpo;
 			}
 		}
-		return result;
+		return copy;
 	}
 
 	// handle subnormal numbers
 	if (num.isSubnormal()) {
-		contextFlags.setFlags(Subnormal);
-		int diff = minExpo - cast(int)result.adjustedExponent;
+		if (setFlags) contextFlags.set(Subnormal);
+		int diff = minExpo - cast(int)copy.adjustedExponent;
 		// use the subnormal precision and round
 		int subprecision = precision - diff;
-		if (result.digits > subprecision) {
-			roundByMode(result, subprecision, rounding);
+		if (copy.digits > subprecision) {
+			copy = roundByMode(copy, subprecision, rounding, maxExpo, setFlags);
 		}
 		// if the result of rounding a subnormal is zero
 		// the clamped flag is set. (Spec. p. 51)
-		if (result.isZero) {
-			result.exponent = tinyExpo;
-			contextFlags.setFlags(Clamped);
+		if (copy.isZero) {
+			copy.exponent = tinyExpo;
+			if (setFlags) contextFlags.set(Clamped);
 		}
-		return result;
+		return copy;
 	}
 
-//writefln("num.toExact = %s", num.toExact);
-	// if the number is too large to represent, return the overflow value
-	if (overflow(result, rounding, maxExpo, noFlags)) {
-//writefln("result = %s", result);
-		return result;
-	}
 	// round the number
-	roundByMode(result, precision, rounding);
-	// check again for an overflow
-	overflow(result, rounding, maxExpo, noFlags);
-	return result;
+	return roundByMode(copy, precision, rounding, maxExpo, setFlags);
+
 } // end roundToPrecision()
 
 unittest {	// roundToPrecision
@@ -185,20 +175,22 @@ unittest {	// roundToPrecision
 // private methods
 //--------------------------------
 
+//writefln("maxExpo = %s", maxExpo);
+//writefln("num.adjustedExponent = %s", num.adjustedExponent);
+	// TODO: if the number has not been normalized will this work?
 /// Returns true if the number is too large to be represented
 /// and adjusts the number according to the rounding mode.
 /// Implements the 'overflow' processing in the specification. (p. 53)
 /// Flags: Overflow, Rounded, Inexact.
 /// Precondition: number must be finite.
 //@safe
-private bool overflow(T)(ref T num,	Rounding mode = T.rounding,
-		int maxExpo = T.maxExpo, bool noFlags = false) if (isDecimal!T)
+private T checkOverflow(T)(in T num, Rounding mode = T.rounding,
+		int maxExpo = T.maxExpo, bool setFlags = true) if (isDecimal!T)
 {
-//writefln("maxExpo = %s", maxExpo);
-//writefln("num.adjustedExponent = %s", num.adjustedExponent);
-	if (num.adjustedExponent <= maxExpo) return false;
-	// TODO: if the number has not been normalized will this work?
+	T copy = num.copy;
+	if (num.adjustedExponent <= maxExpo) return copy;
 
+	// TODO: if the number has not been normalized will this work?
 	switch (mode)
 	{
 		case Rounding.none: 	// can this branch be reached? should it be?
@@ -206,22 +198,22 @@ private bool overflow(T)(ref T num,	Rounding mode = T.rounding,
 		case Rounding.halfEven:
 		case Rounding.halfDown:
 		case Rounding.up:
-			num = T.infinity(num.sign);
+			copy = T.infinity(num.sign);
 			break;
 		case Rounding.down:
-			num = num.sign ? T.max.copyNegate : T.max;
+			copy = num.sign ? T.max.copyNegate : T.max;
 			break;
 		case Rounding.ceiling:
-			num = num.sign ? T.max.copyNegate : T.infinity;
+			copy = num.sign ? T.max.copyNegate : T.infinity;
 			break;
 		case Rounding.floor:
-			num = num.sign ? T.infinity(true) : T.max;
+			copy = num.sign ? T.infinity(true) : T.max;
 			break;
 		default:
 			break;
 	}
-	if (!noFlags) contextFlags.setFlags(Overflow | Inexact | Rounded);
-	return true;
+	if (setFlags) contextFlags.set(Overflow | Inexact | Rounded);
+	return copy;
 }
 
 // Returns true if the rounding mode is half-even, half-up, or half-down.
@@ -233,44 +225,48 @@ private bool halfRounding(Rounding rounding) {
 
 /// Rounds the number to the context precision
 /// using the specified rounding mode.
-private void roundByMode(T)(ref T num,
-		int precision, Rounding mode) if (isDecimal!T)
+private T roundByMode(T)(T num, int precision, Rounding mode,
+	int maxExpo = T.maxExpo, bool setFlags = true) if (isDecimal!T)
 {
+	T copy = checkOverflow(num, mode, maxExpo, setFlags);
 
-	if (mode == Rounding.none) return;
+	// did it overflow to infinity?
+	if (copy.isSpecial) return copy;
+
+	if (mode == Rounding.none) return copy;
 
 	// calculate the remainder
 	T remainder = getRemainder(num, precision);
 	// if the number wasn't rounded, return
-	if (remainder.isZero) return;
+	if (remainder.isZero) return copy;
 
 	// check for deleted leading zeros in the remainder.
 	// makes a difference only in round-half modes.
 	if (halfRounding(mode) &&
 		numDigits(remainder.coefficient) != remainder.digits) {
-		return;
+		return num.copy;
 	}
 
 	switch (mode) {
 		case Rounding.up:
 			incrementAndRound(num);
-			return;
+			break;
 		case Rounding.down:
-			return;
+			break;
 		case Rounding.ceiling:
 			if (!num.sign) incrementAndRound(num);
-			return;
+			break;
 		case Rounding.floor:
 			if (num.sign) incrementAndRound(num);
-			return;
+			break;
 		case Rounding.halfUp:
 			if (firstDigit(remainder.coefficient) >= 5)
 				incrementAndRound(num);
-			return;
+			break;
 		case Rounding.halfDown:
 			if (testFive(remainder.coefficient) > 0)
 				incrementAndRound(num);
-			return;
+			break;
 		case Rounding.halfEven:
 			switch (testFive(remainder.coefficient)) {
 				case -1:
@@ -284,15 +280,16 @@ private void roundByMode(T)(ref T num,
 					}
 					break;
 				}
-			return;
+			break;
 		default:
-			return;
+			break;
 	}	// end switch(mode)
+	return checkOverflow(num, mode, maxExpo, setFlags);
 }	// end roundByMode()
 
 unittest {	// roundByMode
 	write("-- roundByMode......");
-	dec9 num;
+/*	dec9 num;
 	num = 1000;
 	roundByMode(num, 5, Rounding.halfEven);
 	assertEqual(num.coefficient, 1000);
@@ -322,7 +319,7 @@ unittest {	// roundByMode
 	roundByMode(num, 5, Rounding.up);
 	assertEqual(num.coefficient, 12346);
 	assertEqual(num.exponent, 2);
-	assertEqual(num.digits, 5);
+	assertEqual(num.digits, 5);*/
 	writeln("passed");
 }
 
@@ -340,7 +337,7 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 	if (diff <= 0) {
 		return remainder;
 	}
-	contextFlags.setFlags(Rounded);
+	contextFlags.set(Rounded);
 	xint divisor = pow10(diff);
 	xint dividend = x.coefficient;
 	xint quotient = dividend/divisor;
@@ -350,7 +347,7 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 		remainder.digits = diff;
 		remainder.exponent = x.exponent;
 		remainder.coefficient = mant;
-		contextFlags.setFlags(Inexact);
+		contextFlags.set(Inexact);
 	}
 	x.coefficient = quotient;
 	x.digits = numDigits(quotient); //precision;

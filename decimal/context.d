@@ -88,7 +88,7 @@ private struct ContextFlags {
 
 	/// Sets or resets the specified context flag(s).
 	@safe
-	public void setFlags(ubyte flags, bool value = true) {
+	public void set(ubyte flags, bool value = true) {
 		if (value) {
 			ubyte saved = this.flags;
 			this.flags |= flags;
@@ -100,7 +100,7 @@ private struct ContextFlags {
 	}
 
 	public void resetFlags(ubyte flags) {
-		setFlags(flags, false);
+		set(flags, false);
 	}
 
 	// Checks the state of the flags. If a flag is set and its

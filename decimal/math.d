@@ -53,7 +53,7 @@ version(unittest) {
 /*
 mixin template checkNaN() {
 	if (x.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 }*/
@@ -66,7 +66,7 @@ mixin template checkNaN() {
 /// The default rounding mode is the current context mode. //FIXTHIS
 public T round(T)(T x, Rounding mode = Rounding.halfEven) {
 	if (x.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	T value = roundToIntegralExact(x, mode);
@@ -224,7 +224,7 @@ const char[] UnaryFunction =
 	public T " ~ name ~ "(T, U:int)(T x, U precision = T.precision) if (isDecimal!T)
 	{
 		if (x.isNaN) {
-			contextFlags.setFlags(InvalidOperation);
+			contextFlags.set(InvalidOperation);
 			return T.nan;
 		}
 		Context context = Context(precision, T.maxExpo, Rounding.halfEven);
@@ -259,7 +259,7 @@ const char[] UnaryFunction =
 	public T " ~ name ~ "(T)(T x, int precision = T.precision) if (isDecimal!T)
 	{
 		if (x.isNaN) {
-			contextFlags.setFlags(InvalidOperation);
+			contextFlags.set(InvalidOperation);
 			return T.nan;
 		}
 		Context context = Context(precision, T.maxExpo, Rounding.halfEven);
@@ -272,7 +272,7 @@ public T reciprocal(T, U)(in U u, int precision)
 {
 	T x = T(u);
 	if (x.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	Context context = Context(precision, T.maxExpo, Rounding.halfEven);
@@ -308,7 +308,7 @@ const char[] BinaryFunction =
 	if (isDecimal!T)
 	{
 		if (x.isNaN || y.isNaN) {
-			contextFlags.setFlags(InvalidOperation);
+			contextFlags.set(InvalidOperation);
 			return T.nan;
 		}
 		Context context = Context(precision, T.maxExpo, Rounding.halfEven);
@@ -525,7 +525,7 @@ mixin (UnaryFunction!("sqrt"));
 public T reciprocal(T, U:int)(T x, U precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	Context context = Context(precision, T.maxExpo, Rounding.halfEven);
@@ -538,7 +538,7 @@ public T reciprocal(T, U)(in U u, int precision)
 {
 	T x = T(u);
 	if (x.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	Context context = Context(precision, T.maxExpo, Rounding.halfEven);
@@ -551,7 +551,7 @@ public T reciprocal(T)(in T x, Context inContext = T.context) if (isDecimal!T)
 {
 	// special values
 	if (x.isZero) {
-		contextFlags.setFlags(DivisionByZero);
+		contextFlags.set(DivisionByZero);
 		return T.infinity(x.sign);
 	}
 	if (x.copyAbs.isOne) return x.dup;
@@ -616,7 +616,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 {
 	// special values
 	if (x.isZero) {
-		contextFlags.setFlags(DivisionByZero);
+		contextFlags.set(DivisionByZero);
 		return T.infinity(x.sign);
 	}
 	if (x.isOne) return x;
@@ -670,7 +670,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 {
 	// special values
 	if (x.isNegative) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	// TODO: what if x is very close to one or zero??
@@ -845,7 +845,7 @@ package T log(T)(T x, Context inContext,
 		bool reduceArg = true) if (isDecimal!T)
 {
 	if (x.isZero) {
-		contextFlags.setFlags(DivisionByZero);
+		contextFlags.set(DivisionByZero);
 		return -T.infinity;
 	}
 	if (x.isNegative) {
@@ -898,7 +898,7 @@ public T log1p(T)(T x, Context inContext) if (isDecimal!T)
 	// special cases
 	if (x.isNaN || x < T.negOne) 	// use compare(x, T.negOne) == -1?
 	{
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	// check for infinite argument
@@ -940,7 +940,7 @@ unittest {
 public T log10(T)(T x, Context inContext) if (isDecimal!T)
 {
 	if (x.isZero) {
-		contextFlags.setFlags(DivisionByZero);
+		contextFlags.set(DivisionByZero);
 		return T.infinity;
 	}
 	if (x.isNegative) {
@@ -1009,7 +1009,7 @@ public T hypot(T)(T x, T y, Context context) if (isDecimal!T)
     if (x.isZero) return y;
 	if (y.isZero) return x;
 	if (x.isNaN || y.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 
@@ -1078,7 +1078,7 @@ unittest {
 public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 
@@ -1138,7 +1138,7 @@ writefln("sin(difficult) = %s", sin(difficult));
 public T cos(T)(T x, int precision = T.precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
@@ -1271,7 +1271,7 @@ public T tan1(T)(T x) if (isDecimal!T)
 public T tan(T)(T x, int precision = T.precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		contextFlags.setFlags(InvalidOperation);
+		contextFlags.set(InvalidOperation);
 		return T.nan;
 	}
 	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
