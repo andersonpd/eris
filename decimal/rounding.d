@@ -561,7 +561,7 @@ unittest // numDigits
 
 	foreach (i, s; tests)
 	{
-		assertEqual(numDigits(cast(uint)s.n), s.d, i);
+		assertEqual(numDigits(s.n), s.d, i);
 	}
 }
 

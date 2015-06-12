@@ -85,7 +85,7 @@ unittest  // toString
 {
 	write("-- toString.........");
 
-	static struct S { string num; string fmt; string val; }
+	static struct S { string num; string fmt; string str; }
 
 	static S[] tests =
 	[
@@ -136,7 +136,8 @@ unittest  // toString
 
 	foreach (int i, s; tests)
 	{
-		assertEqual(toString(dec9(s.num), s.fmt), s.val, i);
+
+		assertEqual(toString(dec9(s.num), s.fmt), s.str, i);
 	}
 	writeln("passed");
 }
@@ -157,7 +158,7 @@ public string sciForm(T)(in T num) if (isDecimal!T)
 	int  expo = num.exponent;
 	bool signed = num.isSigned;
 
-	auto adjx = expo + mant.length - 1;
+	int adjx = expo + cast(int)mant.length - 1;
 	// if the exponent is small use decimal notation
 	if (expo <= 0 && adjx >= -6) {
 		// if the exponent is not zero, insert a decimal point
@@ -194,7 +195,7 @@ unittest // sciForm
 {
 	write("-- sciForm..........");
 
-	static struct S { string num; string val; }
+	static struct S { string num; string str; }
 
 	static S[] tests =
 	[
@@ -209,7 +210,7 @@ unittest // sciForm
 
 	foreach (int i, s; tests)
 	{
-		assertEqual(sciForm(dec9(s.num)), s.val, i);
+		assertEqual(sciForm(dec9(s.num)), s.str, i);
 	}
 	writeln("passed");
 }
@@ -262,7 +263,7 @@ public string engForm(T)(in T num) if (isDecimal!T)
 		dot = 1;
 		int count = 3 - std.math.abs(mod);
 		mant.length = 0;
-		for(int i = 0; i < count; i++) {
+		for(size_t i = 0; i < count; i++) {
 			mant ~= '0';
 		}
 	}
@@ -408,7 +409,7 @@ unittest // decimalForm
 {
 	write("-- decimalForm......");
 
-	static struct S { string num; int precision; string val; }
+	static struct S { string num; int precision; string str; }
 
 	static S[] tests =
 	[
@@ -427,7 +428,7 @@ unittest // decimalForm
 
 	foreach (i, s; tests)
 	{
-		assertEqual(decimalForm(dec9(s.num), s.precision), s.val, i);
+		assertEqual(decimalForm(dec9(s.num), s.precision), s.str, i);
 	}
 	writeln("passed");
 }
@@ -464,7 +465,7 @@ unittest	// exponentForm
 {
 	write("-- exponentForm.....");
 
-	static struct S { string num; int precision; string val; }
+	static struct S { string num; int precision; string str; }
 
 	static S[] tests =
 	[
@@ -483,7 +484,7 @@ unittest	// exponentForm
 
 	foreach (i, s; tests)
 	{
-		assertEqual(exponentForm(dec9(s.num), s.precision), s.val, i);
+		assertEqual(exponentForm(dec9(s.num), s.precision), s.str, i);
 	}
 	writeln("passed");
 }
@@ -512,6 +513,8 @@ private string formatDecimal(T)(in T num,
 		case 'E':
 			break;
 		case 'S':
+//		writeln("S branch");
+
 			return sciForm(num.copyAbs);
 		default:
 			break;
@@ -796,7 +799,7 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 unittest // toNumber
 {
 	write("-- toNumber.........");
-	static struct S { string num; string val; }
+	static struct S { string num; string str; }
 
 	static S[] tests =
 	[
@@ -814,17 +817,14 @@ unittest // toNumber
 
 	foreach (i, s; tests)
 	{
-		assertEqual(dec9(s.num).toString, s.val, i);
+		assertEqual(dec9(s.num).toString, s.str, i);
 		auto num = dec9(s.num);
-writefln("\nnum = %s", num);
 	auto len = num.coefficient.getDigitLength;
 	for (int j = 0; j < len; j++)
 	{
 		auto digit = num.coefficient.getDigit(j);
-//writefln("i = %s", i);
 		writefln("digit = %s", digit);
 //			writefln("num.coefficient.getDigit(i) = %s", num.coefficient.getDigit(i));
-//writefln("num.coefficient.getDigit(i) = %s", num.coefficient.getDigit(i);
 	}
 	}
 	writeln("passed");
@@ -864,7 +864,7 @@ private T setPayload(T)(T num, char[] str, int len) if (isDecimal!T)
 unittest // setPayload
 {
 	write("-- setPayload.......");
-	static struct S { string num; string val; }
+	static struct S { string num; string str; }
 
 	static S[] tests =
 	[
@@ -877,7 +877,7 @@ unittest // setPayload
 
 	foreach (i, s; tests)
 	{
-		assertEqual(dec9(s.num).toString, s.val, i);
+		assertEqual(dec9(s.num).toString, s.str, i);
 	}
 	writeln("passed");
 }
