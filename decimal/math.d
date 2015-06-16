@@ -64,7 +64,7 @@ mixin template checkNaN() {
 
 /// Rounds the argument to an integer using the specified rounding mode.
 /// The default rounding mode is the current context mode. //FIXTHIS
-public T round(T)(T x, Rounding mode = Rounding.halfEven) {
+public T round(T)(T x, Rounding mode = T.rounding) {
 	if (x.isNaN) {
 		contextFlags.set(InvalidOperation);
 		return T.nan;
@@ -382,6 +382,25 @@ package T invPi(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.one, pi!T(context), context);
+	return roundToPrecision(alpha, inContext);
+}
+
+unittest {
+	write("-- invPi............");
+	assertEqual(dec9.invPi, dec9("0.318309886"));
+	assertPrecisionEqual(dec9.invPi(25), "0.3183098861837906715377675", 25);
+//	assertPrecisionEqual(reciprocal(dec9.pi), "0.318309886", 9);
+	writeln("passed");
+}
+
+mixin (Constant!("twoInvPi"));
+// TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
+// TODO: shouldn't this be a calculation without a division?
+/// Calculates the value of 1/pi in the specified context.
+package T twoInvPi(T)(Context inContext) if (isDecimal!T)
+{
+	auto context = guard(inContext, 4);
+	T alpha =  div(T.two, pi!T(context), context);
 	return roundToPrecision(alpha, inContext);
 }
 
@@ -1044,34 +1063,21 @@ unittest {
 //mixin (UnaryFunction!("sin"));
 //mixin (UnaryFunction!("cos"));
 
+
 // Returns the reduced argument and the quadrant.
-// 0 <= pi/4 and sets the quadrant.
-// TODO: for very large angles (> 10^^4) adjust internal precision to ensure
-// remainder is accurate.
-package T reduceAngle(T)(T x, out int quadrant,
-		Context inContext) if (isDecimal!T)
+// Reduced argument |x| <= pi/4.
+private T reduceAngle(T)(in T x,
+	out int n, in Context inContext = T.context) if (isDecimal!T)
 {
-	auto context = guard(inContext,20);
-	T C = "0.78539_81634";
-//writefln("\nC = %s", C);
-	T c = "1.27323_95448";
-//writefln("c = %s", c);
-	T p = "0.27323_95448";
-writefln("1-C*c = %s", 1-C*c);
-//writefln("p = %s", p);
-writefln("\nx = %s", x);
-	T N = round(x*c);
-writefln("N = %s", N.toExact);
-	T red = -fma!T(N, C, -x);
-writefln("red = %s", red);
-
-	quadrant = (N % 4).toInt;
-	return red;
-}
-
-unittest {
-	write("reduceAngle...\n");
-	writeln("test missing");
+	auto context = guard(inContext);
+	T twoInvPi = twoInvPi!T(context);
+	T pi_2 = pi_2!T(context);
+	T y = mul(x, twoInvPi, context);
+	int k = rint(y).toInt;
+	n = k % 4;
+	T f = sub(y, k, context);
+	T r = mul(f, pi_2, context);
+	return r;
 }
 
 /// Decimal version of std.math function.
@@ -1085,8 +1091,6 @@ public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
 	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
-writefln("red = %s", red);
-writefln("quadrant = %s", quadrant);
 	switch (quadrant) {
 		case 0: return( sin( red, context));
 		case 1: return( cos( red, context));
@@ -1120,7 +1124,9 @@ package T sin(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- sin..............");
+	assertEqual(sin(dec9(0.1)), dec9("0.0998334166"));
 	assertEqual(sin(dec9.one), dec9("0.8414709848978965"));
+	assertEqual(sin(dec9.two, 16), dec9("0.9092974268256817"));
 	assertEqual(sin(dec9.one, 16), dec9("0.8414709848978965"));
 	assertEqual(sin(dec9("0.333")), dec9("0.326879693"));
 //	dec9 difficult = dec9(5678900000);
