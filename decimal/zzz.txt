@@ -1,0 +1,401 @@
+==========================
+digits module........begin
+==========================
+-- toString.........passed
+-- comparison.......passed
+-- numDigits........passed
+-- copy, trim.......passed
+-- reduce, extend...passed
+-- matchLength......passed
+-- complement.......passed
+-- bit manipulation.passed
+-- classification...passed
+-- addition.........passed
+-- subtraction......passed
+mulDigit...test missing
+-- multiplication...passed
+-- squaring.........
+a = 0x55B40944_C7C01ADE_DF5C24BA_3137C911
+b = 0x55B40944_C7C01ADE_DF5C24BA_3137C911
+a = 0x40000000_00000000_00000000_00000000
+b = 0x00000000_00000001_00000002_00000001
+a = 0xFFFFFFFE_00000001
+b = 0xFFFFFFFE_00000001
+a = 0x00000000_00000001_00000002_00000001
+b = 0x00000000_00000001_00000002_00000001
+a = 0xFFFFFFFF_FFFFFFFE_00000000_00000001
+b = 0xFFFFFFFF_FFFFFFFE_FFFFFFFE_00000001
+a = 0xFFFFFFFF_FFFFFFFE_00000000_00000001
+b = 0xFFFFFFFF_FFFFFFFE_00000000_00000001
+a = 0x00000000_0000FE01_0001FC02_0000FE01
+b = 0x00000000_0000FE01_0001FC02_0000FE01
+passed
+-- exponentiation...passed
+-- division.........passed
+-- logical..........passed
+shiftRight...test missing
+-- shifts...........passed
+-- gcd, lcm.........passed
+-- random digits....passed
+==========================
+digits module..........end
+==========================
+==========================
+integer exceptions...begin
+==========================
+==========================
+integer exceptions.....end
+==========================
+==========================
+extended integers....begin
+==========================
+-- this(integral)...passed
+-- copy.............passed
+casts...test missing
+-- init, abs, sqr...c = 0x00034456_994648CB_B933EFE5_8032234B_8FEA0100
+d = 0x00034456_994648CB_B933EFE5_8032234B_8FEA0100
+passed
+-- to unsigned int..passed
+-- to signed int....passed
+-- opAssign.........passed
+-- opEquals.........passed
+-- opCmp............passed
+-- byte array.......passed
+-- this(string).....passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- addition.........passed
+-- subtraction......passed
+-- multiplication...passed
+-- division.........passed
+-- remainder........passed
+-- power............passed
+-- shr..............passed
+-- logical ops......passed
+-- bit ops..........passed
+-- digit ops........passed
+==========================
+extended integers......end
+==========================
+==========================
+fixed int module.....begin
+==========================
+min/max...passed
+divmod...test missing
+==========================
+fixed int module.......end
+==========================
+==========================
+uint128..............begin
+==========================
+-- this(uint[]).....passed
+-- this(ulong)......passed
+-- mixed............passed
+-- copying..........passed
+-- byte array.......passed
+-- digits...........passed
+-- bits.............passed
+-- min/max values...passed
+-- classification...passed
+-- this(string).....passed
+formatting...test missing
+-- toString.........passed
+isFixedInt...
+test missing
+-- to integral......passed
+opCast...test missing
+-- comparison.......passed
+-- opAssign.........passed
+-- opOpAssign.......passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- addition.........passed
+-- subtraction......passed
+-- multiplication...passed
+-- remainder........passed
+-- bitwise..........passed
+-- shifts...........passed
+-- abs..............passed
+-- square...........passed
+==========================
+uint128................end
+==========================
+==========================
+int128...............begin
+==========================
+-- this(uint[]).....passed
+-- this(long).......passed
+-- mixed............passed
+-- copying..........passed
+-- min/max values...passed
+-- classification...passed
+-- this(string).....passed
+formatting...test missing
+-- toString.........passed
+isFixedInt...
+test missing
+-- to integral......passed
+opCast...test missing
+-- comparison.......passed
+-- opAssign.........passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- addition.........passed
+-- subtraction......passed
+-- multiplication...passed
+-- division.........passed
+-- exponentiation...passed
+-- shifts...........passed
+-- abs..............passed
+-- square...........passed
+==========================
+int128.................end
+==========================
+==========================
+cint64...............begin
+==========================
+-- this(uint[]).....passed
+-- mixed............passed
+-- min/max values...passed
+-- this(string).....passed
+formatting...test missing
+-- toString.........passed
+isFixedInt...
+test missing
+-- to integral......passed
+opCast...test missing
+-- opAssign.........passed
+-- opBinary.........passed
+-- addition.........passed
+-- exponentiation...passed
+-- square...........passed
+==========================
+cint64.................end
+==========================
+==========================
+uint256..............begin
+==========================
+-- this(uint[]).....passed
+-- this(ulong)......passed
+-- mixed............passed
+-- copying..........passed
+-- byte array.......passed
+-- digits...........passed
+-- bits.............passed
+-- min/max values...passed
+-- classification...passed
+-- this(string).....passed
+formatting...test missing
+-- toString.........passed
+isFixedInt...
+test missing
+-- to integral......passed
+opCast...test missing
+-- comparison.......passed
+-- opAssign.........passed
+-- opOpAssign.......passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- addition.........passed
+-- subtraction......passed
+-- multiplication...passed
+-- remainder........passed
+-- bitwise..........passed
+-- shifts...........passed
+-- abs..............passed
+-- square...........passed
+==========================
+uint256................end
+==========================
+==========================
+decimal arithmetic...begin
+==========================
+-- classify.........passed
+ilogb     :  5 tests ( 5 pass)
+logb      :  6 tests ( 6 pass)
+scaleb    :  1 test  ( 1 pass)
+reduce    :  3 tests ( 3 pass)
+abs       :  4 tests ( 4 pass)
+sgn       :  7 tests ( 7 pass)
+plus      :  2 tests ( 2 pass)
+minus     :  2 tests ( 2 pass)
+nextPlus  :  6 tests ( 6 pass)
+nextMinus :  5 tests ( 5 pass)
+nextToward:  2 tests ( 2 pass)
+compare   :  9 tests ( 9 pass)
+equals    :  6 tests ( 6 pass)
+compSignal:  0 tests ( 0 pass)
+-- compareSignal....passed
+compTotal :  3 tests ( 3 pass)
+sameQuant :  3 tests ( 3 pass)
+max       :  2 tests ( 2 pass)
+maxMag    :  4 tests ( 4 pass)
+min       :  2 tests ( 2 pass)
+minMag    :  4 tests ( 4 pass)
+quantum   :  1 test  ( 1 pass)
+shift     :  5 tests ( 5 pass)
+rotate    : 10 tests (10 pass)
+add       :  4 tests ( 4 pass)
+sub       :  3 tests ( 3 pass)
+mul       :  4 tests ( 4 pass)
+sqr...
+sqr(x,context) = 0.728553390593273762200
+mul(x,x,context) = 0.728553390593273762200
+test missing
+fma       :  4 tests ( 4 pass)
+div       : 10 tests (10 pass)
+divInt    : 15 tests (15 pass)
+remainder : 15 tests (14 pass, 1 fail).
+  failed at arithmetic.d(2057), test 3: <remainder(-10, 3)> equals <-19> not <-1>.
+remNear   :  8 tests ( 8 pass)
+quantize  : 15 tests (15 pass)
+roundIntEx:  8 tests ( 8 pass)
+-- alignOps.........passed
+divisionByZero......test missing
+==========================
+decimal arithmetic.....end
+==========================
+==========================
+decimal context......begin
+==========================
+==========================
+decimal context........end
+==========================
+==========================
+decimal conversion...begin
+==========================
+-- toString.........passed
+-- sciForm..........passed
+-- engForm..........passed
+-- specialForm......passed
+-- decimalForm......passed
+-- exponentForm.....passed
+-- setWidth.........passed
+-- toAbstract.......passed
+-- toExact..........passed
+-- toNumber.........passed
+-- setPayload.......passed
+==========================
+decimal conversion.....end
+==========================
+==========================
+decimal logic........begin
+==========================
+-- logical tests....passed
+-- logical inverse..passed
+==========================
+decimal logic..........end
+==========================
+==========================
+decimal math.........begin
+==========================
+-- rounding.........passed
+-- pi...............passed
+-- pi_2.............failed at math.d(389): expected "1.570796326764752333257559" but found "1.570796326794896619231322".
+passed
+-- invPi............passed
+-- invPi............passed
+-- e................passed
+-- constants........passed
+reciprocal:  4 tests ( 4 pass)
+-- reciprocal.......passed
+-- inverse sqrt.....passed
+-- square root......passed
+-- exp..............passed
+-- expm1............failed at math.d(864)[0]: expected "-0.329679954" but found "2.03324478".
+passed
+-- log..............passed
+-- log1p............passed
+-- log10............passed
+-- log2.............failed at math.d(1017)[0]: expected "3.32192809" but found "43.0285632".
+failed at math.d(1018)[0]: expected "1.44269504" but found "21.2960126".
+passed
+pow..........test missing
+-- hypot............passed
+-- sin..............difficult = 5
+sin(difficult) = -0.958924275
+passed
+-- cos..............passed
+sincos.........failed
+-- tan..............failed at math.d(1319)[0]: expected "1.55740772465490223" but found "1.55740773".
+passed
+-- asin.............passed
+-- acos.............passed
+-- atan.............passed
+atan2..........failed
+-- sinh.............passed
+-- cosh.............passed
+-- tanh.............passed
+-- asinh............failed at math.d(1549)[0]: expected "0.88137358701954302523260932497979" but found "14.6426447".
+passed
+-- acosh............failed at math.d(1569)[0]: expected "0.96242365011920689499551782684874" but found "14.7236947".
+passed
+-- atanh............failed at math.d(1591)[0]: expected "0.54930614433405484569762261846126" but found "NaN".
+passed
+==========================
+decimal math...........end
+==========================
+-- isDecimal........passed
+-- isConvertible...passed
+==========================
+decimal..............begin
+==========================
+-- special values...passed
+-- this(bool).......passed
+-- this(s,big,int)..passed
+-- this(big,int)....passed
+-- this(long).......passed
+-- this(string).....passed
+-- this(real).......failed at package.d(516)[16]: expected "2.179769313E+306" but found "Infinity".
+failed at package.d(516)[17]: expected "1.1897314953572317649E+4932" but found "Infinity".
+passed
+-- toReal...........passed
+toDouble...x.toDouble = 3.14159
+test missing
+-- this(decimal)....test missing
+-- dup..............passed
+-- copy.............passed
+-- opCast...........test missing
+-- opAssign.........test missing
+-- constants........passed
+-- isCanonical......passed
+-- isOne............passed
+-- isZero...........passed
+-- isNaN............passed
+-- isFinite.........passed
+-- isSpecial........passed
+-- isNegative.......passed
+-- isNormal.........passed
+-- isIntegralValued.passed
+-- isTrue/isFalse...passed
+-- comparison.......passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- opOpAssign.......passed
+-- next.............passed
+-- constants........passed
+==========================
+decimal................end
+==========================
+toDouble...x.toDouble = 3.14159
+test missing
+==========================
+decimal rounding.....begin
+==========================
+-- roundToPrecision.passed
+-- roundByMode......passed
+-- getRemainder.....passed
+-- increment&round..passed
+-- testFive.........passed
+-- numDigits(xint)..passed
+reduceDigits...test missing
+-- 1stDigit(xint)...passed
+-- 1stDigit(uint)..passed
+shiftRight...test missing
+lastDigit.....passed
+==========================
+decimal rounding.......end
+==========================
+abc() = 3
+c = 3
+c = 1
