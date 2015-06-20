@@ -137,7 +137,7 @@ unittest  // toString
 	foreach (i, s; tests)
 	{
 
-		assertEqual(toString(dec9(s.num), s.fmt), s.str, i);
+		assertEqual(toString(TD(s.num), s.fmt), s.str, i);
 	}
 	writeln("passed");
 }
@@ -210,7 +210,7 @@ unittest // sciForm
 
 	foreach (i, s; tests)
 	{
-		assertEqual(sciForm(dec9(s.num)), s.str, i);
+		assertEqual(sciForm(TD(s.num)), s.str, i);
 	}
 	writeln("passed");
 }
@@ -303,7 +303,7 @@ unittest // engForm
 
 	foreach (i, str; tests)
 	{
-		assertEqual(engForm(dec9(str)), str, i);
+		assertEqual(engForm(TD(str)), str, i);
 	}
 	writeln("passed");
 }
@@ -338,7 +338,7 @@ unittest  // specialForm
 
 	foreach (i, str; tests)
 	{
-		assertEqual(dec9(str).specialForm, str, i);
+		assertEqual(TD(str).specialForm, str, i);
 	}
 
 	tests =
@@ -349,7 +349,7 @@ unittest  // specialForm
 
 	foreach (i, str; tests)
 	{
-		assertEqual(dec9(str).specialForm(true), str, i);
+		assertEqual(TD(str).specialForm(true), str, i);
 	}
 	writeln("passed");
 }
@@ -428,7 +428,7 @@ unittest // decimalForm
 
 	foreach (i, s; tests)
 	{
-		assertEqual(decimalForm(dec9(s.num), s.precision), s.str, i);
+		assertEqual(decimalForm(TD(s.num), s.precision), s.str, i);
 	}
 	writeln("passed");
 }
@@ -484,7 +484,7 @@ unittest	// exponentForm
 
 	foreach (i, s; tests)
 	{
-		assertEqual(exponentForm(dec9(s.num), s.precision), s.str, i);
+		assertEqual(exponentForm(TD(s.num), s.precision), s.str, i);
 	}
 	writeln("passed");
 }
@@ -593,7 +593,7 @@ unittest // toAbstract
 
 	foreach (i, s; tests)
 	{
-		assertEqual(dec9(s.num).toAbstract, s.abs, i);
+		assertEqual(TD(s.num).toAbstract, s.abs, i);
 	}
 	writeln("passed");
 }
@@ -644,7 +644,7 @@ unittest // toExact
 
 	foreach (i, str; tests)
 	{
-		assertEqual(dec9(str).toExact, str, i);
+		assertEqual(TD(str).toExact, str, i);
 	}
 	writeln("passed");
 }
@@ -817,8 +817,8 @@ unittest // toNumber
 
 	foreach (i, s; tests)
 	{
-		assertEqual(dec9(s.num).toString, s.str, i);
-		auto num = dec9(s.num);
+		assertEqual(TD(s.num).toString, s.str, i);
+		auto num = TD(s.num);
 /*	auto len = num.coefficient.getDigitLength;
 	for (int j = 0; j < len; j++)
 	{
@@ -877,7 +877,7 @@ unittest // setPayload
 
 	foreach (i, s; tests)
 	{
-		assertEqual(dec9(s.num).toString, s.str, i);
+		assertEqual(TD(s.num).toString, s.str, i);
 	}
 	writeln("passed");
 }

@@ -61,8 +61,6 @@ version(unittest)
 	import eris.test.assertion;
 	import eris.decimal;
 	import eris.decimal.test;
-
-	alias TD  = BigDecimal!(TestContext);
 }
 
 alias xcompare = eris.integer.extended.xint.compare;
@@ -841,21 +839,21 @@ unittest {	// compareSignal
 
 unittest {
 	write("-- compareSignal....");
-	dec9 x, y;
+	TD x, y;
 	int value;
 	x = 0;
 	y = 5;
 	assertGreaterThan(y,x);
 	contextFlags.resetFlags(InvalidOperation);
-	y = dec9.snan;
+	y = TD.snan;
 	value = compare(x, y);
 	assertTrue(contextFlags.getFlags(InvalidOperation));
 	contextFlags.resetFlags(InvalidOperation);
-	y = dec9.nan;
+	y = TD.nan;
 	value = compare(x, y);
 	assertFalse(contextFlags.getFlags(InvalidOperation));
 	contextFlags.set(InvalidOperation, false);
-	y = dec9.nan;
+	y = TD.nan;
 	value = compareSignal(x, y);
 	assertTrue(contextFlags.getFlags(InvalidOperation));
 	writeln("passed");
@@ -1430,7 +1428,7 @@ unittest {	// rotate
 
 /*unittest {
 	write("-- rotate...........");
-	dec9 x, y, z;
+	TD x, y, z;
 	x = "34";
 	y = 8;
 	z = "400000003";
@@ -2263,9 +2261,9 @@ private void alignOps(T, U:long)(ref T x, U n) if (isDecimal!T)
 
 unittest { // alignOps
  	write("-- alignOps.........");
-	dec9 arg1, arg2;
-	arg1 = dec9("1.3E35");
-	arg2 = dec9("-17.4E29");
+	TD arg1, arg2;
+	arg1 = TD("1.3E35");
+	arg2 = TD("-17.4E29");
 	alignOps(arg1, arg2);
 	assertEqual(arg1.coefficient, 13000000);
 	assertEqual(arg2.exponent, 28);
@@ -2286,11 +2284,11 @@ package T invalidOperation(T)(ushort payload = 0)
 }
 
 unittest {	// invalidOperation
-/*	dec9 arg, expect, actual;
+/*	TD arg, expect, actual;
 	// TODO: (testing) Can't actually test payloads at this point.
-	arg = dec9("sNaN123");
-	expect = dec9("NaN123");
-	actual = abs!dec9(arg);
+	arg = TD("sNaN123");
+	expect = TD("NaN123");
+	actual = abs!TD(arg);
 	assertTrue(actual.isQuiet);
 	assertTrue(contextFlags.getFlag(InvalidOperation));
 	assertEqual(actual.toAbstract, expect.toAbstract);*/

@@ -155,42 +155,42 @@ public xint toBigInt(T)(T x, Rounding mode = Rounding.halfEven)
 
 unittest {	// rounding
 	write("-- rounding.........");
-	dec9 num;
-	num = dec9("2.1");
-	assertEqual(rint(num) , dec9("2"));
-	assertEqual(floor(num), dec9("2"));
-	assertEqual(ceil(num) , dec9("3"));
-	assertEqual(trunc(num), dec9("2"));
-	num = dec9("2.5");
-	assertEqual(rint(num) , dec9("2"));
-	assertEqual(floor(num), dec9("2"));
-	assertEqual(ceil(num) , dec9("3"));
-	assertEqual(trunc(num), dec9("2"));
-	num = dec9("3.5");
-	assertEqual(rint(num) , dec9("4"));
-	assertEqual(floor(num), dec9("3"));
-	assertEqual(ceil(num) , dec9("4"));
-	assertEqual(trunc(num), dec9("3"));
-	num = dec9("2.9");
-	assertEqual(rint(num) , dec9("3"));
-	assertEqual(floor(num), dec9("2"));
-	assertEqual(ceil(num) , dec9("3"));
-	assertEqual(trunc(num), dec9("2"));
-	num = dec9("-2.1");
-	assertEqual(rint(num) , dec9("-2"));
-	assertEqual(floor(num), dec9("-3"));
-	assertEqual(ceil(num) , dec9("-2"));
-	assertEqual(trunc(num), dec9("-2"));
-	num = dec9("-2.9");
-	assertEqual(rint(num) , dec9("-3"));
-	assertEqual(floor(num), dec9("-3"));
-	assertEqual(ceil(num) , dec9("-2"));
-	assertEqual(trunc(num), dec9("-2"));
-	num = dec9("-2.5");
-	assertEqual(rint(num) , dec9("-2"));
-	assertEqual(floor(num), dec9("-3"));
-	assertEqual(ceil(num) , dec9("-2"));
-	assertEqual(trunc(num), dec9("-2"));
+	TD num;
+	num = TD("2.1");
+	assertEqual(rint(num) , TD("2"));
+	assertEqual(floor(num), TD("2"));
+	assertEqual(ceil(num) , TD("3"));
+	assertEqual(trunc(num), TD("2"));
+	num = TD("2.5");
+	assertEqual(rint(num) , TD("2"));
+	assertEqual(floor(num), TD("2"));
+	assertEqual(ceil(num) , TD("3"));
+	assertEqual(trunc(num), TD("2"));
+	num = TD("3.5");
+	assertEqual(rint(num) , TD("4"));
+	assertEqual(floor(num), TD("3"));
+	assertEqual(ceil(num) , TD("4"));
+	assertEqual(trunc(num), TD("3"));
+	num = TD("2.9");
+	assertEqual(rint(num) , TD("3"));
+	assertEqual(floor(num), TD("2"));
+	assertEqual(ceil(num) , TD("3"));
+	assertEqual(trunc(num), TD("2"));
+	num = TD("-2.1");
+	assertEqual(rint(num) , TD("-2"));
+	assertEqual(floor(num), TD("-3"));
+	assertEqual(ceil(num) , TD("-2"));
+	assertEqual(trunc(num), TD("-2"));
+	num = TD("-2.9");
+	assertEqual(rint(num) , TD("-3"));
+	assertEqual(floor(num), TD("-3"));
+	assertEqual(ceil(num) , TD("-2"));
+	assertEqual(trunc(num), TD("-2"));
+	num = TD("-2.5");
+	assertEqual(rint(num) , TD("-2"));
+	assertEqual(floor(num), TD("-3"));
+	assertEqual(ceil(num) , TD("-2"));
+	assertEqual(trunc(num), TD("-2"));
 	writeln("passed");
 }
 
@@ -357,19 +357,19 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 unittest
 {
 	write("-- pi...............");
-	assertEqual(dec9.pi, "3.14159265");
-	assertPrecisionEqual(dec9.pi(10), "3.141592654", 10);
-	assertPrecisionEqual(dec9.pi(12), "3.14159265359", 12);
-	assertPrecisionEqual(dec9.pi(14), "3.1415926535898", 14);
-	assertPrecisionEqual(dec9.pi(16), "3.141592653589793", 16);
-	assertPrecisionEqual(dec9.pi(18), "3.14159265358979324", 18);
-	assertPrecisionEqual(dec9.pi(20), "3.1415926535897932385", 20);
-	assertPrecisionEqual(dec9.pi(22), "3.141592653589793238463", 22);
-	assertPrecisionEqual(dec9.pi(23), "3.1415926535897932384626", 23);
-	assertPrecisionEqual(dec9.pi(24), "3.14159265358979323846264", 24);
-	assertPrecisionEqual(dec9.pi(25), "3.141592653589793238462643", 25);
-	assertPrecisionEqual(dec9.pi(26), "3.1415926535897932384626434", 26);
-	assertPrecisionEqual(dec9.pi(5),  "3.1416", 5);
+	assertEqual(TD.pi, "3.14159265");
+	assertPrecisionEqual(TD.pi(10), "3.141592654", 10);
+	assertPrecisionEqual(TD.pi(12), "3.14159265359", 12);
+	assertPrecisionEqual(TD.pi(14), "3.1415926535898", 14);
+	assertPrecisionEqual(TD.pi(16), "3.141592653589793", 16);
+	assertPrecisionEqual(TD.pi(18), "3.14159265358979324", 18);
+	assertPrecisionEqual(TD.pi(20), "3.1415926535897932385", 20);
+	assertPrecisionEqual(TD.pi(22), "3.141592653589793238463", 22);
+	assertPrecisionEqual(TD.pi(23), "3.1415926535897932384626", 23);
+	assertPrecisionEqual(TD.pi(24), "3.14159265358979323846264", 24);
+	assertPrecisionEqual(TD.pi(25), "3.141592653589793238462643", 25);
+	assertPrecisionEqual(TD.pi(26), "3.1415926535897932384626434", 26);
+	assertPrecisionEqual(TD.pi(5),  "3.1416", 5);
 	writeln("passed");
 }
 
@@ -383,9 +383,9 @@ package T pi_2(T)(Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- pi_2.............");
-	assertEqual(dec9.pi_2, dec9("1.57079633"));
-	assertPrecisionEqual(dec9.pi_2(25), "1.570796326764752333257559", 25);
-	assertPrecisionEqual(dec9.pi_2(5), "1.5708", 5);
+	assertEqual(TD.pi_2, TD("1.57079633"));
+	assertPrecisionEqual(TD.pi_2(25), "1.570796326764752333257559", 25);
+	assertPrecisionEqual(TD.pi_2(5), "1.5708", 5);
 	writeln("passed");
 }
 mixin (Constant!("invPi"));
@@ -401,9 +401,9 @@ package T invPi(T)(Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- invPi............");
-	assertEqual(dec9.invPi, dec9("0.318309886"));
-	assertPrecisionEqual(dec9.invPi(25), "0.3183098861837906715377675", 25);
-//	assertPrecisionEqual(reciprocal(dec9.pi), "0.318309886", 9);
+	assertEqual(TD.invPi, TD("0.318309886"));
+	assertPrecisionEqual(TD.invPi(25), "0.3183098861837906715377675", 25);
+//	assertPrecisionEqual(reciprocal(TD.pi), "0.318309886", 9);
 	writeln("passed");
 }
 
@@ -420,9 +420,9 @@ package T twoInvPi(T)(Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- invPi............");
-	assertEqual(dec9.invPi, dec9("0.318309886"));
-	assertPrecisionEqual(dec9.invPi(25), "0.3183098861837906715377675", 25);
-//	assertPrecisionEqual(reciprocal(dec9.pi), "0.318309886", 9);
+	assertEqual(TD.invPi, TD("0.318309886"));
+	assertPrecisionEqual(TD.invPi(25), "0.3183098861837906715377675", 25);
+//	assertPrecisionEqual(reciprocal(TD.pi), "0.318309886", 9);
 	writeln("passed");
 }
 
@@ -446,8 +446,8 @@ package T e(T)(Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- e................");
-	assertEqual(dec9.e, "2.71828183");
-	assertPrecisionEqual(dec9.e(35), "2.7182818284590452353602874713526625", 35);
+	assertEqual(TD.e, "2.71828183");
+	assertPrecisionEqual(TD.e(35), "2.7182818284590452353602874713526625", 35);
 	writeln("passed");
 }
 
@@ -475,8 +475,8 @@ package enum T log2_10(T)(Context inContext) if (isDecimal!T)
 	auto context = guard(inContext);
 	T log2T = div(log(T.Ten, context, false), log(T.Two, context, false), context);
 	return roundToPrecision(log2T, inContext);
-//	return roundToPrecision(dec9("18690473486004564289165545643685440097"), inContext);
-//	return roundToPrecision(dec9("18690473486004564245643685440097"), inContext);
+//	return roundToPrecision(TD("18690473486004564289165545643685440097"), inContext);
+//	return roundToPrecision(TD("18690473486004564245643685440097"), inContext);
 }
 
 mixin (Constant!("log10_e"));
@@ -519,18 +519,18 @@ bool verbose = false;
 // TODO: (testing) Test these at higher precisions
 unittest {
 	write("-- constants........");
-	assertEqual(dec9.ln10,    "2.30258509");
-	assertEqual(dec9.ln2,     "0.693147181");
-	assertEqual(dec9.log2_e,  "1.44269504");
-	assertEqual(dec9.log2_10, "3.32192809");
-	assertEqual(dec9.log2_e,  "1.44269504");
-	assertEqual(dec9.log2_10, "3.32192809");
-	assertEqual(dec9.log2_10(8), "3.3219281");
-	assertPrecisionEqual(dec9.log2_10(15), "3.32192809488736", 15);
-	assertEqual(dec9.sqrt2,   "1.41421356");
-	assertEqual(dec9.sqrt1_2, "0.707106781");
-	assertEqual(dec9.phi,     "1.61803399");
-	assertPrecisionEqual(dec9.phi(25), "1.618033988749894848204587", 25);
+	assertEqual(TD.ln10,    "2.30258509");
+	assertEqual(TD.ln2,     "0.693147181");
+	assertEqual(TD.log2_e,  "1.44269504");
+	assertEqual(TD.log2_10, "3.32192809");
+	assertEqual(TD.log2_e,  "1.44269504");
+	assertEqual(TD.log2_10, "3.32192809");
+	assertEqual(TD.log2_10(8), "3.3219281");
+	assertPrecisionEqual(TD.log2_10(15), "3.32192809488736", 15);
+	assertEqual(TD.sqrt2,   "1.41421356");
+	assertEqual(TD.sqrt1_2, "0.707106781");
+	assertEqual(TD.phi,     "1.61803399");
+	assertPrecisionEqual(TD.phi(25), "1.618033988749894848204587", 25);
 	writeln("passed");
 }
 //--------------------------------
@@ -623,12 +623,12 @@ unittest
 
 unittest {	// reciprocal
 	write("-- reciprocal.......");
-	dec9 one = dec9.one;
-	dec9 num = dec9("1234567890123456789");
-	dec9 a = one/num;
-	dec9 b = reciprocal(num,10);
+	TD one = TD.one;
+	TD num = TD("1234567890123456789");
+	TD a = one/num;
+	TD b = reciprocal(num,10);
 	assertEqual(b, a);
-	num = dec9("12345678906789");
+	num = TD("12345678906789");
 	a = one/num;
 	b = reciprocal(num);
 	assertEqual(b, a);
@@ -685,14 +685,14 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- inverse sqrt.....");
-	assertEqual(invSqrt(dec9(2)), dec9("0.707106781"));
-	assertEqual(invSqrt(dec9(2), 14), dec9("0.70710678118655"));
-	assertEqual(invSqrt(dec9(20)), dec9("0.223606798"));
-	assertEqual(invSqrt(dec9(300)), dec9("0.0577350269"));
-	assertEqual(invSqrt(dec9(4000),11), dec9("0.0158113883"));
-	assertEqual(invSqrt(dec9(98763)), dec9("0.00318201969"));
-	assertEqual(invSqrt(dec9(98763098)), dec9("0.000100624248"));
-	assertEqual(invSqrt(dec9(9876387982347)), dec9("3.18200552E-7"));
+	assertEqual(invSqrt(TD(2)), TD("0.707106781"));
+	assertEqual(invSqrt(TD(2), 14), TD("0.70710678118655"));
+	assertEqual(invSqrt(TD(20)), TD("0.223606798"));
+	assertEqual(invSqrt(TD(300)), TD("0.0577350269"));
+	assertEqual(invSqrt(TD(4000),11), TD("0.0158113883"));
+	assertEqual(invSqrt(TD(98763)), TD("0.00318201969"));
+	assertEqual(invSqrt(TD(98763098)), TD("0.000100624248"));
+	assertEqual(invSqrt(TD(9876387982347)), TD("3.18200552E-7"));
 	writeln("passed");
 }
 
@@ -738,13 +738,13 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 
 unittest {
 	write("-- square root......");
-	assertEqual(sqrt(dec9(2)), dec9("1.41421356"));
-	assertEqual(sqrt(dec9(dec9.one/sqrt(dec9(2)))), dec9("0.840896415"));
-	assertEqual(sqrt(dec9(200)), dec9("14.1421356"));
-	assertEqual(sqrt(dec9(25)), dec9("5.00000000"));
-	assertEqual(sqrt(dec9(2E-5)), dec9("0.00447213596"));
-	assertEqual(sqrt(dec9(1E-15)), dec9("3.16227766E-8"));
-	assertEqual(sqrt(dec9(1E-16)), dec9("1.00000000E-8"));
+	assertEqual(sqrt(TD(2)), TD("1.41421356"));
+	assertEqual(sqrt(TD(TD.one/sqrt(TD(2)))), TD("0.840896415"));
+	assertEqual(sqrt(TD(200)), TD("14.1421356"));
+	assertEqual(sqrt(TD(25)), TD("5.00000000"));
+	assertEqual(sqrt(TD(2E-5)), TD("0.00447213596"));
+	assertEqual(sqrt(TD(1E-15)), TD("3.16227766E-8"));
+	assertEqual(sqrt(TD(1E-16)), TD("1.00000000E-8"));
 	writeln("passed");
 }
 
@@ -784,12 +784,12 @@ package T exp(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- exp..............");
-	assertEqual(exp(dec9.one), dec9("2.71828183"));
-	assertEqual(exp(dec9.one, 11), dec9("2.7182818285"));
-	assertEqual(exp(dec9.one, 15), dec9("2.71828182845905"));
-	assertEqual(exp(dec9.two, 15), dec9("7.3890560989306502272"));
-	assertEqual(exp(dec9.two, 11), dec9("7.3890560989306502272"));
-	assertEqual(exp(-dec9.two, 11), dec9("0.13533528324"));
+	assertEqual(exp(TD.one), TD("2.71828183"));
+	assertEqual(exp(TD.one, 11), TD("2.7182818285"));
+	assertEqual(exp(TD.one, 15), TD("2.71828182845905"));
+	assertEqual(exp(TD.two, 15), TD("7.3890560989306502272"));
+	assertEqual(exp(TD.two, 11), TD("7.3890560989306502272"));
+	assertEqual(exp(-TD.two, 11), TD("0.13533528324"));
 	writeln("passed");
 }
 
@@ -855,14 +855,14 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 // TODO: (testing) unittest this
 unittest {
 	write("-- expm1............");
-	dec9 num;
+	TD num;
 	num = "0.1";
-	assertEqual(expm1(num), dec9("0.105170918"));
+	assertEqual(expm1(num), TD("0.105170918"));
 	num = "-0.4";
-	assertEqual(expm1(num), dec9("-0.329679954"));
+	assertEqual(expm1(num), TD("-0.329679954"));
 	// FIXTHIS: incorrect result for negative numbers.
 	num = "-2";
-	assertEqual(expm1(num), dec9("-0.864664717"));
+	assertEqual(expm1(num), TD("-0.864664717"));
 	writeln("passed");
 }
 
@@ -915,11 +915,11 @@ package T log(T)(T x, Context inContext,
 
 unittest {
 	write("-- log..............");
-	dec9 one = dec9.one;
+	TD one = TD.one;
 	assertEqual(log(exp(one)), one);
-	assertEqual(log(dec9(10)), "2.30258509");
-	assertEqual(log(dec9(123.45)), "4.81583622");
-	assertEqual(log(dec9("99.999E+8")), "23.0258409");
+	assertEqual(log(TD(10)), "2.30258509");
+	assertEqual(log(TD(123.45)), "4.81583622");
+	assertEqual(log(TD("99.999E+8")), "23.0258409");
 	writeln("passed");
 }
 
@@ -964,7 +964,7 @@ public T log1p(T)(T x, Context inContext) if (isDecimal!T)
 // TODO: (testing) unittest this.
 unittest {
 	write("-- log1p............");
-	dec9 x = "0.1";
+	TD x = "0.1";
 	assertEqual(log1p(x), "0.095310179804");
 	writeln("passed");
 }
@@ -990,10 +990,10 @@ public T log10(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- log10............");
-	dec9 x = dec9("2.55");
-	assertEqual(log10(x), dec9("0.40654018"));
+	TD x = TD("2.55");
+	assertEqual(log10(x), TD("0.40654018"));
 	x = 123.456;
-	assertEqual(log10(x), dec9("2.09151220"));
+	assertEqual(log10(x), TD("2.09151220"));
 	x = 10.0;
 	assertEqual(log10(x), 1);
 	writeln("passed");
@@ -1012,8 +1012,8 @@ public T log2(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- log2.............");
-	assertEqual(log2(dec9(10)), dec9("3.32192809"));
-	assertEqual(log2(dec9.e), dec9("1.44269504"));
+	assertEqual(log2(TD(10)), TD("3.32192809"));
+	assertEqual(log2(TD.e), TD("1.44269504"));
 	writeln("passed");
 }
 
@@ -1062,10 +1062,10 @@ public T hypot(T)(T x, T y, Context context) if (isDecimal!T)
 // TODO: (testing) Need to test operation near precisions where this operation is really useful.
 unittest {
 	write("-- hypot............");
-	dec9 x = 3;
-	dec9 y = 4;
-	dec9 expect = 5;
-	dec9 actual = hypot(x,y);
+	TD x = 3;
+	TD y = 4;
+	TD expect = 5;
+	TD actual = hypot(x,y);
 	assertTrue(actual == expect);
 	assertEqual(actual, expect);
 	writeln("passed");
@@ -1139,17 +1139,17 @@ package T sin(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- sin..............");
-	assertEqual(sin(dec9(0.1)), dec9("0.0998334166"));
-	assertEqual(sin(dec9.one), dec9("0.8414709848978965"));
-	assertEqual(sin(dec9.two, 16), dec9("0.9092974268256817"));
-	assertEqual(sin(dec9.one, 16), dec9("0.8414709848978965"));
-	assertEqual(sin(dec9("0.333")), dec9("0.326879693"));
-//	dec9 difficult = dec9(5678900000);
-	dec9 difficult = dec9(5);
+	assertEqual(sin(TD(0.1)), TD("0.0998334166"));
+	assertEqual(sin(TD.one), TD("0.8414709848978965"));
+	assertEqual(sin(TD.two, 16), TD("0.9092974268256817"));
+	assertEqual(sin(TD.one, 16), TD("0.8414709848978965"));
+	assertEqual(sin(TD("0.333")), TD("0.326879693"));
+//	TD difficult = TD(5678900000);
+	TD difficult = TD(5);
 writefln("difficult = %s", difficult);
 // FIXTHIS: throws div by zero exception...
 writefln("sin(difficult) = %s", sin(difficult));
-//	assertEqual(sin(difficult), dec9(0));
+//	assertEqual(sin(difficult), TD(0));
 	// TODO: (testing) one value from each quadrant, reduced value.
 	// TODO: (behavior) this is a notoriously difficult value "sin(10^^22)"
 	writeln("passed");
@@ -1205,9 +1205,9 @@ package T cos(T)(T x, Context inContext) {
 
 unittest {
 	write("-- cos..............");
-	assertEqual(cos(dec9.one), dec9("0.5403023058681397174009"));
-	assertEqual(cos(dec9.one, 23), dec9("0.5403023058681397174009"));
-	assertEqual(cos(dec9("0.333")), dec9("0.945065959"));
+	assertEqual(cos(TD.one), TD("0.5403023058681397174009"));
+	assertEqual(cos(TD.one, 23), TD("0.5403023058681397174009"));
+	assertEqual(cos(TD("0.333")), TD("0.945065959"));
 	// TODO: (testing) one value from each quadrant, reduced value.
 	writeln("passed");
 }
@@ -1269,9 +1269,9 @@ public void sincos(T)(T x, out T sine, out T cosine,
 
 unittest {
 	write("sincos.......");
-	dec9 sine;
-	dec9 cosine;
-	sincos(dec9("1.0"), sine, cosine);
+	TD sine;
+	TD cosine;
+	sincos(TD("1.0"), sine, cosine);
 	writeln("..failed");
 }
 
@@ -1313,9 +1313,9 @@ public T tan(T)(T x, int precision = T.precision) if (isDecimal!T)
 unittest {
 	write("-- tan..............");
 	// TODO: (testing) one value from each quadrant, reduced value.
-	assertEqual(tan(dec9.one), dec9("1.55740772465490223"));
-	assertEqual(tan(dec9.one, 14), dec9("1.55740772465490223"));
-	assertEqual(tan(dec9("0.333")), dec9("0.345880295"));
+	assertEqual(tan(TD.one), TD("1.55740772465490223"));
+	assertEqual(tan(TD.one, 14), TD("1.55740772465490223"));
+	assertEqual(tan(TD("0.333")), TD("0.345880295"));
 	writeln("passed");
 }
 
@@ -1359,9 +1359,9 @@ public T asin(T)(T x) if (isDecimal!T)
 
 unittest {
 	write("-- asin.............");
-	assertEqual(asin(dec9.half), dec9("0.523598776"));
-//	assertEqual(asin(dec9.one, 14), dec9("1.55740772465490223"));
-	assertEqual(asin(dec9("0.333")), dec9("0.339483378"));
+	assertEqual(asin(TD.half), TD("0.523598776"));
+//	assertEqual(asin(TD.one, 14), TD("1.55740772465490223"));
+	assertEqual(asin(TD("0.333")), TD("0.339483378"));
 	writeln("passed");
 }
 
@@ -1375,9 +1375,9 @@ public T acos(T)(T x) if (isDecimal!T)
 
 unittest {
 	write("-- acos.............");
-	assertEqual(acos(dec9.half), dec9("1.0471975511965977461542144610932"));
-//	assertEqual(acos(dec9.one, 14), dec9("1.55740772465490223"));
-	assertEqual(acos(dec9("0.333")), dec9("1.23131295"));
+	assertEqual(acos(TD.half), TD("1.0471975511965977461542144610932"));
+//	assertEqual(acos(TD.one, 14), TD("1.55740772465490223"));
+	assertEqual(acos(TD("0.333")), TD("1.23131295"));
 	writeln("passed");
 }
 
@@ -1415,11 +1415,11 @@ public T atan(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- atan.............");
-	assertEqual(atan(dec9.half), dec9("0.463647609"));
-	assertEqual(atan(dec9.one, 14), dec9("0.78539816339745"));
-	assertEqual(atan(dec9("0.333")), dec9("0.321450524"));
-	assertEqual(atan(dec9("0.1")), dec9("0.099668652491162038065120043484057532623410224914551"));
-	assertEqual(atan(dec9("0.9")), dec9("0.73281510178650655085164089541649445891380310058594"));
+	assertEqual(atan(TD.half), TD("0.463647609"));
+	assertEqual(atan(TD.one, 14), TD("0.78539816339745"));
+	assertEqual(atan(TD("0.333")), TD("0.321450524"));
+	assertEqual(atan(TD("0.1")), TD("0.099668652491162038065120043484057532623410224914551"));
+	assertEqual(atan(TD("0.9")), TD("0.73281510178650655085164089541649445891380310058594"));
 	writeln("passed");
 }
 
@@ -1427,9 +1427,9 @@ unittest {
  * Decimal version of std.math function.
  *
  */
-public dec9 atan2(T)(T y, dec9 x) if (isDecimal!T)
+public TD atan2(T)(T y, TD x) if (isDecimal!T)
 {
-	dec9 result;
+	TD result;
 	return result;
 }
 
@@ -1478,8 +1478,8 @@ public T sinh1(T)(T x) if (isDecimal!T)
 
 unittest {
 	write("-- sinh.............");
-	assertEqual(sinh(dec9("1.0")), dec9("1.1752011936438014568823818505956008151557179813341"));
-//	assertEqual(sinh1(dec9("1.0")), dec9("1.1752011936438014568823818505956008151557179813341"));
+	assertEqual(sinh(TD("1.0")), TD("1.1752011936438014568823818505956008151557179813341"));
+//	assertEqual(sinh1(TD("1.0")), TD("1.1752011936438014568823818505956008151557179813341"));
 	writeln("passed");
 }
 
@@ -1508,7 +1508,7 @@ public T cosh(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- cosh.............");
-	assertEqual(cosh(dec9("1.0")), dec9("1.5430806348152437784779056207570616826015291123659"));
+	assertEqual(cosh(TD("1.0")), TD("1.5430806348152437784779056207570616826015291123659"));
 	writeln("passed");
 }
 
@@ -1525,7 +1525,7 @@ public T tanh(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- tanh.............");
-	assertEqual(tanh(dec9("1.0")), dec9("0.76159415595576488811945828260479"));
+	assertEqual(tanh(TD("1.0")), TD("0.76159415595576488811945828260479"));
 	writeln("passed");
 }
 
@@ -1544,7 +1544,7 @@ public T asinh(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- asinh............");
-	assertEqual(asinh(dec9("1.0")), dec9("0.88137358701954302523260932497979"));
+	assertEqual(asinh(TD("1.0")), TD("0.88137358701954302523260932497979"));
 	writeln("passed");
 }
 
@@ -1564,7 +1564,7 @@ public T acosh(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- acosh............");
-	assertEqual(acosh(dec9("1.5")), dec9("0.96242365011920689499551782684874"));
+	assertEqual(acosh(TD("1.5")), TD("0.96242365011920689499551782684874"));
 	writeln("passed");
 }
 
@@ -1586,7 +1586,7 @@ public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- atanh............");
-	assertEqual(atanh(dec9("0.5")), dec9("0.54930614433405484569762261846126"));
+	assertEqual(atanh(TD("0.5")), TD("0.54930614433405484569762261846126"));
 	writeln("passed");
 }
 

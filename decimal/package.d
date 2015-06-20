@@ -42,8 +42,7 @@ public enum Context Context99      = Context(99, 999, Rounding.halfEven);
 public enum Context RealContext    = Context(real.dig, real.max_10_exp, Rounding.halfEven);
 public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, Rounding.halfEven);
 
-alias dec9  = BigDecimal!(TestContext);
-alias testDecimal  = BigDecimal!(TestContext);
+alias TD = BigDecimal!(TestContext);
 alias dec99 = BigDecimal!(Context99);
 
 // special values for NaN, Inf, etc.
@@ -57,8 +56,8 @@ version(unittest)
 		U expect;
 	}
 
-alias DD = testStruct!(testDecimal, testDecimal);
-alias DS = testStruct!(testDecimal, string);
+alias DD = testStruct!(TD, TD);
+alias DS = testStruct!(TD, string);
 }
 /// A struct representing an arbitrary-precision decimal floating-point number.
 ///
@@ -123,11 +122,11 @@ unittest {
 	unittest {// decimal special values
 		write("-- special values...");
 
-//		static struct S { testDecimal num; string val; }
+//		static struct S { TD num; string val; }
 
-		alias ts = testStruct!(testDecimal, string);
+		alias ts = testStruct!(TD, string);
 		static DS[] tests =
-//		static testStruct!(testDecimal, string)[] tests =
+//		static testStruct!(TD, string)[] tests =
 		[
 			{ NaN,		"NaN" },
 			{ sNaN,		"sNaN" },
@@ -191,8 +190,8 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// boolean construction
 		write("-- this(bool).......");
-		assertEqual(testDecimal(false), testDecimal(0));
-		assertEqual(testDecimal(true), testDecimal(1));
+		assertEqual(TD(false), TD(0));
+		assertEqual(TD(true), TD(1));
 		writeln("passed");
 	}}
 
@@ -215,13 +214,13 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// bool, xint, int construction
 		write("-- this(s,big,int)..");
-		testDecimal num;
-		num = testDecimal(true, xint(7254), 94);
-		assertEqual(num, testDecimal("-7.254E+97"));
-		num = testDecimal(true, xint(7254), 194);
-		num = testDecimal(true, xint(1), 194);
+		TD num;
+		num = TD(true, xint(7254), 94);
+		assertEqual(num, TD("-7.254E+97"));
+		num = TD(true, xint(7254), 194);
+		num = TD(true, xint(1), 194);
 		num = roundToPrecision(num);
-		assertEqual(num, testDecimal("-Infinity"));
+		assertEqual(num, TD("-Infinity"));
 		writeln("passed");
 	}}
 
@@ -239,11 +238,11 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// xint, int construction
 		write("-- this(big,int)....");
-		testDecimal num;
-		num = testDecimal(xint(7254), 94);
-		assertEqual(num, testDecimal("7.254E+97"));
-		num = testDecimal(xint(-7254));
-		assertEqual(num, testDecimal("-7254"));
+		TD num;
+		num = TD(xint(7254), 94);
+		assertEqual(num, TD("7.254E+97"));
+		num = TD(xint(-7254));
+		assertEqual(num, TD("-7254"));
 		writeln("passed");
 	}}
 
@@ -270,10 +269,10 @@ unittest {
 		write("w/digits...");
 	//	const xint mant = xint(314159);
 		xint mant = xint("314159");
-		dec9 d = dec9(false, mant, -5, 6);
+		TD d = TD(false, mant, -5, 6);
 		writefln("d = %s", d);
 		mant = xint("3141590000000000000000000000000000000000000");
-		d = dec9(false, mant, -42, 43);
+		d = TD(false, mant, -42, 43);
 		writefln("d = %s", d);
 
 		writeln("test missing");
@@ -295,11 +294,11 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// long value construction
 		write("-- this(long).......");
-		dec9 num;
-		num = dec9(7254, 94);
-		assertEqual(num, testDecimal("7.254E+97"));
-		num = dec9(-7254L);
-		assertEqual(num, testDecimal("-7254"));
+		TD num;
+		num = TD(7254, 94);
+		assertEqual(num, TD("7.254E+97"));
+		num = TD(-7254L);
+		assertEqual(num, TD("-7254"));
 		writeln("passed");
 	}}
 
@@ -333,7 +332,7 @@ unittest {
 
 		foreach (i, s; tests)
 		{
-			assertEqual(testDecimal(s.num).toString, s.val, i);
+			assertEqual(TD(s.num).toString, s.val, i);
 		}
 		writeln("passed");
 	}}
@@ -513,7 +512,7 @@ unittest {
 
 		foreach (i, s; tests)
 		{
-			assertEqual(testDecimal(s.num).reduce, testDecimal(s.val), i);
+			assertEqual(TD(s.num).reduce, TD(s.val), i);
 		}
 		writeln("passed");
 	}}
@@ -643,7 +642,7 @@ unittest {
 	// TODO: (testing) add unit tests
 	unittest {
 		write("toDouble...");
-		dec9 x = "3.14159";
+		TD x = "3.14159";
 		writefln("x.toDouble = %s", x.toDouble);
 		writeln("test missing");
 	}
@@ -663,14 +662,14 @@ unittest {
 	static if (context == TestContext) {
 	unittest {
 		write("-- this(decimal)....");
-/*		dec9 abc = 12345;
+/*		TD abc = 12345;
 		dec99 def = dec99(abc);
 		assertEqual(abc, def);
-		dec9 ghi = dec99(def);
+		TD ghi = dec99(def);
 		assertEqual(def, ghi);
-		dec9 klm = dec9(-dec99.infinity);
+		TD klm = TD(-dec99.infinity);
 		assertEqual(klm, "-Infinity");
-		assertEqual(dec9.infinity, dec99.infinity);*/
+		assertEqual(TD.infinity, dec99.infinity);*/
 		writeln("test missing");
 	}}
 
@@ -706,15 +705,15 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// dup
 		write("-- dup..............");
-		dec9 num, copy;
+		TD num, copy;
 		// TODO: add tests for these values
 		num = std.math.LOG2;
 		num = std.math.PI;
 		num = std.math.LOG2;
-		copy = dec9(num);
-//		assertCopy!dec9(num, copy);
+		copy = TD(num);
+//		assertCopy!TD(num, copy);
 		assertZero(compareTotal(num, copy));
-		num = dec9(std.math.PI);
+		num = TD(std.math.PI);
 		copy = num.dup;
 		assertEqual(num, copy);
 		writeln("passed");
@@ -765,26 +764,26 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// copy
 		write("-- copy.............");
-		dec9 arg, expect;
-		arg = dec9("2.1");
-		expect = dec9("2.1");
+		TD arg, expect;
+		arg = TD("2.1");
+		expect = TD("2.1");
 		assertZero(compareTotal(arg.copy,expect));
-		arg = dec9("-1.00");
-		expect = dec9("-1.00");
+		arg = TD("-1.00");
+		expect = TD("-1.00");
 		assertZero(compareTotal(arg.copy,expect));
 		// copyAbs
 		arg = 2.1;
 		expect = 2.1;
 		assertZero(compareTotal(arg.copyAbs,expect));
-		arg = dec9("-1.00");
-		expect = dec9("1.00");
+		arg = TD("-1.00");
+		expect = TD("1.00");
 		assertZero(compareTotal(arg.copyAbs,expect));
 		// copyNegate
-		arg	= dec9("101.5");
-		expect = dec9("-101.5");
+		arg	= TD("101.5");
+		expect = TD("-101.5");
 		assertZero(compareTotal(arg.copyNegate,expect));
 		// copySign
-		dec9 arg1, arg2;
+		TD arg1, arg2;
 		arg1 = 1.50; arg2 = 7.33; expect = 1.50;
 		assertZero(compareTotal(arg1.copySign(arg2),expect));
 		arg2 = -7.33;
@@ -815,25 +814,25 @@ unittest {
 	static if (context == TestContext) {
 	unittest {
 		write("-- opCast...........");
-/*		assertFalse(dec9.init);
-		dec9 abc = dec9(12,4);
+/*		assertFalse(TD.init);
+		TD abc = TD(12,4);
 		assertTrue(abc);
 		dec99 def = cast(dec99)abc;
 		assertEqual(abc, def);
-		dec9 def2 = cast(dec99)abc;
+		TD def2 = cast(dec99)abc;
 		assertEqual(def, def2);
 		int n = 7;
-		dec9 bdn = cast(dec9)n;
-		assertEqual(bdn, dec9(7));
-		auto tr = cast(dec9)12;
+		TD bdn = cast(TD)n;
+		assertEqual(bdn, TD(7));
+		auto tr = cast(TD)12;
 		assertEqual(typeid(tr), typeid(bdn));
 		dec99 big = 1234567890123;
-		dec9 klm = dec9(big);
+		TD klm = TD(big);
 		assertEqual(klm, big);	// klm has not been rounded.
 		assertNotEqual(abs(klm), big);	// klm has been rounded.
 		dec99 spcl = dec99.infinity(true);
-		klm = dec9(spcl);
-		assertEqual(klm, dec9("-Infinity"));*/
+		klm = TD(spcl);
+		assertEqual(klm, TD("-Infinity"));*/
 		writeln("test missing");
 	}}
 
@@ -881,9 +880,9 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// opAssign
 		write("-- opAssign.........");
-/*		dec9 num;
+/*		TD num;
 		string str;
-		num = dec9(1, 245, 8);
+		num = TD(1, 245, 8);
 		str = "-2.45E+10";
 		assertStringEqual(num,str);
 		num = long.max;
@@ -1161,7 +1160,7 @@ unittest {
 	static if (context == TestContext) {
 	unittest {
 		write("-- constants........");
-		assertEqual(dec9.Half, dec9(0.5));
+		assertEqual(TD.Half, TD(0.5));
 		writeln("passed");
 	}}
 
@@ -1204,10 +1203,10 @@ unittest {
 	unittest
 	{	// isCanonical
 		write("-- isCanonical......");
-		dec9 num = dec9("2.50");
+		TD num = TD("2.50");
 		// string constructions generally have a leading zero
 		assertFalse(num.isCanonical);
-		dec9 copy = num.canonical;
+		TD copy = num.canonical;
 		assertTrue(copy.isCanonical);
 		assertEqual(compareTotal(num, copy), 0);
 		writeln("passed");
@@ -1239,10 +1238,10 @@ unittest {
 	static if (context == TestContext) {
 	 unittest { // isOne
 		write("-- isOne............");
-		dec9 num;
-		num = dec9("1");
+		TD num;
+		num = TD("1");
 		assertTrue(num.isOne);
-		num = dec9(false, 10, -1);
+		num = TD(false, 10, -1);
 		assertTrue(num.isOne);
 		assertFalse(num.isSimpleOne);
 		writeln("passed");
@@ -1258,12 +1257,12 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// isZero
 		write("-- isZero...........");
-		dec9 num;
-		num = dec9("0");
+		TD num;
+		num = TD("0");
 		assertTrue(num.isZero);
-		num = dec9("2.50");
+		num = TD("2.50");
 		assertFalse(num.isZero);
-		num = dec9("-0E+2");
+		num = TD("-0E+2");
 		assertTrue(num.isZero);
 		writeln("passed");
 	}}
@@ -1292,16 +1291,16 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// isNaN, isQuiet, isSignaling
 		write("-- isNaN............");
-		dec9 num;
-		num = dec9("2.50");
+		TD num;
+		num = TD("2.50");
 		assertFalse(num.isNaN);
 		assertFalse(num.isQuiet);
 		assertFalse(num.isSignaling);
-		num = dec9("NaN");
+		num = TD("NaN");
 		assertTrue(num.isNaN);
 		assertTrue(num.isQuiet);
 		assertFalse(num.isSignaling);
-		num = dec9("-sNaN");
+		num = TD("-sNaN");
 		assertTrue(num.isNaN);
 		assertFalse(num.isQuiet);
 		assertTrue(num.isSignaling);
@@ -1327,18 +1326,18 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// isFinite, isInfinite
 		write("-- isFinite.........");
-		dec9 num;
-		num = dec9("2.50");
+		TD num;
+		num = TD("2.50");
 		assertFalse(num.isInfinite);
 		assertTrue(num.isFinite);
-		num = dec9("-0.3");
+		num = TD("-0.3");
 		assertTrue(num.isFinite);
 		num = 0;
 		assertTrue(num.isFinite);
-		num = dec9("-Inf");
+		num = TD("-Inf");
 		assertTrue(num.isInfinite);
 		assertFalse(num.isFinite);
-		num = dec9("NaN");
+		num = TD("NaN");
 		assertFalse(num.isInfinite);
 		assertFalse(num.isFinite);
 		writeln("passed");
@@ -1356,10 +1355,10 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// isSpecial
 		write("-- isSpecial........");
-		dec9 num;
-		num = dec9.infinity(true);
+		TD num;
+		num = TD.infinity(true);
 		assertTrue(num.isSpecial);
-		num = dec9.snan(1234,true);
+		num = TD.snan(1234,true);
 		assertTrue(num.isSpecial);
 		num = 12378.34;
 		assertFalse(num.isSpecial);
@@ -1385,14 +1384,14 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// isSigned, isNegative
 		write("-- isNegative.......");
-		dec9 num;
-		num = dec9("2.50");
+		TD num;
+		num = TD("2.50");
 		assertFalse(num.isSigned);
 		assertFalse(num.isNegative);
-		num = dec9("-12");
+		num = TD("-12");
 		assertTrue(num.isSigned);
 		assertTrue(num.isNegative);
-		num = dec9("-0");
+		num = TD("-0");
 		assertTrue(num.isSigned);
 		assertTrue(num.isNegative);
 		writeln("passed");
@@ -1419,20 +1418,20 @@ unittest {
 	static if (context == TestContext) {
 	unittest { // isNormal, isSubnormal
 		write("-- isNormal.........");
-		dec9 num;
-		num = dec9("2.50");
+		TD num;
+		num = TD("2.50");
 		assertTrue(num.isNormal);
 		assertFalse(num.isSubnormal);
-		num = dec9("0.1E-99");
+		num = TD("0.1E-99");
 		assertFalse(num.isNormal);
 		assertTrue(num.isSubnormal);
-		num = dec9("0.00");
+		num = TD("0.00");
 		assertFalse(num.isSubnormal);
 		assertFalse(num.isNormal);
-		num = dec9("-Inf");
+		num = TD("-Inf");
 		assertFalse(num.isNormal);
 		assertFalse(num.isSubnormal);
-		num = dec9("NaN");
+		num = TD("NaN");
 		assertFalse(num.isSubnormal);
 		assertFalse(num.isNormal);
 		writeln("passed");
@@ -1457,7 +1456,7 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// isIntegralValued
 		write("-- isIntegralValued.");
-		dec9 num;
+		TD num;
 		num = 12345;
 		assertTrue(num.isIntegralValued);
 		num = xint("123456098420234978023480");
@@ -1496,16 +1495,16 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
-//		assertTrue(dec9(1));
+//		assertTrue(TD(1));
 //		assert(One);
 //		assertEqual(One, true);
 //		assertTrue(cast(bool)One);
-		assertTrue(dec9("1").isTrue);
-		assertFalse(dec9("0").isTrue);
+		assertTrue(TD("1").isTrue);
+		assertFalse(TD("0").isTrue);
 		assertTrue(infinity.isTrue);
 		assertFalse(nan.isTrue);
-		assertTrue(dec9("0").isFalse);
-		assertFalse(dec9("1").isFalse);
+		assertTrue(TD("0").isFalse);
+		assertFalse(TD("1").isFalse);
 		assertFalse(infinity.isFalse);
 		assertTrue(nan.isFalse);
 		writeln("passed");
@@ -1519,20 +1518,20 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// isZeroCoefficient
 		write("-- isZeroCoeff......");
-		dec9 num;
+		TD num;
 		num = 0;
 		assertTrue(num.isZeroCoefficient);
 		num = xint("-0");
 		assertTrue(num.isZeroCoefficient);
-		num = dec9("0E+4");
+		num = TD("0E+4");
 		assertTrue(num.isZeroCoefficient);
 		num = 12345;
 		assertFalse(num.isZeroCoefficient);
 		num = 1.5;
 		assertFalse(num.isZeroCoefficient);
-		num = dec9.NaN;
+		num = TD.NaN;
 		assertFalse(num.isZeroCoefficient);
-		num = dec9.Infinity;
+		num = TD.Infinity;
 		assertFalse(num.isZeroCoefficient);
 		writeln("passed");
 	}}*/
@@ -1577,7 +1576,7 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// comparison
 		write("-- comparison.......");
-		dec9 num1, num2;
+		TD num1, num2;
 		num1 = 105;
 		num2 = 10.543;
 		assert(num1 == 105L);
@@ -1624,7 +1623,7 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// opUnary
 		write("-- opUnary..........");
-		dec9 num, actual, expect;
+		TD num, actual, expect;
 		num = 134;
 		expect = num;
 		actual = +num;
@@ -1645,7 +1644,7 @@ unittest {
 		expect = num;
 		actual = num--;
 		assertEqual(actual, expect);
-		num = dec9(9999999, 90);
+		num = TD(9999999, 90);
 		expect = num;
 		actual = num++;
 		assertEqual(actual, expect);
@@ -1794,7 +1793,7 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// opOpAssign
 		write("-- opOpAssign.......");
-		dec9 op1, op2, actual, expect;
+		TD op1, op2, actual, expect;
 		op1 = 23.56;
 		op2 = -2.07;
 		op1 += op2;
@@ -1837,11 +1836,11 @@ unittest {
 	static if (context == TestContext) {
 	unittest {	// nextUp, nextDown, nextAfter
 		write("-- next.............");
-		testDecimal big = 123.45;
-		assertEqual(big.nextUp,   dec9(123.450001));
-		assertEqual(big.nextDown, dec9(123.449999));
-		assertEqual(big.nextAfter(dec9(123.46)), big.nextUp);
-		assertEqual(big.nextAfter(dec9(123.44)), big.nextDown);
+		TD big = 123.45;
+		assertEqual(big.nextUp,   TD(123.450001));
+		assertEqual(big.nextDown, TD(123.449999));
+		assertEqual(big.nextAfter(TD(123.46)), big.nextUp);
+		assertEqual(big.nextAfter(TD(123.44)), big.nextDown);
 		writeln("passed");
 	}}
 
@@ -1932,14 +1931,14 @@ unittest {
 	static if (context == TestContext) {
 	unittest {
 		write("-- constants........");
-		assertEqual(dec9.E,     "2.71828183");
-		assertEqual(dec9.pi,    "3.14159265");
-		assertEqual(dec9.PI,    "3.14159265");
-		assertEqual(dec9.LN2,   "0.693147181");
-		assertEqual(dec9.LN10,  "2.30258509");
-		assertEqual(dec9.SQRT2, "1.41421356");
-		assertEqual(dec9.INV_PI,"0.318309886");
-		assertEqual(dec9.invPi, "0.318309886");
+		assertEqual(TD.E,     "2.71828183");
+		assertEqual(TD.pi,    "3.14159265");
+		assertEqual(TD.PI,    "3.14159265");
+		assertEqual(TD.LN2,   "0.693147181");
+		assertEqual(TD.LN10,  "2.30258509");
+		assertEqual(TD.SQRT2, "1.41421356");
+		assertEqual(TD.INV_PI,"0.318309886");
+		assertEqual(TD.invPi, "0.318309886");
 		writeln("passed");
 	}}
 
@@ -2061,8 +2060,8 @@ public enum bool isDecimal(T) = hasMember!(T, "IsDecimal");
 
 unittest {
 	write("-- isDecimal........");
-	dec9 dummy;
-	assertTrue(isDecimal!dec9);
+	TD dummy;
+	assertTrue(isDecimal!TD);
 	assertFalse(isDecimal!int);
 //	assertTrue(isDecimal!Dec64);
 	writeln("passed");
@@ -2078,7 +2077,7 @@ unittest {
 	assertTrue(isConvertible!string);
 	assertTrue(isConvertible!double);
 	assertFalse(isConvertible!creal);
-	assertFalse(isConvertible!dec9);
+	assertFalse(isConvertible!TD);
 	writeln("passed");
 }
 
@@ -2117,8 +2116,8 @@ version(unittest)
 		(string op, T x, T y, T z, string file = __FILE__, int line = __LINE__)
 		if (!isDecimal!T && isConvertible!T)
 	{
-		return testBinaryOp!testDecimal
-			(op, testDecimal(x), testDecimal(y), testDecimal(z), file, line);
+		return testBinaryOp!TD
+			(op, TD(x), TD(y), TD(z), file, line);
 	}
 
 	private bool assertBinaryOp(T)

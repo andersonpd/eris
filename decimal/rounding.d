@@ -116,12 +116,12 @@ public T roundToPrecision(T)(in T num, int precision,
 
 unittest {	// roundToPrecision
 	write("-- roundToPrecision.");
-	dec9 before = 9999;
-	dec9 after;
+	TD before = 9999;
+	TD after;
 	after = roundToPrecision(before, 3);
 	assertEqual(after, "1.00E+4");
 	assertEqual(after, "1.00E+4");
-	assertEqual(after, dec9("1.00E+4"));
+	assertEqual(after, TD("1.00E+4"));
 	before = 1234567890;
 	after = roundToPrecision(before, 3);
 	assertEqual(after, "1.23E+9");
@@ -286,7 +286,7 @@ private T roundByMode(T)(T num, int precision, Rounding mode,
 
 unittest {	// roundByMode
 	write("-- roundByMode......");
-/*	dec9 num;
+/*	TD num;
 	num = 1000;
 	roundByMode(num, 5, Rounding.halfEven);
 	assertEqual(num.coefficient, 1000);
@@ -354,10 +354,10 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 
 unittest {	// getRemainder
 	write("-- getRemainder.....");
-	dec9 num, acrem, exnum, exrem;
+	TD num, acrem, exnum, exrem;
 	num = 1234567890123456L;
 	acrem = getRemainder(num, 5);
-	exnum = dec9("1.2345E+15");
+	exnum = TD("1.2345E+15");
 	assertEqual(num, exnum);
 	exrem = 67890123456;
 	assertEqual(acrem, exrem);
@@ -387,7 +387,7 @@ private void incrementAndRound(T)(ref T x) if (isDecimal!T)
 
 unittest {	// increment
 	write("-- increment&round..");
-	dec9 actual, expect;
+	TD actual, expect;
 	actual = 10;
 	expect = 11;
 	incrementAndRound(actual);

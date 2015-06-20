@@ -86,7 +86,7 @@ private bool isLogicalOperand(T)(T x, string str) if (isDecimal!T)
 unittest {	// logical string/number tests
  	write("-- logical tests....");
 	assertTrue(isLogicalString("010101010101"));
-	assertTrue(isLogical(dec9("1010101")));
+	assertTrue(isLogical(TD("1010101")));
 	writeln("passed");
 }
 
@@ -118,13 +118,13 @@ private T invert(T: string)(T str)
 unittest {	// inverse
  	write("-- logical inverse..");
 	// TODO: (behavior, language) why can't we compare ints and decimals?
-	dec9 num;
-	num = invert(dec9(101001));
+	TD num;
+	num = invert(TD(101001));
 	assertEqual(num, 10110);
-	num = invert(dec9(1));
-	assertEqual(num, dec9(0));
+	num = invert(TD(1));
+	assertEqual(num, TD(0));
 //	assertEqual(num, 0);
-	num = invert(dec9(0));
+	num = invert(TD(0));
 	assertEqual(num, 1);
 	writeln("passed");
 }
@@ -274,17 +274,17 @@ T xor(T: string)(in T x, in T y)
 }
 
 unittest { // binary logical ops
-	dec9 op1, op2;
+	TD op1, op2;
 	op1 = 10010101;
 	op2 = 11100100;
-//	assertEqual((op1 & op2), dec9(10000100));
-//	assert((op1 | op2) == dec9(11110101));
-//	assert((op1 ^ op2) == dec9( 1110001));
+//	assertEqual((op1 & op2), TD(10000100));
+//	assert((op1 | op2) == TD(11110101));
+//	assert((op1 ^ op2) == TD( 1110001));
 	op1 =   100101;
 	op2 = 11100100;
-//	assert((op1 & op2) == dec9(  100100));
-//	assert((op1 | op2) == dec9(11100101));
-//	assert((op1 ^ op2) == dec9(11000001));
+//	assert((op1 & op2) == TD(  100100));
+//	assert((op1 | op2) == TD(11100101));
+//	assert((op1 ^ op2) == TD(11000001));
 }
 
 /+
@@ -293,9 +293,9 @@ version(unittest)
 
 	public struct BinaryTestData
 	{
-		testDecimal x;
-		testDecimal y;
-		testDecimal z;
+		TD x;
+		TD y;
+		TD z;
 	}
 
 	public struct TestResults
