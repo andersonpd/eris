@@ -1,4 +1,4 @@
-﻿import std.stdio;
+import std.stdio;
 
 T add(T)(in T x, in T y)
 {

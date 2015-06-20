@@ -1,4 +1,4 @@
-﻿// Written in the D programming language
+// Written in the D programming language
 
 /**
  *	A D programming language implementation of the
@@ -6,7 +6,7 @@
  *	Version 1.70, (25 March 2009).
  *	http://www.speleotrove.com/decimal/decarith.pdf)
  *
- *	Copyright Paul D. Anderson 2009 - 2014.
+ *	Copyright Paul D. Anderson 2009 - 2015.
  *	Distributed under the Boost Software License, Version 1.0.
  *	(See accompanying file LICENSE_1_0.txt or copy at
  *	http://www.boost.org/LICENSE_1_0.txt)
