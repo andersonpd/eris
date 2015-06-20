@@ -14,22 +14,7 @@ digits module........begin
 -- subtraction......passed
 mulDigit...test missing
 -- multiplication...passed
--- squaring.........
-a = 0x55B40944_C7C01ADE_DF5C24BA_3137C911
-b = 0x55B40944_C7C01ADE_DF5C24BA_3137C911
-a = 0x40000000_00000000_00000000_00000000
-b = 0x00000000_00000001_00000002_00000001
-a = 0xFFFFFFFE_00000001
-b = 0xFFFFFFFE_00000001
-a = 0x00000000_00000001_00000002_00000001
-b = 0x00000000_00000001_00000002_00000001
-a = 0xFFFFFFFF_FFFFFFFE_00000000_00000001
-b = 0xFFFFFFFF_FFFFFFFE_FFFFFFFE_00000001
-a = 0xFFFFFFFF_FFFFFFFE_00000000_00000001
-b = 0xFFFFFFFF_FFFFFFFE_00000000_00000001
-a = 0x00000000_0000FE01_0001FC02_0000FE01
-b = 0x00000000_0000FE01_0001FC02_0000FE01
-passed
+-- squaring.........passed
 -- exponentiation...passed
 -- division.........passed
 -- logical..........passed
@@ -52,9 +37,7 @@ extended integers....begin
 -- this(integral)...passed
 -- copy.............passed
 casts...test missing
--- init, abs, sqr...c = 0x00034456_994648CB_B933EFE5_8032234B_8FEA0100
-d = 0x00034456_994648CB_B933EFE5_8032234B_8FEA0100
-passed
+-- init, abs, sqr...passed
 -- to unsigned int..passed
 -- to signed int....passed
 -- opAssign.........passed
@@ -239,8 +222,6 @@ add       :  4 tests ( 4 pass)
 sub       :  3 tests ( 3 pass)
 mul       :  4 tests ( 4 pass)
 sqr...
-sqr(x,context) = 0.728553390593273762200
-mul(x,x,context) = 0.728553390593273762200
 test missing
 fma       :  4 tests ( 4 pass)
 div       : 10 tests (10 pass)
@@ -291,7 +272,7 @@ decimal math.........begin
 ==========================
 -- rounding.........passed
 -- pi...............passed
--- pi_2.............failed at math.d(389): expected "1.570796326764752333257559" but found "1.570796326794896619231322".
+-- pi_2.............failed at math.d(387): expected "1.570796326764752333257559" but found "1.570796326794896619231322".
 passed
 -- invPi............passed
 -- invPi............passed
@@ -302,13 +283,13 @@ reciprocal:  4 tests ( 4 pass)
 -- inverse sqrt.....passed
 -- square root......passed
 -- exp..............passed
--- expm1............failed at math.d(864)[0]: expected "-0.329679954" but found "2.03324478".
+-- expm1............failed at math.d(862)[0]: expected "-0.329679954" but found "2.03324478".
 passed
 -- log..............passed
 -- log1p............passed
 -- log10............passed
--- log2.............failed at math.d(1017)[0]: expected "3.32192809" but found "43.0285632".
-failed at math.d(1018)[0]: expected "1.44269504" but found "21.2960126".
+-- log2.............failed at math.d(1015)[0]: expected "3.32192809" but found "43.0285632".
+failed at math.d(1016)[0]: expected "1.44269504" but found "21.2960126".
 passed
 pow..........test missing
 -- hypot............passed
@@ -317,7 +298,7 @@ sin(difficult) = -0.958924275
 passed
 -- cos..............passed
 sincos.........failed
--- tan..............failed at math.d(1319)[0]: expected "1.55740772465490223" but found "1.55740773".
+-- tan..............failed at math.d(1317)[0]: expected "1.55740772465490223" but found "1.55740773".
 passed
 -- asin.............passed
 -- acos.............passed
@@ -326,11 +307,11 @@ atan2..........failed
 -- sinh.............passed
 -- cosh.............passed
 -- tanh.............passed
--- asinh............failed at math.d(1549)[0]: expected "0.88137358701954302523260932497979" but found "14.6426447".
+-- asinh............failed at math.d(1547)[0]: expected "0.88137358701954302523260932497979" but found "14.6426447".
 passed
--- acosh............failed at math.d(1569)[0]: expected "0.96242365011920689499551782684874" but found "14.7236947".
+-- acosh............failed at math.d(1567)[0]: expected "0.96242365011920689499551782684874" but found "14.7236947".
 passed
--- atanh............failed at math.d(1591)[0]: expected "0.54930614433405484569762261846126" but found "NaN".
+-- atanh............failed at math.d(1589)[0]: expected "0.54930614433405484569762261846126" but found "NaN".
 passed
 ==========================
 decimal math...........end

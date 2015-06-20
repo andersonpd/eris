@@ -1736,8 +1736,8 @@ unittest {
 	writeln("sqr...");
 	TD x = "0.8535533905932737622000";
 	Context context = Context(21, 99, Rounding.halfEven);
-writefln("sqr(x,context) = %s", sqr(x,context));
-writefln("mul(x,x,context) = %s", mul(x,x,context));
+//writefln("sqr(x,context) = %s", sqr(x,context));
+//writefln("mul(x,x,context) = %s", mul(x,x,context));
 	assertPrecisionEqual(sqr(x, context), mul(x,x, context),21);
 	writeln("test missing");
 }

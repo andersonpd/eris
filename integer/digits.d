@@ -947,64 +947,30 @@ unittest {
 	}
 
 	unittest {	// squaring
-		writeln("-- squaring.........");
-		digit[] array, square;
-		array = [0xF4DEF769, 0x941F2754];
-		square = sqrDigits(array);
-		digit[] a = square;
-		digit[] b = [0x3137C911, 0xDF5C24BA, 0xC7C01ADE, 0x55B40944];
-writefln("a = %s", a.toString);
-writefln("b = %s", b.toString);
-
-		array = [0x00000000, 0x80000000];
-		square = sqrDigits(array);
-		a = square;
-		b = [0x00000001, 0x00000002, 0x00000001, 0x00000000];
-writefln("a = %s", a.toString);
-writefln("b = %s", b.toString);
-
-		array = [0xFFFFFFFF];
-		square = sqrDigits(array);
-		a = square;
-		b = [0x00000001, 0xFFFFFFFE];
-writefln("a = %s", a.toString);
-writefln("b = %s", b.toString);
-
-		array = [0x1, 0x1];
-		square = sqrDigits(array);
-		a = square;
-		b = [0x00000001, 0x00000002, 0x00000001, 0x00000000];
-writefln("a = %s", a.toString);
-writefln("b = %s", b.toString);
-
-		array = [0xFFFFFFFF, 0xFFFFFFFF];
-		square = sqrDigits(array);
-		a = square;
-		b = [0x00000001, 0xFFFFFFFE, 0xFFFFFFFE, 0xFFFFFFFF];
-writefln("a = %s", a.toString);
-writefln("b = %s", b.toString);
-/*//		assertEqual(square.toString, b.toString);
-
-		array = [0xFFFFFFFF, 0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF];
-		square = sqrDigits(array);
-		a = square;
-		b = [1, 0, 0xFFFFFFFE, 0xFFFFFFFE, 0xFFFFFFFE, 0xFFFFFFFF];
-writefln("a = %s", a.toString);
-writefln("b = %s", b.toString);*/
-		array = [0xFFFFFFFF, 0xFFFFFFFF];
-		square = sqrDigits(array);
-		a = square;
-		b = [1, 0, 0xFFFFFFFE, 0xFFFFFFFF];
-writefln("a = %s", a.toString);
-writefln("b = %s", b.toString);
-//		assertEqual(square, [1, 0, 0xFFFFFFFE, 0xFFFFFFFF]);
-		array = [0xFF, 0xFF];
-		square = sqrDigits(array);
-		a = square;
-		b = [0x0000FE01, 0x0001FC02, 0x0000FE01, 0x0];
-writefln("a = %s", a.toString);
-writefln("b = %s", b.toString);
-//		assertEqual(square, [0x0000FE01, 0x0001FC02, 0x0000FE01, 0x0]);
+		write("-- squaring.........");
+		digit[] x, sqrx, xmx;
+		x = [0xF4DEF769, 0x941F2754];
+		sqrx = sqrDigits(x);
+		xmx = mulDigits(x,x);
+		assertEqual(reduce(sqrx), reduce(xmx));
+		x = [0x3137C911, 0xDF5C24BA, 0xC7C01ADE, 0x55B40944];
+		sqrx = sqrDigits(x);
+		xmx = mulDigits(x,x);
+		assertEqual(reduce(sqrx), reduce(xmx));
+/*	    x = [0x3137C911, 0xDF5C24BA, 0xC7C01ADE, 0x55B40944];
+		x = [0x00000000, 0x80000000];
+		x = [0x00000001, 0x00000002, 0x00000001, 0x00000000];
+		x = [0xFFFFFFFF];
+		x = [0x00000001, 0xFFFFFFFE];
+		x = [0x1, 0x1];
+		x = [0xFFFFFFFF, 0xFFFFFFFF];
+		x = [0x00000001, 0xFFFFFFFE, 0xFFFFFFFE, 0xFFFFFFFF];
+		x = [0xFFFFFFFF, 0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF];
+		x = [1, 0, 0xFFFFFFFE, 0xFFFFFFFE, 0xFFFFFFFE, 0xFFFFFFFF];
+		x = [1, 0, 0xFFFFFFFE, 0xFFFFFFFF];
+		x = [0xFF, 0xFF];
+		x = [0x0000FE01, 0x0001FC02, 0x0000FE01, 0x0];
+*/
 		writeln("passed");
 	}
 

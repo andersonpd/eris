@@ -377,16 +377,12 @@ public struct ExtendedInt {
 
 	unittest {
 		write("-- init, abs, sqr...");
-		xint a;
+		xint a, b;
 		assertZero(a);
-		// TODO: add to tests
-//		xint b = "847224902923494152615773828500";
-		xint b = "8535533905932737622000";
-		string c = (b.sqr).toHexString;
-writefln("c = %s", c);
-		string d = (b*b).toHexString;
-writefln("d = %s", d);
-		assertEqual(c,d);
+		b = "847224902923494152615773828500";
+		assertEqual(b.sqr,b*b);
+		b = "8535533905932737622000";
+		assertEqual(b.sqr,b*b);
 		a = long.min;
 		assertEqual(a.toHexString, "0x80000000_00000000");
 		assertEqual(a.abs.toHexString, "0x80000000_00000000");
