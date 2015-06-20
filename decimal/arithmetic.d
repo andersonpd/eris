@@ -1,4 +1,4 @@
-﻿// Written in the D programming language
+// Written in the D programming language
 
 /**
  *	A D programming language implementation of the
@@ -766,7 +766,7 @@ unittest {	// equals
 /// comparison at precision values other than the context precision.
 public bool precisionEquals(T)(T x, T y, int precision) if (isDecimal!T)
 {
-	auto context = Context(precision);
+	auto context = Context(precision, T.maxExpo, T.rounding);
 	return (equals(x, y, context));
 }
 
@@ -1725,11 +1725,21 @@ public T sqr(T)(T x,
 	}
 
 	// product is non-zero
-	x.coefficient = x.coefficient^^2;
+	x.coefficient = x.coefficient.sqr;
 	x.exponent = x.exponent * 2;
 	x.sign = false;
 	x.digits = numDigits(x.coefficient);
 	return roundToPrecision(x, context);
+}
+
+unittest {
+	writeln("sqr...");
+	TD x = "0.8535533905932737622000";
+	Context context = Context(21, 99, Rounding.halfEven);
+writefln("sqr(x,context) = %s", sqr(x,context));
+writefln("mul(x,x,context) = %s", mul(x,x,context));
+	assertPrecisionEqual(sqr(x, context), mul(x,x, context),21);
+	writeln("test missing");
 }
 
 /// Multiplies the first two operands and adds the third operand to the result.

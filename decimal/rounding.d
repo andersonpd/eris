@@ -57,7 +57,7 @@ public T roundToPrecision(T)(
 /// Rounds the number to the specified precision using the specified rounding mode.
 /// if setFlags is false none of the context flags will be set by this operation.
 /// Flags: Subnormal, Clamped, Overflow, Inexact, Rounded.
-//@safe
+////@safe
 public T roundToPrecision(T)(in T num, int precision,
 	int maxExpo = T.maxExpo,
 	Rounding rounding = T.rounding,
@@ -180,7 +180,7 @@ unittest {	// roundToPrecision
 /// Implements the 'overflow' processing in the specification. (p. 53)
 /// Flags: Overflow, Rounded, Inexact.
 /// Precondition: number must be finite.
-//@safe
+////@safe
 private T checkOverflow(T)(in T num, Rounding mode = T.rounding,
 		int maxExpo = T.maxExpo, bool setFlags = true) if (isDecimal!T)
 {

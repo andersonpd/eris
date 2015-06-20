@@ -338,8 +338,11 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 	T s0 = T.half;
 	T a1, b1, s1;
 	// loop until the arithmetic mean equals the geometric mean
-	while (!equals(a0, b0, context)) {
-		a1 = mul(T.half, add(a0, b0, context),context);
+	while (!equals(a0, b0, context))
+	{
+		// arithmetic mean: a1 = (a0+bo)/2))
+		a1 = mul(T.half, add(a0, b0, context), context);
+		// geometric mean: b1 = sqrt(a0*b0)
 		b1 = sqrt(mul(a0, b0, context), context);
 		k *= 2;
 		s1 = sub(s0, mul(sub(sqr(a1, context), sqr(b1, context), context), k, context), context);
@@ -351,11 +354,22 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 	return roundToPrecision(pi, inContext);
 }
 
-unittest {
+unittest
+{
 	write("-- pi...............");
-	assertEqual(dec9.pi, dec9("3.14159265"));
+	assertEqual(dec9.pi, "3.14159265");
+	assertPrecisionEqual(dec9.pi(10), "3.141592654", 10);
+	assertPrecisionEqual(dec9.pi(12), "3.14159265359", 12);
+	assertPrecisionEqual(dec9.pi(14), "3.1415926535898", 14);
+	assertPrecisionEqual(dec9.pi(16), "3.141592653589793", 16);
+	assertPrecisionEqual(dec9.pi(18), "3.14159265358979324", 18);
+	assertPrecisionEqual(dec9.pi(20), "3.1415926535897932385", 20);
+	assertPrecisionEqual(dec9.pi(22), "3.141592653589793238463", 22);
+	assertPrecisionEqual(dec9.pi(23), "3.1415926535897932384626", 23);
+	assertPrecisionEqual(dec9.pi(24), "3.14159265358979323846264", 24);
 	assertPrecisionEqual(dec9.pi(25), "3.141592653589793238462643", 25);
-	assertPrecisionEqual(dec9.pi(5), "3.1416", 5);
+	assertPrecisionEqual(dec9.pi(26), "3.1415926535897932384626434", 26);
+	assertPrecisionEqual(dec9.pi(5),  "3.1416", 5);
 	writeln("passed");
 }
 
@@ -687,6 +701,7 @@ unittest {
 /// Uses Newton's method.
 public T sqrt(T)(T x, Context context) if (isDecimal!T)
 {
+//	auto context = guard(inContext, 3);
 	// special values
 	if (x.isNegative) {
 		contextFlags.set(InvalidOperation);
