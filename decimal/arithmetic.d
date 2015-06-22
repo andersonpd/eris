@@ -94,12 +94,12 @@ unittest {	// classify
 	static struct S { TD actual; string expect; }
 	static S[] tests =
 	[
-		{ TD.nan,			"NaN" },
-		{ TD.snan,		"sNaN" },
-		{ TD.infinity,	"+Infinity" },
-		{ TD("1E-10"),	"+Normal" },
-		{ TD("-0"),		"-Zero" },
-		{ TD("-0.1E-99"),	"-Subnormal" },
+		{ TD.nan,         "NaN" },
+		{ TD.snan,        "sNaN" },
+		{ TD.infinity,    "+Infinity" },
+		{ TD("1E-10"),    "+Normal" },
+		{ TD("-0"),       "-Zero" },
+		{ TD("-0.1E-99"), "-Subnormal" },
 	];
 	foreach (i, s; tests)
 		assertEqual(classify(s.actual), s.expect, i);
@@ -767,39 +767,6 @@ public bool precisionEquals(T)(T x, T y, int precision) if (isDecimal!T)
 	auto context = Context(precision, T.maxExpo, T.rounding);
 	return (equals(x, y, context));
 }
-
-/// Returns true if the actual value equals the expected value to the specified precision.
-/// Otherwise prints an error message and returns false.
-public bool assertPrecisionEqual(T, U)(T actual, U expected, int precision,
-		string file = __FILE__, int line = __LINE__ ) if (isDecimal!T && isDecimal!U){
-//	auto context = Context(precision);
-	if (precisionEquals!T(expected, actual, precision))	{
-		return true;
-	}
-	else {
-		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" expected \"", expected, "\"",
-	        	" but found \"", actual, "\".");
-		return false;
-	}
-}
-
-/// Returns true if the actual value equals the expected value to the specified precision.
-/// Otherwise prints an error message and returns false.
-public bool assertPrecisionEqual(T, U:string)(T actual, U expected, int precision,
-		string file = __FILE__, int line = __LINE__ ) {
-	auto context = Context(precision, T.maxExpo, T.rounding);
-	if (equals(T(expected), actual, context))	{
-		return true;
-	}
-	else {
-		writeln("failed at ", baseName(file), "(", line, "):",
-	        	" expected \"", expected, "\"",
-	        	" but found \"", actual, "\".");
-		return false;
-	}
-}
-
 
 /// Compares the numeric values of two numbers. CompareSignal is identical to
 /// compare except that quiet NaNs are treated as if they were signaling.
@@ -1706,8 +1673,7 @@ unittest {	// mul
 
 /// Squares the argument and returns the xx.
 /// The result may be rounded and context flags may be set.
-public T sqr(T)(T x,
-		Context context = T.context) if (isDecimal!T)
+public T sqr(T)(in T x, Context context = T.context) if (isDecimal!T)
 {
 	// if operand is invalid, return NaN
 	if (x.isNaN) {
@@ -1723,22 +1689,32 @@ public T sqr(T)(T x,
 	}
 
 	// product is non-zero
-	x.coefficient = x.coefficient.sqr;
-	x.exponent = x.exponent * 2;
-	x.sign = false;
-	x.digits = numDigits(x.coefficient);
-	return roundToPrecision(x, context);
+	T copy = x.copy;
+	copy.coefficient = copy.coefficient.sqr;
+// TODO : why does this fail ("not an lvalue")
+//	copy.exponent *= 2; //copy.exponent * 2;
+	copy.exponent = 2 * copy.exponent;
+	copy.sign = false;
+	copy.digits = numDigits(copy.coefficient);
+	return roundToPrecision(copy, context);
 }
 
-unittest {
-	writeln("sqr...");
-	TD x = "0.8535533905932737622000";
-	Context context = Context(21, 99, Rounding.halfEven);
-//writefln("sqr(x,context) = %s", sqr(x,context));
-//writefln("mul(x,x,context) = %s", mul(x,x,context));
-	assertPrecisionEqual(sqr(x, context), mul(x,x, context),21);
-	writeln("test missing");
+//TODO: need to test high-precision numbers. Requires
+// a test with a high-precision context.
+unittest {	// sqr
+	ArithTestData!(TD,1)[] data =
+	[
+		{ "-Inf", "Inf" },
+		{ "101.5", "10302.25" },
+		{ "-101.5", "10302.25" },
+		{ "-1.23456789012E+23", "1.52415788E+46" },
+		{ "0.8535533905932737622000", "0.728553391" },
+	];
+	TestResults tr = testArith!(TD,1)
+		("sqr", &sqr!TD, data);
+    writeln(tr.report);
 }
+
 
 /// Multiplies the first two operands and adds the third operand to the result.
 /// The result of the multiplication is not rounded prior to addition.

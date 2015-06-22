@@ -384,7 +384,7 @@ package T pi_2(T)(Context inContext) if (isDecimal!T)
 unittest {
 	write("-- pi_2.............");
 	assertEqual(TD.pi_2, TD("1.57079633"));
-	assertPrecisionEqual(TD.pi_2(25), "1.570796326764752333257559", 25);
+	assertPrecisionEqual(TD.pi_2(25), "1.570796326794896619231322", 25);
 	assertPrecisionEqual(TD.pi_2(5), "1.5708", 5);
 	writeln("passed");
 }
@@ -419,7 +419,7 @@ package T twoInvPi(T)(Context inContext) if (isDecimal!T)
 }
 
 unittest {
-	write("-- invPi............");
+	write("-- twoInvPi............");
 	assertEqual(TD.invPi, TD("0.318309886"));
 	assertPrecisionEqual(TD.invPi(25), "0.3183098861837906715377675", 25);
 //	assertPrecisionEqual(reciprocal(TD.pi), "0.318309886", 9);
@@ -587,24 +587,24 @@ public T reciprocal(T)(in T x, Context inContext = T.context) if (isDecimal!T)
 		contextFlags.set(DivisionByZero);
 		return T.infinity(x.sign);
 	}
-	if (x.copyAbs.isOne) return x.dup;
+	if (x.copyAbs.isOne) return x.copy;
 	if (x.isInfinite) return T.zero(x.sign);
 
 	// extend working precision
 	auto context = guard(inContext);
 
 	// initial estimate
-	T xx = x.reduce;
-	T a = T(2, -ilogb(xx)-1);
+	T a = x.reduce;
+	T r1 = T(2, -ilogb(a)-1);
 
 	// Newton's method
 	while (true) {
-		T b = a;
-		a = mul(b, sub(T.two, mul(xx, b, context), context), context);
-		if (equals(b, a ,context)) break;
+		T r0 = r1;
+		r1 = mul(r0, sub(T.two, mul(a, r0, context), context), context);
+		if (equals(r0, r1 ,context)) break;
 	}
 	// round to the original precision
-	return roundToPrecision(a, context);
+	return roundToPrecision(r1, context);
 }
 
 unittest
@@ -619,29 +619,6 @@ unittest
 	TestResults tr = testArith!(TD,1)
 		("reciprocal", &reciprocal!(TD), data);
     writefln(tr.report);
-}
-
-unittest {	// reciprocal
-	write("-- reciprocal.......");
-	TD one = TD.one;
-	TD num = TD("1234567890123456789");
-	TD a = one/num;
-	TD b = reciprocal(num,10);
-	assertEqual(b, a);
-	num = TD("12345678906789");
-	a = one/num;
-	b = reciprocal(num);
-	assertEqual(b, a);
-	a = reciprocal(TD(125));
-	b = "0.008";
-	a = reciprocal(TD(0.008));
-	b = 125;
-	assertEqual(b, a);
-	a = reciprocal(TD("0.008"), 5);
-	b = 125;
-	assertEqual(b, a);
-
-	writeln("passed");
 }
 
 // TODO: see note at reciprocal
@@ -1096,7 +1073,7 @@ private T reduceAngle(T)(in T x,
 }
 
 /// Decimal version of std.math function.
-public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
+public T sin(T)(in T x, int precision = T.precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
 		contextFlags.set(InvalidOperation);
@@ -1104,9 +1081,9 @@ public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
 	}
 
 	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
-	int quadrant;
-	T red = reduceAngle(x, quadrant, context);
-	switch (quadrant) {
+	int k;
+	T red = reduceAngle(x, k, context);
+	switch (k) {
 		case 0: return( sin( red, context));
 		case 1: return( cos( red, context));
 		case 2: return(-sin( red, context));
@@ -1118,12 +1095,12 @@ public T sin(T)(T x, int precision = T.precision) if (isDecimal!T)
 
 // Decimal version of std.math function.
 // Precondition: x is in 1st quadrant.
-package T sin(T)(T x, Context inContext) if (isDecimal!T)
+package T sin(T)(in T x, Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T sum = 0;
 	int n = 1;
-	T powx = x;
+	T powx = x.copy;
 	T sqrx = sqr(x, context);
 	T fact = 1;
 	T term = powx;
@@ -1137,7 +1114,42 @@ package T sin(T)(T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(sum, inContext);
 }
 
-unittest {
+version(unittest)
+{
+	private T sint1(T)(in T x)
+	{
+		return sin!T(x);
+	}
+
+	private T sint2(T)(in T x, int precision)
+	{
+		return sin!T(x, precision);
+	}
+}
+
+unittest
+{	// sin
+	ArithTestData!(TD,1)[] data1 =
+	[
+		{ "0.1", "0.0998334166" },
+		{ "0.333", "0.326879693" },
+		{ "5.0", "-0.958924275" },
+	];
+	TestResults tr1 = testArith!(TD,1)
+		("sin1", &sint1!(TD), data1);
+
+	ArithTestData!(TD,1,true)[] data2 =
+	[
+		{ "1.0", "0.8414709848078965", 16 },
+		{ "2.0", "0.9092974268256817", 16 },
+	];
+	TestResults tr2 = testPrecision!(TD,1)
+		("sin2", &sint2!(TD), data2);
+    writefln(tr1.report);
+    writefln(tr2.report);
+}
+
+/*unittest {
 	write("-- sin..............");
 	assertEqual(sin(TD(0.1)), TD("0.0998334166"));
 	assertEqual(sin(TD.one), TD("0.8414709848978965"));
@@ -1153,10 +1165,10 @@ writefln("sin(difficult) = %s", sin(difficult));
 	// TODO: (testing) one value from each quadrant, reduced value.
 	// TODO: (behavior) this is a notoriously difficult value "sin(10^^22)"
 	writeln("passed");
-}
+}*/
 
 /// Decimal version of std.math function.
-public T cos(T)(T x, int precision = T.precision) if (isDecimal!T)
+public T cos(T)(in T x, int precision = T.precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
 		contextFlags.set(InvalidOperation);
@@ -1176,7 +1188,7 @@ public T cos(T)(T x, int precision = T.precision) if (isDecimal!T)
 
 /// Decimal version of std.math function.
 /// Precondition: x is in 1st quadrant.
-package T cos(T)(T x, Context inContext) {
+package T cos(T)(in T x, Context inContext) {
 	auto context = guard(inContext);
 //writefln("\nx = %s", x);
 	T sum = 0;
@@ -1203,13 +1215,40 @@ package T cos(T)(T x, Context inContext) {
 	return roundToPrecision(sum, inContext);
 }
 
-unittest {
-	write("-- cos..............");
-	assertEqual(cos(TD.one), TD("0.5403023058681397174009"));
-	assertEqual(cos(TD.one, 23), TD("0.5403023058681397174009"));
-	assertEqual(cos(TD("0.333")), TD("0.945065959"));
-	// TODO: (testing) one value from each quadrant, reduced value.
-	writeln("passed");
+version(unittest)
+{
+	private T cost1(T)(in T x)
+	{
+		return cos!T(x);
+	}
+
+	private T cost2(T)(in T x, int precision)
+	{
+		return cos!T(x, precision);
+	}
+}
+
+unittest
+{	// cos
+// TODO: (testing) one value from each quadrant, reduced value.
+	ArithTestData!(TD,1)[] data1 =
+	[
+		{ "1.0", "0.5403023058681397174009" },
+		{ "0.333", "0.945065959" },
+		{ "5.0", "0.283662185" },
+	];
+	TestResults tr1 = testArith!(TD,1)
+		("cos1", &cost1!(TD), data1);
+    writefln(tr1.report);
+
+	ArithTestData!(TD,1,true)[] data2 =
+	[
+		{ "1.0", "0.540302306", 23 },
+		{ "2.0", "-0.416146837", 16 },
+	];
+	TestResults tr2 = testPrecision!(TD,1)
+		("cos2", &cost2!(TD), data2);
+    writefln(tr2.report);
 }
 
 public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision) {
@@ -1279,8 +1318,8 @@ unittest {
  * Decimal version of std.math function.
  *
  */
-// TODO: (efficiency) compare tan1 with tan.
-public T tan1(T)(T x) if (isDecimal!T)
+// TODO: (efficiency) compare divTan with tan.
+public T divTan(T)(T x) if (isDecimal!T)
 {
 	T sine;
 	T cosine;
@@ -1310,6 +1349,42 @@ public T tan(T)(T x, int precision = T.precision) if (isDecimal!T)
 	}
 }
 
+/*version(unittest)
+{
+	private T cost1(T)(in T x)
+	{
+		return cos!T(x);
+	}
+
+	private T cost2(T)(in T x, int precision)
+	{
+		return cos!T(x, precision);
+	}
+}
+
+unittest
+{	// cos
+// TODO: (testing) one value from each quadrant, reduced value.
+	ArithTestData!(TD,1)[] data1 =
+	[
+		{ "1.0", "0.5403023058681397174009" },
+		{ "0.333", "0.945065959" },
+		{ "5.0", "0.283662185" },
+	];
+	TestResults tr1 = testArith!(TD,1)
+		("cos1", &cost1!(TD), data1);
+    writefln(tr1.report);
+
+	ArithTestData!(TD,1,true)[] data2 =
+	[
+		{ "1.0", "0.540302306", 23 },
+		{ "2.0", "-0.416146837", 16 },
+	];
+	TestResults tr2 = testPrecision!(TD,1)
+		("cos2", &cost2!(TD), data2);
+    writefln(tr2.report);
+}
+*/
 unittest {
 	write("-- tan..............");
 	// TODO: (testing) one value from each quadrant, reduced value.

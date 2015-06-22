@@ -69,6 +69,15 @@ public struct Context
 	public immutable int precision;
 	public immutable int maxExpo;
 	public immutable Rounding rounding;
+
+	@disable this();
+
+	this(int precision, int maxExpo, Rounding rounding)
+	{
+		this.precision = precision;
+		this.maxExpo = maxExpo;
+		this.rounding = rounding;
+	}
 }
 
 /// "The exceptional conditions are grouped into signals,
