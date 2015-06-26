@@ -335,7 +335,7 @@ unittest {	// abs
 		{ "-1.23456789012E+23", "1.2345678900E+23" },	// rounds the argument
 	];
 	auto test = Test!(ATF1,ATD1)("abs", fctn);
-	foreach (i, d; data) test.run(d, i);
+	foreach (int i, d; data) test.run(d, i);
 	writeln(test.report);
 }
 
@@ -362,8 +362,8 @@ unittest {	// sqn
 		{  "0.00",  0 },
 		{  "-Inf", -1 },
 	];
-	auto test = Test!(ATFI1,ATDI1)("abs", fctn);
-	foreach (i, d; data) test.run(d, i);
+	auto test = Test!(ATFI1,ATDI1)("sgn", fctn);
+	foreach (int i, d; data) test.run(d, i);
 	writeln(test.report);
 }
 
@@ -395,16 +395,25 @@ public T plus(T)(in T x,
 	return roundToPrecision(x, context);
 }
 
+version(unittest)
+{
+	T plust(T)(in T x) if (isDecimal!T)
+	{
+		return plus(x, TD.context);
+	}
+}
+
 unittest {	// plus
-	ArithTestData!(TD,1)[] data =
+	ATF1 fctn = &plust!TD;
+	static ATD1[] data =
 	[
 		{ "1.3", "1.3" },
 		{ "-101.5", "-101.5" },
 //		{ "-101.5", "101.5" },
 	];
-	TestResults tr = testArith!(TD,1)
-		("plus", &plus!TD, data);
-    writeln(tr.report);
+	auto test = Test!(ATF1,ATD1)("plus", fctn);
+	foreach (int i, d; data) test.run(d, i);
+	writeln(test.report);
 }
 
 ///
