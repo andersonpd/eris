@@ -20,10 +20,135 @@ version(unittest)
 	import std.path: baseName;
 	import std.stdio;
 	import std.string;
+	import std.traits;
 
 	import eris.decimal;
 	import eris.decimal.context;
 	import eris.decimal.arithmetic;
+
+	// FP is a pointer to the function being tested
+	// S is a struct containing input data and expected values
+	// N is the number of inputs
+	package struct Test(FP,S,int N = S.tupleof.length-1)
+	{
+		string name;
+		FP fctn;
+		int testCount;
+		int passCount;
+		int failCount;
+		string[] messages;
+
+//		static int N = S.tupleof.length-1;
+
+		@disable this();
+
+		this(string name, FP fctn)
+		{
+			this.name = name;
+			this.fctn = fctn;
+		}
+
+		bool run(S input,
+			int index = -1, string file = __FILE__, int line = __LINE__)
+		{
+			testCount++;
+			auto inp = input.tupleof[0..$-1];
+//			int N = inp.length;
+			auto expect = input.tupleof[$-1];
+			auto actual = fctn(inp);
+
+			bool pass = (actual == expect);
+			if (pass)
+			{
+				passCount++;
+				return true;
+			}
+			else
+			{
+				string msg = format("failed at %s(%d)", baseName(file), line);
+				// if array of tests report the test number (not 0-based)
+				if (index >= 0) msg ~= format(", test %d", index+1);
+				static if (N == 0)
+					msg ~= format(": <%s()> should be <%s> not <%s>.",
+						name, actual, expect);
+				static if (N == 1)
+					msg ~= format(": <%s(%s)> should be <%s> not <%s>.",
+						name, inp[0], actual, expect);
+				else static if (N == 2)
+					msg ~= format(": <%s(%s, %s)> should be <%s> not <%s>.",
+						name, inp[0], inp[1], actual, expect);
+				else static if (N == 3)
+					msg ~= format(": <%s(%s, %s, %s)> should be <%s> not <%s>.",
+						name, inp[0], inp[1], inp[2], actual, expect);
+				else static if (N > 3)
+					msg ~= format(": <%s(%s, %s, %s, ...)> should be <%s> not <%s>.",
+						name, inp[0], inp[1], inp[2], actual, expect);
+				failCount++;
+				messages.length++;
+				messages[$-1] = msg;
+				return false;
+			}
+		}
+
+		string report()
+		{
+			string rep = format("%-10s: %s", name, tests(testCount));
+			if (failCount == 0)
+			{
+				rep ~= format(" (%2d pass)", passCount);
+			}
+			else
+			{
+				rep ~= format(" (%2d pass, %d fail).", passCount, failCount);
+				foreach (msg; messages)
+				{
+					rep ~= format("\n  %s", msg);
+				}
+			}
+			return rep;
+		}
+
+		string tests(int n)
+		{
+			if (n == 1) return " 1 test ";
+			else return format("%2d tests", n);
+		}
+	}
+
+	alias ATF1 = TD function(in TD);
+	alias ATF2 = TD function(in TD, in TD);
+	alias ATF3 = TD function(in TD, in TD, in TD);
+
+	alias ATFI1 = int function(in TD);
+//	alias ATFI1 = int function(in TD);
+//	alias ATFI1 = int function(in TD);
+
+	// arithmetic test data x, y, z;
+	package struct ATD(T,int N)
+	{
+		static if (N > 0) T x;
+		static if (N > 1) T y;
+		static if (N > 2) T z;
+		T expect;
+	}
+
+	alias ATD1 = ATD!(TD,1);
+	alias ATD2 = ATD!(TD,2);
+	alias ATD3 = ATD!(TD,3);
+
+	// arithmetic test data x, y, z;
+	package struct ATDI(T,int N)
+	{
+		static if (N > 0) T x;
+		static if (N > 1) T y;
+		static if (N > 2) T z;
+		int expect;
+	}
+
+	alias ATDI1 = ATD!(TD,1);
+	alias ATDI2 = ATD!(TD,2);
+	alias ATDI3 = ATD!(TD,3);
+
 
 	// The TestResults structure accumulates the results of an array of tests
 	// and generates a report (as a string). The report includes the number of

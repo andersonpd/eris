@@ -317,17 +317,26 @@ public T abs(T)(in T x, Context context = T.context) if (isDecimal!T)
 	return roundToPrecision(x.copyAbs, context);
 }
 
+version(unittest)
+{
+	T abst(T)(in T x) if (isDecimal!T)
+	{
+		return abs(x, TD.context);
+	}
+}
+
 unittest {	// abs
-	ArithTestData!(TD,1)[] data =
+	ATF1 fctn = &abst!TD;
+	static ATD1[] data =
 	[
 		{ "-Inf", "Inf" },
 		{ "101.5", "101.5" },
 		{ "-101.5", "101.5" },
-		{ "-1.23456789012E+23", "1.23456789E+23" },	// rounds the argument
+		{ "-1.23456789012E+23", "1.2345678900E+23" },	// rounds the argument
 	];
-	TestResults tr = testArith!(TD,1)
-		("abs", &abs!TD, data);
-    writeln(tr.report);
+	auto test = Test!(ATF1,ATD1)("abs", fctn);
+	foreach (i, d; data) test.run(d, i);
+	writeln(test.report);
 }
 
 ///
@@ -341,20 +350,21 @@ public int sgn(T)(in T x) if (isDecimal!T)
 	return x.isNegative ? -1 : 1;
 }
 
-unittest {	// sgn
-	ArithTestData!(TD,1)[] data =
+unittest {	// sqn
+	ATFI1 fctn = &sgn!TD;
+	static ATDI1[] data =
 	[
-		{  "-123", "-1" },
-		{  "2345",  "1" },
-		{ "-2345", "-1" },
-		{     "0",  "0" },
-		{    "-0",  "0" },
-		{  "0.00",  "0" },
-		{  "-Inf", "-1" },
+		{  "-123", -1 },
+		{  "2345",  1 },
+		{ "-2345", -1 },
+		{     "0",  0 },
+		{    "-0",  0 },
+		{  "0.00",  0 },
+		{  "-Inf", -1 },
 	];
-	TestResults tr = testArith!(TD,1)
-		("sgn", &sgn!TD, data);
-    writeln(tr.report);
+	auto test = Test!(ATFI1,ATDI1)("abs", fctn);
+	foreach (i, d; data) test.run(d, i);
+	writeln(test.report);
 }
 
 ///
