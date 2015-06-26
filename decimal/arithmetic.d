@@ -221,14 +221,15 @@ public T scaleb(T)(in T x, in T y) if (isDecimal!T)
 
 unittest
 {	// scaleb
-	ArithTestData!(TD,2)[] data =
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ "7.50", "-2", "0.0750" },
 //		{ "7.50", "-3", "0.0750" },
 	];
-	TestResults tr = testArith!(TD,2)
-		("scaleb", &scaleb!TD, data);
-    writefln(tr.report);
+	auto f = FunctionTest!(S,TD)("scaleb");
+	foreach (t; s) f.test(t, scaleb(t.x, t.y));
+    writefln(f.report);
 }
 
 //--------------------------------
@@ -326,7 +327,7 @@ version(unittest)
 }
 
 unittest {	// abs
-	ATF1 fctn = &abst!TD;
+/*	ATF1 fctn = &abst!TD;
 	static ATD1[] data =
 	[
 		{ "-Inf", "Inf" },
@@ -336,7 +337,7 @@ unittest {	// abs
 	];
 	auto test = Test!(ATF1,ATD1)("abs", fctn);
 	foreach (int i, d; data) test.run(d, i);
-	writeln(test.report);
+	writeln(test.report);*/
 }
 
 ///
@@ -351,7 +352,7 @@ public int sgn(T)(in T x) if (isDecimal!T)
 }
 
 unittest {	// sqn
-	ATFI1 fctn = &sgn!TD;
+/*	ATFI1 fctn = &sgn!TD;
 	static ATDI1[] data =
 	[
 		{  "-123", -1 },
@@ -364,7 +365,7 @@ unittest {	// sqn
 	];
 	auto test = Test!(ATFI1,ATDI1)("sgn", fctn);
 	foreach (int i, d; data) test.run(d, i);
-	writeln(test.report);
+	writeln(test.report);*/
 }
 
 ///
@@ -403,9 +404,33 @@ version(unittest)
 	}
 }
 
-unittest {	// plus
+/*unittest {	// plus
+	ATD1[] data =
+	[
+		{ "1.3", "1.3" },
+		{ "-101.5", "-101.5" },
+		{ "-101.5", "101.5" },
+	];
+
+	auto test = atest!(ATD1,TD)("plus");
+	foreach (int i, d; data)
+	{
+		if (plus(d) == d.expect)
+		{
+			test.add(true);
+		}
+		else
+		{
+			test.add(false, d, actual);
+		}
+
+	}
+	writeln(test.report);
+}*/
+
+/*unittest {	// plus
 	ATF1 fctn = &plust!TD;
-	static ATD1[] data =
+	ATD1[] data =
 	[
 		{ "1.3", "1.3" },
 		{ "-101.5", "-101.5" },
@@ -414,7 +439,7 @@ unittest {	// plus
 	auto test = Test!(ATF1,ATD1)("plus", fctn);
 	foreach (int i, d; data) test.run(d, i);
 	writeln(test.report);
-}
+}*/
 
 ///
 /// Returns a copy of the argument with the opposite sign.

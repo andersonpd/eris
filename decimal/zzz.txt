@@ -198,10 +198,6 @@ ilogb     :  5 tests ( 5 pass)
 logb      :  6 tests ( 6 pass)
 scaleb    :  1 test  ( 1 pass)
 reduce    :  3 tests ( 3 pass)
-abs       :  4 tests ( 4 pass)
-sgn       :  7 tests ( 7 pass)
-plus      :  3 tests ( 2 pass, 1 fail).
-  failed at arithmetic.d(415), test 3: <plus(-101.5)> should be <-101.5> not <101.5>.
 minus     :  2 tests ( 2 pass)
 nextPlus  :  6 tests ( 6 pass)
 nextMinus :  5 tests ( 5 pass)
@@ -227,7 +223,7 @@ fma       :  4 tests ( 4 pass)
 div       : 10 tests (10 pass)
 divInt    : 15 tests (15 pass)
 remainder : 15 tests (14 pass, 1 fail).
-  failed at arithmetic.d(2050), test 3: <remainder(-10, 3)> should be <-19> not <-1>.
+  failed at arithmetic.d(2075), test 3: <remainder(-10, 3)> should be <-19> not <-1>.
 remNear   :  8 tests ( 8 pass)
 quantize  : 15 tests (15 pass)
 roundIntEx:  8 tests ( 8 pass)

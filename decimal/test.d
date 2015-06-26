@@ -26,67 +26,57 @@ version(unittest)
 	import eris.decimal.context;
 	import eris.decimal.arithmetic;
 
-	// FP is a pointer to the function being tested
-	// S is a struct containing input data and expected values
+	// S is a struct containing input data and the expected value
+	// T is the return type of the function being tested
 	// N is the number of inputs
-	package struct Test(FP,S,int N = S.tupleof.length-1)
+	package struct FunctionTest(S,T,int N = S.tupleof.length-1)
 	{
 		string name;
-		FP fctn;
 		int testCount;
 		int passCount;
 		int failCount;
 		string[] messages;
 
-//		static int N = S.tupleof.length-1;
-
 		@disable this();
 
-		this(string name, FP fctn)
+		this(string name)
 		{
 			this.name = name;
-			this.fctn = fctn;
 		}
 
-		bool run(S input,
-			int index = -1, string file = __FILE__, int line = __LINE__)
+		void test(S s, T actual,
+			string file = __FILE__, int line = __LINE__)
 		{
 			testCount++;
-			auto inp = input.tupleof[0..$-1];
-//			int N = inp.length;
-			auto expect = input.tupleof[$-1];
-			auto actual = fctn(inp);
+			auto input = s.tupleof[0..$-1];
+			auto expect = s.tupleof[$-1];
 
-			bool pass = (actual == expect);
-			if (pass)
+			if (actual == expect)
 			{
 				passCount++;
-				return true;
 			}
 			else
 			{
+				failCount++;
 				string msg = format("failed at %s(%d)", baseName(file), line);
-				// if array of tests report the test number (not 0-based)
-				if (index >= 0) msg ~= format(", test %d", index+1);
+				msg ~= format(", test %d", testCount);
 				static if (N == 0)
 					msg ~= format(": <%s()> should be <%s> not <%s>.",
-						name, actual, expect);
-				static if (N == 1)
+					name, actual, expect);
+				else static if (N == 1)
 					msg ~= format(": <%s(%s)> should be <%s> not <%s>.",
-						name, inp[0], actual, expect);
+					name, input[0], actual, expect);
 				else static if (N == 2)
 					msg ~= format(": <%s(%s, %s)> should be <%s> not <%s>.",
-						name, inp[0], inp[1], actual, expect);
+					name, input[0], input[1], actual, expect);
 				else static if (N == 3)
 					msg ~= format(": <%s(%s, %s, %s)> should be <%s> not <%s>.",
-						name, inp[0], inp[1], inp[2], actual, expect);
-				else static if (N > 3)
+					name, input[0], input[1], input[2], actual, expect);
+				else
 					msg ~= format(": <%s(%s, %s, %s, ...)> should be <%s> not <%s>.",
-						name, inp[0], inp[1], inp[2], actual, expect);
-				failCount++;
+					name, input[0], input[1], input[2], actual, expect);
 				messages.length++;
 				messages[$-1] = msg;
-				return false;
 			}
 		}
 
@@ -215,7 +205,7 @@ version(unittest)
 	{
 		mixin
 		(
-		"package enum TestResults testArith(T, int N, bool S = false)"
+		"package /*enum*/ TestResults testArith(T, int N, bool S = false)"
 			"(string name, " ~ signature ~ ", ArithTestData!(T, N)[] tests,"
 			"string file = __FILE__, int line = __LINE__) if (isDecimal!T)"
 		"{"
@@ -274,7 +264,7 @@ version(unittest)
 	{
 		mixin
 		(
-		"package enum TestResults testPrecision(T, int N, bool P = true)"
+		"package /*enum*/ TestResults testPrecision(T, int N, bool P = true)"
 			"(string name, " ~ signature ~ ", ArithTestData!(T, N, P)[] tests,"
 			"string file = __FILE__, int line = __LINE__) if (isDecimal!T)"
 		"{"
@@ -380,17 +370,17 @@ version(unittest)
 	);
 
 	private bool assertArith(T, int N, bool S = false)(ref TestResults tr,
-		string fctn, ArithTestData!(T, N) test, T actual,
+		string name, ArithTestData!(T, N) data, T actual,
 		int index = -1,	string file = __FILE__, int line = __LINE__)
 	{
 		bool pass;
 		static if (S)
 		{
-			pass = (actual.toString == test.expect.toString);
+			pass = (actual.toString == data.expect.toString);
 		}
 		else
 		{
-			pass = (actual == test.expect);
+			pass = (actual == data.expect);
 		}
 		if (pass)
 		{
@@ -404,16 +394,16 @@ version(unittest)
 			if (index >= 0) msg ~= format(", test %d", index+1);
 			static if (N == 0)
 				msg ~= format(": <%s()> should be <%s> not <%s>.",
-					fctn, actual, test.expect);
+					name, actual, data.expect);
 			static if (N == 1)
 				msg ~= format(": <%s(%s)> should be <%s> not <%s>.",
-					fctn, test.x, actual, test.expect);
+					name, data.x, actual, data.expect);
 			else static if (N == 2)
 				msg ~= format(": <%s(%s, %s)> should be <%s> not <%s>.",
-					fctn, test.x, test.y, actual, test.expect);
+					name, data.x, data.y, actual, data.expect);
 			else static if (N == 3)
 				msg ~= format(": <%s(%s, %s, %s)> should be <%s> not <%s>.",
-					fctn, test.x, test.y, test.z, actual, test.expect);
+					name, data.x, data.y, data.z, actual, data.expect);
 			tr.messages.length++;
 			tr.messages[$-1] = msg;
 			return false;
