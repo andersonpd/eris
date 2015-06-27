@@ -227,7 +227,7 @@ fma       :  4 tests ( 4 pass)
 div       : 10 tests (10 pass)
 divInt    : 15 tests (15 pass)
 remainder : 15 tests (14 pass, 1 fail).
-  failed at arithmetic.d(2101), test 3: <remainder(-10, 3)> should be <-19> not <-1>.
+  failed at arithmetic.d(2053), test 3: <remainder(-10, 3)> should be <-19> not <-1>.
 remNear   :  8 tests ( 8 pass)
 quantize  : 15 tests (15 pass)
 roundIntEx:  8 tests ( 8 pass)
@@ -271,7 +271,7 @@ decimal conversion.....end
 decimal logic........begin
 ==========================
 -- logical tests....passed
--- logical inverse..passed
+inverse   :  3 tests ( 3 pass)
 ==========================
 decimal logic..........end
 ==========================
@@ -369,17 +369,19 @@ test missing
 ==========================
 decimal rounding.....begin
 ==========================
--- roundToPrecision.passed
--- roundByMode......passed
--- getRemainder.....passed
+roundPrec : 11 tests (11 pass)
+-- roundToPrecision.test missing
+roundByMode:  6 tests ( 6 pass)
+getRemain :  1 test  ( 1 pass)
 -- increment&round..passed
--- testFive.........passed
--- numDigits(xint)..passed
+testFive  :  3 tests ( 3 pass)
+numDigBig :  1 test  ( 1 pass)
+numDigUL  : 14 tests (14 pass)
 reduceDigits...test missing
--- 1stDigit(xint)...passed
--- 1stDigit(uint)..passed
+1stDigBig :  2 tests ( 2 pass)
+1stDigUL  : 12 tests (12 pass)
 shiftRight...test missing
-lastDigit.....passed
+lastDigit : 12 tests (12 pass)
 ==========================
 decimal rounding.......end
 ==========================

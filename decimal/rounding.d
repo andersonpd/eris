@@ -16,6 +16,7 @@ module eris.decimal.rounding;
 
 import eris.decimal;
 import eris.decimal.context;
+import eris.decimal.test;
 //import eris.decimal.arithmetic: copyNegate;
 import eris.integer.extended;
 
@@ -36,7 +37,7 @@ version(unittest)
 
 /// Rounds the number to its context precision.
 /// Returns the rounded number.
-/// Flags: Subnormal, Clamped, Overflow, Inexact, Rounded.
+/// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 public T roundToPrecision(T)(in T num) if (isDecimal!T)
 {
 	return roundToPrecision(num, T.context);
@@ -45,30 +46,30 @@ public T roundToPrecision(T)(in T num) if (isDecimal!T)
 /// Rounds the number to the precision of the context parameter.
 /// if setFlags is false no context flags will be set by this operation.
 /// Returns the rounded number.
-/// Flags: Subnormal, Clamped, Overflow, Inexact, Rounded.
+/// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 public T roundToPrecision(T)(
 	in T num, Context context = T.context, bool setFlags = true)
 	if (isDecimal!T)
 {
 	return roundToPrecision(num,
-		context.precision, context.maxExpo, context.rounding, setFlags);
+		context.precision, context.maxExpo, context.mode, setFlags);
 }
 
 /// Rounds the number to the specified precision using the specified rounding mode.
 /// if setFlags is false none of the context flags will be set by this operation.
-/// Flags: Subnormal, Clamped, Overflow, Inexact, Rounded.
+/// Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 ////@safe
 public T roundToPrecision(T)(in T num, int precision,
 	int maxExpo = T.maxExpo,
-	Rounding rounding = T.rounding,
+	Rounding mode = T.mode,
 	bool setFlags = true)
 	if (isDecimal!T)
 {
 	// check for overflow before rounding and copy the input
-	T copy = checkOverflow(num, rounding, maxExpo, setFlags);
+	T copy = checkOverflow(num, mode, maxExpo, setFlags);
 
 	// check rounding mode
-	if (rounding == Rounding.none) return copy;
+	if (mode == ROUND_NONE) return copy;
 
 	// special values aren't rounded
 	if (!copy.isFinite) return copy;
@@ -82,7 +83,7 @@ public T roundToPrecision(T)(in T num, int precision,
 	// subnormal and out of range exponents.
 	if (num.isZero) {
 		if (num.exponent < minExpo) {
-			if (setFlags) contextFlags.set(Subnormal);
+			if (setFlags) contextFlags.set(SUBNORMAL);
 			if (num.exponent < tinyExpo) {
 				int temp = tinyExpo;
 				copy.exponent = tinyExpo;
@@ -93,60 +94,51 @@ public T roundToPrecision(T)(in T num, int precision,
 
 	// handle subnormal numbers
 	if (num.isSubnormal()) {
-		if (setFlags) contextFlags.set(Subnormal);
+		if (setFlags) contextFlags.set(SUBNORMAL);
 		int diff = minExpo - cast(int)copy.adjustedExponent;
 		// use the subnormal precision and round
 		int subprecision = precision - diff;
 		if (copy.digits > subprecision) {
-			copy = roundByMode(copy, subprecision, rounding, maxExpo, setFlags);
+			copy = roundByMode(copy, subprecision, mode, maxExpo, setFlags);
 		}
 		// if the result of rounding a subnormal is zero
 		// the clamped flag is set. (Spec. p. 51)
 		if (copy.isZero) {
 			copy.exponent = tinyExpo;
-			if (setFlags) contextFlags.set(Clamped);
+			if (setFlags) contextFlags.set(CLAMPED);
 		}
 		return copy;
 	}
 
 	// round the number
-	return roundByMode(copy, precision, rounding, maxExpo, setFlags);
+	return roundByMode(copy, precision, mode, maxExpo, setFlags);
 
 } // end roundToPrecision()
 
+unittest
+{	// roundToPrecision
+	static struct S { TD x; int n; TD expect; }
+	S[] s =
+	[
+		{ "9999", 3, "1.00E+4" },
+		{ "1234567890", 3, "1.23E+9" },
+		{ "1234567890", 4, "1.235E+9" },
+		{ "1234567890", 5, "1.2346E+9" },
+		{ "1234567890", 6, "1.23457E+9" },
+		{ "1234567890", 7, "1.234568E+9" },
+		{ "1234567890", 8, "1.2345679E+9" },
+		{ "1235",  3, "1.24E+3" },
+		{ "12359", 3, "1.24E+4" },
+		{ "1245",  3, "1.24E+3" },
+		{ "12459", 3, "1.25E+4" },
+	];
+	auto f = FunctionTest!(S,TD)("roundPrec");
+	foreach (t; s) f.test(t, roundToPrecision!TD(t.x,t.n));
+    writefln(f.report);
+}
+
 unittest {	// roundToPrecision
 	write("-- roundToPrecision.");
-	TD before = 9999;
-	TD after;
-	after = roundToPrecision(before, 3);
-	assertEqual(after, "1.00E+4");
-	assertEqual(after, "1.00E+4");
-	assertEqual(after, TD("1.00E+4"));
-	before = 1234567890;
-	after = roundToPrecision(before, 3);
-	assertEqual(after, "1.23E+9");
-	after = roundToPrecision(before, 4);
-	assertEqual(after, "1.235E+9");
-	after = roundToPrecision(before, 5);
-	assertEqual(after,  "1.2346E+9");
-	after = roundToPrecision(before, 6);
-	assertEqual(after,  "1.23457E+9");
-	after = roundToPrecision(before, 7);
-	assertEqual(after,  "1.234568E+9");
-	after = roundToPrecision(before, 8);
-	assertEqual(after,  "1.2345679E+9");
-	before = 1235;
-	after = roundToPrecision(before, 3);
-	assertEqual(after.abstractForm(), "[0,124,1]");
-	before = 12359;
-	after = roundToPrecision(before, 3);
-	assertEqual(after.abstractForm(), "[0,124,2]");
-	before = 1245;
-	after = roundToPrecision(before, 3);
-	assertEqual(after.abstractForm(), "[0,124,1]");
-	before = 12459;
-	after = roundToPrecision(before, 3);
-	assertEqual(after.abstractForm(), "[0,125,2]");
 //	xint test = "18690473486004564289165545643685440097";
 //	long  count = reduceDigits(test);
 //	roundToPrecision(test);
@@ -168,7 +160,7 @@ unittest {	// roundToPrecision
 	assert("[0,9,-101]" == h.abstractForm);
 	Dec32 i = a * h;
 	assert("[0,1,-101]" == i.abstractForm);*/
-	writeln("passed");
+	writeln("test missing");
 }
 
 //--------------------------------
@@ -178,10 +170,10 @@ unittest {	// roundToPrecision
 /// Returns true if the number is too large to be represented
 /// and adjusts the number according to the rounding mode.
 /// Implements the 'overflow' processing in the specification. (p. 53)
-/// Flags: Overflow, Rounded, Inexact.
+/// Flags: OVERFLOW, ROUNDED, INEXACT.
 /// Precondition: number must be finite.
 ////@safe
-private T checkOverflow(T)(in T num, Rounding mode = T.rounding,
+private T checkOverflow(T)(in T num, Rounding mode = T.mode,
 		int maxExpo = T.maxExpo, bool setFlags = true) if (isDecimal!T)
 {
 	T copy = num.copy;
@@ -190,34 +182,34 @@ private T checkOverflow(T)(in T num, Rounding mode = T.rounding,
 	// TODO: if the number has not been normalized will this work?
 	switch (mode)
 	{
-		case Rounding.none: 	// can this branch be reached? should it be?
-		case Rounding.halfUp:
-		case Rounding.halfEven:
-		case Rounding.halfDown:
-		case Rounding.up:
+		case ROUND_NONE: 	// can this branch be reached? should it be?
+		case HALF_UP:
+		case HALF_EVEN:
+		case HALF_DOWN:
+		case ROUND_UP:
 			copy = T.infinity(num.sign);
 			break;
-		case Rounding.down:
+		case ROUND_DOWN:
 			copy = num.sign ? T.max.copyNegate : T.max;
 			break;
-		case Rounding.ceiling:
+		case ROUND_CEILING:
 			copy = num.sign ? T.max.copyNegate : T.infinity;
 			break;
-		case Rounding.floor:
+		case ROUND_FLOOR:
 			copy = num.sign ? T.infinity(true) : T.max;
 			break;
 		default:
 			break;
 	}
-	if (setFlags) contextFlags.set(Overflow | Inexact | Rounded);
+	if (setFlags) contextFlags.set(OVERFLOW | INEXACT | ROUNDED);
 	return copy;
 }
 
 // Returns true if the rounding mode is half-even, half-up, or half-down.
-private bool halfRounding(Rounding rounding) {
-	return (rounding == Rounding.halfEven ||
-	 		rounding == Rounding.halfUp ||
-	 		rounding == Rounding.halfDown);
+private bool halfRounding(Rounding mode) {
+	return (mode == HALF_EVEN ||
+	 		mode == HALF_UP ||
+	 		mode == HALF_DOWN);
 }
 
 /// Rounds the number to the context precision
@@ -230,7 +222,7 @@ private T roundByMode(T)(T num, int precision, Rounding mode,
 	// did it overflow to infinity?
 	if (copy.isSpecial) return copy;
 
-	if (mode == Rounding.none) return copy;
+	if (mode == ROUND_NONE) return copy;
 
 	// calculate the remainder
 	T remainder = getRemainder(num, precision);
@@ -245,26 +237,26 @@ private T roundByMode(T)(T num, int precision, Rounding mode,
 	}
 
 	switch (mode) {
-		case Rounding.up:
+		case ROUND_UP:
 			incrementAndRound(num);
 			break;
-		case Rounding.down:
+		case ROUND_DOWN:
 			break;
-		case Rounding.ceiling:
+		case ROUND_CEILING:
 			if (!num.sign) incrementAndRound(num);
 			break;
-		case Rounding.floor:
+		case ROUND_FLOOR:
 			if (num.sign) incrementAndRound(num);
 			break;
-		case Rounding.halfUp:
+		case HALF_UP:
 			if (firstDigit(remainder.coefficient) >= 5)
 				incrementAndRound(num);
 			break;
-		case Rounding.halfDown:
+		case HALF_DOWN:
 			if (testFive(remainder.coefficient) > 0)
 				incrementAndRound(num);
 			break;
-		case Rounding.halfEven:
+		case HALF_EVEN:
 			switch (testFive(remainder.coefficient)) {
 				case -1:
 					break;
@@ -284,40 +276,21 @@ private T roundByMode(T)(T num, int precision, Rounding mode,
 	return checkOverflow(num, mode, maxExpo, setFlags);
 }	// end roundByMode()
 
-unittest {	// roundByMode
-	write("-- roundByMode......");
-/*	TD num;
-	num = 1000;
-	roundByMode(num, 5, Rounding.halfEven);
-	assertEqual(num.coefficient, 1000);
-	assertEqual(num.exponent, 0);
-	assertEqual(num.digits, 4);
-	num = 1000000;
-	roundByMode(num, 5, Rounding.halfEven);
-	assertEqual(num.coefficient, 10000);
-	assertEqual(num.exponent, 2);
-	assertEqual(num.digits, 5);
-	num = 99999;
-	roundByMode(num, 5, Rounding.halfEven);
-	assertEqual(num.coefficient, 99999);
-	assertEqual(num.exponent, 0);
-	assertEqual(num.digits, 5);
-	num = 1234550;
-	roundByMode(num, 5, Rounding.halfEven);
-	assertEqual(num.coefficient, 12346);
-	assertEqual(num.exponent, 2);
-	assertEqual(num.digits, 5);
-	num = 1234550;
-	roundByMode(num, 5, Rounding.down);
-	assertEqual(num.coefficient, 12345);
-	assertEqual(num.exponent, 2);
-	assertEqual(num.digits, 5);
-	num = 1234550;
-	roundByMode(num, 5, Rounding.up);
-	assertEqual(num.coefficient, 12346);
-	assertEqual(num.exponent, 2);
-	assertEqual(num.digits, 5);*/
-	writeln("passed");
+unittest
+{	// roundByMode
+	static struct S { TD x; int p; Rounding r; TD expect; }
+	S[] s =
+	[
+		{ "1000",    5, HALF_EVEN,  "1000" },
+		{ "1000000", 5, HALF_EVEN,  "10000E+2" },
+		{ "99999",   5, HALF_EVEN,  "99999" },
+		{ "1234550", 5, HALF_EVEN,  "1.2346E+6" },
+		{ "1234550", 5, ROUND_DOWN, "1.2345E+6" },
+		{ "1234550", 5, ROUND_UP,   "1.2346E+6" },
+	];
+	auto f = FunctionTest!(S,TD)("roundByMode");
+	foreach (t; s) f.test(t, roundByMode!TD(t.x,t.p,t.r));
+    writefln(f.report);
 }
 
 /// Shortens the coefficient of the number to the specified precision,
@@ -326,7 +299,7 @@ unittest {	// roundByMode
 /// number is unchanged and the remainder is zero.
 /// Otherwise the rounded flag is set, and if the remainder is not zero
 /// the inexact flag is also set.
-/// Flags: Rounded, Inexact.
+/// Flags: ROUNDED, INEXACT.
 private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 {
 	T remainder = T.zero;
@@ -334,7 +307,7 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 	if (diff <= 0) {
 		return remainder;
 	}
-	contextFlags.set(Rounded);
+	contextFlags.set(ROUNDED);
 	xint divisor = pow10(diff);
 	xint dividend = x.coefficient;
 	xint quotient = dividend/divisor;
@@ -344,7 +317,7 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 		remainder.digits = diff;
 		remainder.exponent = x.exponent;
 		remainder.coefficient = mant;
-		contextFlags.set(Inexact);
+		contextFlags.set(INEXACT);
 	}
 	x.coefficient = quotient;
 	x.digits = numDigits(quotient); //precision;
@@ -352,16 +325,16 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 	return remainder;
 }
 
-unittest {	// getRemainder
-	write("-- getRemainder.....");
-	TD num, acrem, exnum, exrem;
-	num = 1234567890123456L;
-	acrem = getRemainder(num, 5);
-	exnum = TD("1.2345E+15");
-	assertEqual(num, exnum);
-	exrem = 67890123456;
-	assertEqual(acrem, exrem);
-	writeln("passed");
+unittest
+{	// getRemainder
+	static struct S { TD x; int p; TD expect; }
+	S[] s =
+	[
+		{ 1234567890123456L, 5, "67890123456" },
+	];
+	auto f = FunctionTest!(S,TD)("getRemain");
+	foreach (t; s) f.test(t, getRemainder!TD(t.x,t.p));
+    writefln(f.report);
 }
 
 /// Increments the coefficient by one.
@@ -383,6 +356,18 @@ private void incrementAndRound(T)(ref T x) if (isDecimal!T)
 			x.exponent = x.exponent + 1;
 		}
 	}
+}
+
+unittest
+{	// incrementAndRound
+/*	static struct S { TD x; int p; TD expect; }
+	S[] s =
+	[
+		{ 1234567890123456L, 5, "67890123456" },
+	];
+	auto f = FunctionTest!(S,TD)("incrementAndRound");
+	foreach (t; s) f.test(t, incrementAndRound!TD(t.x,t.p));
+    writefln(f.report);*/
 }
 
 unittest {	// increment
@@ -416,16 +401,18 @@ public int testFive(in xint x) {
 	return zeros ? 1 : 0;
 }
 
-unittest {	// testFive
-	write("-- testFive.........");
-	xint x;
-	x = "5000000000000000000000";
-	assertEqual(testFive(x),  0);
-	x = "4999999999999999999999";
-	assertEqual(testFive(x), -1);
-	x = "50000000000000000000000000000000000000000000000001";
-	assertEqual(testFive(x),  1);
-	writeln("passed");
+unittest
+{	// testFive
+	static struct S { xint x; int expect; }
+	S[] s =
+	[
+		{ "5000000000000000000000",  0 },
+		{ "4999999999999999999999", -1 },
+		{ "50000000000000000000000000000000000000000000000001", 1 },
+	];
+	auto f = FunctionTest!(S,int)("testFive");
+	foreach (t; s) f.test(t, testFive(t.x));
+    writefln(f.report);
 }
 
 //-----------------------------
@@ -479,6 +466,18 @@ public uint numDigits(in xint x)
 	return count + numDigits(n);
 }
 
+unittest
+{	// numDigits
+	static struct S { xint n; uint expect; }
+	S[] s =
+	[
+		{ "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905",  101 },
+	];
+	auto f = FunctionTest!(S,uint)("numDigBig");
+	foreach (t; s) f.test(t, numDigits(t.n));
+    writefln(f.report);
+}
+
 /// Returns the number of digits in the argument,
 /// where the argument is an unsigned long integer.
 public uint numDigits(ulong n) {
@@ -501,44 +500,10 @@ public uint numDigits(ulong n) {
 	return min;
 }
 
-unittest {	// numDigits(xint)
-	write("-- numDigits(xint)..");
-	xint big = xint("12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905");
-	assertEqual(numDigits(big), 101);
-	writeln("passed");
-}
-
-/*unittest {	// numDigits(ulong)
-
-	write("-- numDigits(ulong).");
-	ulong num, expect;
-	uint digits;
-	num = 10;
-	expect = 11;
-	digits = numDigits(num);
-	increment(num, digits);
-	assertEqual(num, expect);
-	assertEqual(digits, 2);
-	num = 19;
-	expect = 20;
-	digits = numDigits(num);
-	increment(num, digits);
-	assertEqual(num, expect);
-	assertEqual(digits, 2);
-	num = 999;
-	expect = 1000;
-	digits = numDigits(num);
-	increment(num, digits);
-	assertEqual(num, expect);
-	assertEqual(digits, 4);
-	writeln("passed");
-}*/
-
-unittest // numDigits
-{
-	static struct S { ulong n; int d; }
-
-	static S[] tests =
+unittest
+{	// numDigits
+	static struct S { ulong n; uint expect; }
+	S[] s =
 	[
 		{				  7,  1 },
 		{				 13,  2 },
@@ -555,11 +520,9 @@ unittest // numDigits
 		{		  ulong.max, 19 },
 		{		  ulong.min,  0 },
 	];
-
-	foreach (i, s; tests)
-	{
-		assertEqual(numDigits(s.n), s.d, i);
-	}
+	auto f = FunctionTest!(S,uint)("numDigUL");
+	foreach (t; s) f.test(t, numDigits(t.n));
+    writefln(f.report);
 }
 
 @safe
@@ -595,6 +558,19 @@ public int firstDigit(in xint x) {
 	return firstDigit(reduceDigits(x));
 }
 
+unittest
+{	// firstDigit(xint)
+	static struct S { xint n; uint expect; }
+	S[] s =
+	[
+		{ "5000000000000000000000", 5 },
+		{ "82345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905", 8 },
+	];
+	auto f = FunctionTest!(S,uint)("1stDigBig");
+	foreach (t; s) f.test(t, firstDigit(t.n));
+    writefln(f.report);
+}
+
 /// Returns the first digit of the argument.
 public uint firstDigit(ulong n) { //, int maxValue = 19) {
 	if (n == 0) return 0;
@@ -603,70 +579,27 @@ public uint firstDigit(ulong n) { //, int maxValue = 19) {
 	return cast(uint)(n/TENS[digits-1]);
 }
 
-unittest {	// firstDigit(xint)
-	write("-- 1stDigit(xint)...");
-	xint x;
-	x = "5000000000000000000000";
-	assertEqual(firstDigit(x), 5);
-	x = "82345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905";
-	assertEqual(firstDigit(x), 8);
-	writeln("passed");
-}
-
-
-unittest {	// firstDigit
-	write("-- 1stDigit(uint)..");
-	ulong n;
-	n = 7;
-	int expect, actual;
-	expect = 7;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 13;
-	expect = 1;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 999;
-	expect = 9;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 9999;
-	expect = 9;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 25987;
-	expect = 2;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 5008617;
-	expect = 5;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 3234567890;
-	expect = 3;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 10000000000;
-	expect = 1;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 823456789012345;
-	expect = 8;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 4234567890123456;
-	expect = 4;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = 623456789012345678;
-	expect = 6;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	n = long.max;
-	expect = 9;
-	actual = firstDigit(n);
-	assertEqual(actual, expect);
-	writeln("passed");
+unittest
+{	// firstDigit(xint)
+	static struct S { ulong n; uint expect; }
+	S[] s =
+	[
+		{ 7, 7 },
+		{ 13, 1 },
+		{ 999, 9 },
+		{ 9999, 9 },
+		{ 25987, 2 },
+		{ 5008617, 5 },
+		{ 3234567890, 3 },
+		{ 10000000000, 1 },
+		{ 823456789012345, 8 },
+		{ 4234567890123456, 4 },
+		{ 623456789012345678, 6 },
+		{long.max, 9 }
+	];
+	auto f = FunctionTest!(S,uint)("1stDigUL");
+	foreach (t; s) f.test(t, firstDigit(t.n));
+    writefln(f.report);
 }
 
 /// Shifts the number left by the specified number of decimal digits.
@@ -857,6 +790,7 @@ writeln("rot = ", rot);
 }
 +/
 
+// TODO: split into xint, ulong?
 /// Returns the last digit of the argument.
 @safe
 public int lastDigit(in xint arg) {
@@ -866,34 +800,27 @@ public int lastDigit(in xint arg) {
 	return cast(int)digit.toInt;
 }
 
-unittest {	// lastDigit(xint)
-	write("lastDigit.....");
-	xint n;
-	n = 7;
-	assertEqual(lastDigit(n), 7);
-	n = -13;
-	assertEqual(lastDigit(n), 3);
-	n = 999;
-	assertEqual(lastDigit(n), 9);
-	n = -9999;
-	assertEqual(lastDigit(n), 9);
-	n = 25987;
-	assertEqual(lastDigit(n), 7);
-	n = -5008615;
-	assertEqual(lastDigit(n), 5);
-	n = 3234567893;
-	assertEqual(lastDigit(n), 3);
-	n = -10000000000;
-	assertEqual(lastDigit(n), 0);
-	n = 823456789012348;
-	assertEqual(lastDigit(n), 8);
-	n = 4234567890123456;
-	assertEqual(lastDigit(n), 6);
-	n = 623456789012345674;
-	assertEqual(lastDigit(n), 4);
-	n = long.max;
-	assertEqual(lastDigit(n), 7);
-	writeln("passed");
+unittest
+{	// lastDigit
+	static struct S { xint n; int expect; }
+	S[] s =
+	[
+		{  7, 7 },
+		{ -13, 3 },
+		{  999, 9 },
+		{ -9999, 9 },
+		{  25987, 7 },
+		{ -5008615, 5 },
+		{  3234567893, 3 },
+		{ -10000000000, 0 },
+		{  823456789012348, 8 },
+		{  4234567890123456, 6 },
+		{  623456789012345674, 4 },
+		{  long.max, 7 },
+	];
+	auto f = FunctionTest!(S,int)("lastDigit");
+	foreach (t; s) f.test(t, lastDigit(t.n));
+    writefln(f.report);
 }
 
 /// Returns the number of trailing zeros in the argument.

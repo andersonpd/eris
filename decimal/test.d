@@ -134,7 +134,7 @@ version(unittest)
 	/// Otherwise prints an error message and returns false.
 	public bool assertPrecisionEqual(T, U:string)(T actual, U expected, int precision,
 			string file = __FILE__, int line = __LINE__ ) {
-		auto context = Context(precision, T.maxExpo, T.rounding);
+		auto context = Context(precision, T.maxExpo, T.mode);
 		if (equals(T(expected), actual, context))	{
 			return true;
 		}

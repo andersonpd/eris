@@ -53,7 +53,7 @@ version(unittest) {
 /*
 mixin template checkNaN() {
 	if (x.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
 }*/
@@ -64,9 +64,9 @@ mixin template checkNaN() {
 
 /// Rounds the argument to an integer using the specified rounding mode.
 /// The default rounding mode is the current context mode. //FIXTHIS
-public T round(T)(T x, Rounding mode = T.rounding) {
+public T round(T)(T x, Rounding mode = T.mode) {
 	if (x.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
 	T value = roundToIntegralExact(x, mode);
@@ -76,32 +76,32 @@ public T round(T)(T x, Rounding mode = T.rounding) {
 /// Rounds the argument to the nearest integer. If the argument is exactly
 /// half-way between two integers the even integer is returned.
 public T rint(T)(T x) {
-	return round(x, Rounding.halfEven);
+	return round(x, HALF_EVEN);
 }
 
 /// Returns the nearest integer less than or equal to the argument.
 /// Rounds toward negative infinity.
 public T floor(T)(T x) {
-	return round(x, Rounding.floor);
+	return round(x, ROUND_FLOOR);
 }
 
 /// Returns the nearest integer greater than or equal to the argument.
 /// Rounds toward positive infinity.
 public T ceil(T)(T x) {
-	return round(x, Rounding.ceiling);
+	return round(x, ROUND_CEILING);
 }
 
 /// Returns the truncated argument.
 /// Rounds toward zero.
 public T trunc(T)(T x) {
-	return round(x, Rounding.down);
+	return round(x, ROUND_DOWN);
 }
 
 /// Returns the nearest integer value. If the value is greater (less) than
 /// the maximum (minimum) int value the maximum (minimum) value is returned.
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
-public int toInt(T)(T x, Rounding mode = Rounding.halfEven)
+public int toInt(T)(T x, Rounding mode = HALF_EVEN)
 {
 	if (x.isNaN)
 	{
@@ -119,7 +119,7 @@ public int toInt(T)(T x, Rounding mode = Rounding.halfEven)
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
 public long toLong(T)(T x,
-		Rounding mode = Rounding.halfEven) if (isDecimal!T)
+		Rounding mode = HALF_EVEN) if (isDecimal!T)
 {
 	if (x.isNaN)
 	{
@@ -135,7 +135,7 @@ public long toLong(T)(T x,
 /// Returns the nearest extended integer value.
 /// The value is rounded based on the specified rounding mode. The default
 /// mode is half-even.
-public xint toBigInt(T)(T x, Rounding mode = Rounding.halfEven)
+public xint toBigInt(T)(T x, Rounding mode = HALF_EVEN)
 {
 	if (x.isNaN)
 	{
@@ -204,7 +204,7 @@ const char[] Constant =
 	"/// Returns the value of the constant at the specified precision.
 	public T " ~ name ~ "(T)(int precision = T.precision) if (isDecimal!T)
 	{
-		Context context = Context(precision, T.maxExpo, T.rounding);
+		Context context = Context(precision, T.maxExpo, T.mode);
 		static T value;
 		static int lastPrecision = 0;
 		if (precision == lastPrecision) return value;
@@ -224,10 +224,10 @@ const char[] UnaryFunction =
 	public T " ~ name ~ "(T, U:int)(T x, U precision = T.precision) if (isDecimal!T)
 	{
 		if (x.isNaN) {
-			contextFlags.set(InvalidOperation);
+			contextFlags.set(INVALID_OPERATION);
 			return T.nan;
 		}
-		Context context = Context(precision, T.maxExpo, Rounding.halfEven);
+		Context context = Context(precision, T.maxExpo, HALF_EVEN);
 		return " ~ name ~ "!T(x, context);
 	}
 
@@ -259,10 +259,10 @@ const char[] UnaryFunction =
 	public T " ~ name ~ "(T)(T x, int precision = T.precision) if (isDecimal!T)
 	{
 		if (x.isNaN) {
-			contextFlags.set(InvalidOperation);
+			contextFlags.set(INVALID_OPERATION);
 			return T.nan;
 		}
-		Context context = Context(precision, T.maxExpo, Rounding.halfEven);
+		Context context = Context(precision, T.maxExpo, HALF_EVEN);
 		return " ~ name ~ "!T(x, context);
 	}
 
@@ -272,10 +272,10 @@ public T reciprocal(T, U)(in U u, int precision)
 {
 	T x = T(u);
 	if (x.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
-	Context context = Context(precision, T.maxExpo, Rounding.halfEven);
+	Context context = Context(precision, T.maxExpo, HALF_EVEN);
 	return reciprocal!T(T(x), context);
 }*/
 
@@ -308,10 +308,10 @@ const char[] BinaryFunction =
 	if (isDecimal!T)
 	{
 		if (x.isNaN || y.isNaN) {
-			contextFlags.set(InvalidOperation);
+			contextFlags.set(INVALID_OPERATION);
 			return T.nan;
 		}
-		Context context = Context(precision, T.maxExpo, Rounding.halfEven);
+		Context context = Context(precision, T.maxExpo, HALF_EVEN);
 		return " ~ name ~ "!T(x, y, context);
 	}";
 }
@@ -320,9 +320,9 @@ const char[] BinaryFunction =
 //	CONSTANTS
 //--------------------------------
 
-/// Adds guard digits to the context precision and sets rounding to halfEven.
+/// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
 private Context guard(Context context, int guardDigits = 2) {
-	return Context(context.precision + guardDigits, context.maxExpo, Rounding.halfEven);
+	return Context(context.precision + guardDigits, context.maxExpo, HALF_EVEN);
 }
 
 /// Calculates the value of pi to the specified precision.
@@ -558,10 +558,10 @@ mixin (UnaryFunction!("sqrt"));
 public T reciprocal(T, U:int)(T x, U precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
-	Context context = Context(precision, T.maxExpo, Rounding.halfEven);
+	Context context = Context(precision, T.maxExpo, HALF_EVEN);
 	return reciprocal!T(x, context);
 }
 
@@ -571,10 +571,10 @@ public T reciprocal(T, U)(in U u, int precision)
 {
 	T x = T(u);
 	if (x.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
-	Context context = Context(precision, T.maxExpo, Rounding.halfEven);
+	Context context = Context(precision, T.maxExpo, HALF_EVEN);
 	return reciprocal!T(T(x), context);
 }*/
 
@@ -584,7 +584,7 @@ public T reciprocal(T)(in T x, Context inContext = T.context) if (isDecimal!T)
 {
 	// special values
 	if (x.isZero) {
-		contextFlags.set(DivisionByZero);
+		contextFlags.set(DIVISION_BY_ZERO);
 		return T.infinity(x.sign);
 	}
 	if (x.copyAbs.isOne) return x.copy;
@@ -627,7 +627,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 {
 	// special values
 	if (x.isZero) {
-		contextFlags.set(DivisionByZero);
+		contextFlags.set(DIVISION_BY_ZERO);
 		return T.infinity(x.sign);
 	}
 	if (x.isOne) return x;
@@ -682,7 +682,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 //	auto context = guard(inContext, 3);
 	// special values
 	if (x.isNegative) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
 	// TODO: what if x is very close to one or zero??
@@ -857,7 +857,7 @@ package T log(T)(T x, Context inContext,
 		bool reduceArg = true) if (isDecimal!T)
 {
 	if (x.isZero) {
-		contextFlags.set(DivisionByZero);
+		contextFlags.set(DIVISION_BY_ZERO);
 		return -T.infinity;
 	}
 	if (x.isNegative) {
@@ -910,7 +910,7 @@ public T log1p(T)(T x, Context inContext) if (isDecimal!T)
 	// special cases
 	if (x.isNaN || x < T.negOne) 	// use compare(x, T.negOne) == -1?
 	{
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
 	// check for infinite argument
@@ -952,7 +952,7 @@ unittest {
 public T log10(T)(T x, Context inContext) if (isDecimal!T)
 {
 	if (x.isZero) {
-		contextFlags.set(DivisionByZero);
+		contextFlags.set(DIVISION_BY_ZERO);
 		return T.infinity;
 	}
 	if (x.isNegative) {
@@ -1021,7 +1021,7 @@ public T hypot(T)(T x, T y, Context context) if (isDecimal!T)
     if (x.isZero) return y;
 	if (y.isZero) return x;
 	if (x.isNaN || y.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
 
@@ -1077,11 +1077,11 @@ private T reduceAngle(T)(in T x,
 public T sin(T)(in T x, int precision = T.precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
 
-	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
+	auto context = Context(precision, T.maxExpo, HALF_EVEN);
 	int k;
 	T red = reduceAngle(x, k, context);
 	switch (k) {
@@ -1164,10 +1164,10 @@ writefln("sin(difficult) = %s", sin(difficult));
 public T cos(T)(in T x, int precision = T.precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
-	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
+	auto context = Context(precision, T.maxExpo, HALF_EVEN);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
 	switch (quadrant) {
@@ -1236,7 +1236,7 @@ unittest
 }
 
 public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision) {
-	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
+	auto context = Context(precision, T.maxExpo, HALF_EVEN);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
 	sincos(red, sine, cosine, context);
@@ -1315,10 +1315,10 @@ public T divTan(T)(T x) if (isDecimal!T)
 public T tan(T)(T x, int precision = T.precision) if (isDecimal!T)
 {
 	if (x.isNaN) {
-		contextFlags.set(InvalidOperation);
+		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
-	auto context = Context(precision, T.maxExpo, Rounding.halfEven);
+	auto context = Context(precision, T.maxExpo, HALF_EVEN);
 	int quadrant;
 	T red = reduceAngle(x, quadrant, context);
 	T sine;

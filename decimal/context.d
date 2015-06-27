@@ -22,7 +22,6 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.test.assertion;
 }
 
 /// The available rounding modes. For cumulative operations use the
@@ -41,6 +40,15 @@ public enum Rounding {
     ceiling,
 }
 
+alias ROUND_NONE     = Rounding.none;
+alias HALF_EVEN      = Rounding.halfEven;
+alias HALF_DOWN      = Rounding.halfDown;
+alias HALF_UP        = Rounding.halfUp;
+alias ROUND_DOWN     = Rounding.down;
+alias ROUND_UP       = Rounding.up;
+alias ROUND_FLOOR    = Rounding.floor;
+alias ROUND_CEILING  = Rounding.ceiling;
+
 /// The available flags and trap-enablers.
 /// The larger value have higher precedence.
 /// If more than one flag is set by an operation and traps are enabled,
@@ -48,14 +56,14 @@ public enum Rounding {
 /// General Decimal Arithmetic Specification, p. 15.
 public enum : ubyte
 {
-	InvalidOperation   = 0x80,
-	DivisionByZero     = 0x40,
-	Overflow           = 0x20,
-	Subnormal          = 0x10,
-	Inexact            = 0x08,
-	Rounded            = 0x04,
-	Underflow          = 0x02,
-	Clamped            = 0x01
+	INVALID_OPERATION  = 0x80,
+	DIVISION_BY_ZERO   = 0x40,
+	OVERFLOW           = 0x20,
+	SUBNORMAL          = 0x10,
+	INEXACT            = 0x08,
+	ROUNDED            = 0x04,
+	UNDERFLOW          = 0x02,
+	CLAMPED            = 0x01
 }
 
 
@@ -68,15 +76,15 @@ public struct Context
 {
 	public immutable int precision;
 	public immutable int maxExpo;
-	public immutable Rounding rounding;
+	public immutable Rounding mode;
 
 	@disable this();
 
-	this(int precision, int maxExpo, Rounding rounding)
+	this(int precision, int maxExpo, Rounding mode)
 	{
 		this.precision = precision;
 		this.maxExpo = maxExpo;
-		this.rounding = rounding;
+		this.mode = mode;
 	}
 }
 
@@ -116,28 +124,28 @@ private struct ContextFlags {
 	// trap-enabler is set, an exception is thrown.
 	@safe
 	 public void checkFlags(ubyte flags) {
-		if (flags & InvalidOperation && traps & InvalidOperation) {
+		if (flags & INVALID_OPERATION && traps & INVALID_OPERATION) {
 			throw new InvalidOperationException("InvalidOperation");
 		}
-		if (flags & DivisionByZero && traps & DivisionByZero) {
+		if (flags & DIVISION_BY_ZERO && traps & DIVISION_BY_ZERO) {
 			throw new DivByZeroException("DivisionByZero");
 		}
-		if (flags & Overflow && traps & Overflow) {
+		if (flags & OVERFLOW && traps & OVERFLOW) {
 			throw new OverflowException("Overflow");
 		}
-		if (flags & Subnormal && traps & Subnormal) {
+		if (flags & SUBNORMAL && traps & SUBNORMAL) {
 			throw new SubnormalException("Subnormal");
 		}
-		if (flags & Inexact && traps & Inexact) {
+		if (flags & INEXACT && traps & INEXACT) {
 			throw new InexactException("Inexact");
 		}
-		if (flags & Rounded && traps & Rounded) {
+		if (flags & ROUNDED && traps & ROUNDED) {
 			throw new RoundedException("Rounded");
 		}
-		if (flags & Underflow && traps & Underflow) {
+		if (flags & UNDERFLOW && traps & UNDERFLOW) {
 			throw new UnderflowException("Underflow");
 		}
-		if (flags & Clamped && traps & Clamped) {
+		if (flags & CLAMPED && traps & CLAMPED) {
 			throw new ClampedException("Clamped");
 		}
 	}

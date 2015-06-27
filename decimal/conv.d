@@ -346,7 +346,7 @@ private string decimalForm(T)(in T number,
 	int diff = num.exponent + precision;
 	if (diff < 0) {
 		int numPrecision = num.digits + num.exponent + precision;
-		num = roundToPrecision(num, numPrecision, T.maxExpo, T.rounding);
+		num = roundToPrecision(num, numPrecision, T.maxExpo, T.mode);
 	}
 
 	// convert the coefficient to a string

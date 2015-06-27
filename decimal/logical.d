@@ -47,6 +47,7 @@ import std.stdio;
 version(unittest)
 {
 	import std.stdio;
+	import eris.decimal.test;
 	import eris.test.assertion;
 }
 
@@ -115,18 +116,18 @@ private T invert(T: string)(T str)
 	return result.idup;
 }
 
-unittest {	// inverse
- 	write("-- logical inverse..");
-	// TODO: (behavior, language) why can't we compare ints and decimals?
-	TD num;
-	num = invert(TD(101001));
-	assertEqual(num, 10110);
-	num = invert(TD(1));
-	assertEqual(num, TD(0));
-//	assertEqual(num, 0);
-	num = invert(TD(0));
-	assertEqual(num, 1);
-	writeln("passed");
+unittest
+{	// inverse
+	static struct S { TD num; TD expect; }
+	S[] s =
+	[
+		{ "101001",	"10110" },
+		{ "1",		"0" },
+		{ "0",		"1" },
+	];
+	auto f = FunctionTest!(S,TD)("inverse");
+	foreach (t; s) f.test(t, invert!TD(t.num));
+    writefln(f.report);
 }
 
 //--------------------------------

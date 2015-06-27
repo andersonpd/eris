@@ -36,11 +36,11 @@ version(unittest)
 
 alias xint = ExtendedInt;
 
-public enum Context DefaultContext = Context(99, 9999, Rounding.halfEven);
-public enum Context TestContext    = Context(9, 99, Rounding.halfEven);
-public enum Context Context99      = Context(99, 999, Rounding.halfEven);
-public enum Context RealContext    = Context(real.dig, real.max_10_exp, Rounding.halfEven);
-public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, Rounding.halfEven);
+public enum Context DefaultContext = Context(99, 9999, HALF_EVEN);
+public enum Context TestContext    = Context(9, 99, HALF_EVEN);
+public enum Context Context99      = Context(99, 999, HALF_EVEN);
+public enum Context RealContext    = Context(real.dig, real.max_10_exp, HALF_EVEN);
+public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, HALF_EVEN);
 
 alias TD = BigDecimal!(TestContext);
 alias dec99 = BigDecimal!(Context99);
@@ -104,7 +104,7 @@ unittest {
 		/// Smallest non-normalized exponent.
 		enum int tinyExpo = 1 - maxExpo - precision;
 		/// Rounding mode.
-		enum Rounding rounding = context.rounding;
+		enum Rounding mode = context.mode;
 
 	private:
 		alias decimal = BigDecimal!(context);
@@ -1757,15 +1757,15 @@ unittest {
 		}
 		else static if (op == "&")
 		{
-			return and(this, decimal(x), rounding);
+			return and(this, decimal(x), mode);
 		}
 		else static if (op == "|")
 		{
-			return or(this, decimal(x), rounding);
+			return or(this, decimal(x), mode);
 		}
 		else static if (op == "^")
 		{
-			return xor(this, decimal(x), rounding);
+			return xor(this, decimal(x), mode);
 		}
 		assert(false);
 	}
