@@ -195,8 +195,7 @@ decimal arithmetic...begin
 ==========================
 classify  :  6 tests ( 6 pass)
 ilogb     :  5 tests ( 5 pass)
-logb      :  6 tests ( 5 pass, 1 fail).
-  failed at arithmetic.d(183), test 6: <logb(NaN)> should be <NaN> not <NaN>.
+logb      :  6 tests ( 6 pass)
 scaleb    :  1 test  ( 1 pass)
 reduce    :  5 tests ( 4 pass, 1 fail).
   failed at arithmetic.d(301), test 2: <reduce(1.200)> should be <1.2> not <1.3>.
@@ -230,10 +229,7 @@ divInt    : 15 tests (15 pass)
 remainder : 15 tests (14 pass, 1 fail).
   failed at arithmetic.d(2101), test 3: <remainder(-10, 3)> should be <-19> not <-1>.
 remNear   :  8 tests ( 8 pass)
-quantize  : 15 tests (12 pass, 3 fail).
-  failed at arithmetic.d(2218), test 7: <quantize(2, Infinity)> should be <NaN> not <NaN>.
-  failed at arithmetic.d(2218), test 10: <quantize(35236450.6, 0.01)> should be <NaN> not <NaN>.
-  failed at arithmetic.d(2218), test 11: <quantize(-35236450.6, 0.01)> should be <NaN> not <NaN>.
+quantize  : 15 tests (15 pass)
 roundIntEx:  8 tests ( 8 pass)
 -- alignOps.........passed
 divisionByZero......test missing
@@ -249,17 +245,17 @@ decimal context........end
 ==========================
 decimal conversion...begin
 ==========================
--- toString.........passed
--- sciForm..........passed
--- engForm..........passed
--- specialForm......passed
--- decimalForm......passed
--- exponentForm.....passed
--- setWidth.........passed
--- toAbstract.......passed
--- toExact..........passed
--- toNumber.........passed
--- setPayload.......passed
+toString  : 34 tests (34 pass)
+sciForm   :  7 tests ( 7 pass)
+engForm   : 16 tests (16 pass)
+specForm  :  4 tests ( 4 pass)
+decForm   : 11 tests (11 pass)
+expForm   : 11 tests (11 pass)
+setWidth  :  5 tests ( 5 pass)
+absForm   :  3 tests ( 3 pass)
+fullForm  :  9 tests ( 9 pass)
+toNumber  : 10 tests (10 pass)
+setPayload:  3 tests ( 3 pass)
 ==========================
 decimal conversion.....end
 ==========================

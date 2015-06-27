@@ -911,15 +911,15 @@ unittest {
 //--------------------------------
 
 	/// Converts a number to an abstract string representation.
-	public string toAbstract() const
+	public string abstractForm() const
 	{
-		return eris.decimal.conv.toAbstract(this);
+		return eris.decimal.conv.abstractForm(this);
 	}
 
 	/// Converts a number to a full string representation.
-	public string toExact() const
+	public string fullForm() const
 	{
-		return eris.decimal.conv.toExact(this);
+		return eris.decimal.conv.fullForm(this);
 	}
 
 	/// Converts a decimal to a "scientific" string representation.

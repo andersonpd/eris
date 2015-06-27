@@ -137,37 +137,37 @@ unittest {	// roundToPrecision
 	assertEqual(after,  "1.2345679E+9");
 	before = 1235;
 	after = roundToPrecision(before, 3);
-	assertEqual(after.toAbstract(), "[0,124,1]");
+	assertEqual(after.abstractForm(), "[0,124,1]");
 	before = 12359;
 	after = roundToPrecision(before, 3);
-	assertEqual(after.toAbstract(), "[0,124,2]");
+	assertEqual(after.abstractForm(), "[0,124,2]");
 	before = 1245;
 	after = roundToPrecision(before, 3);
-	assertEqual(after.toAbstract(), "[0,124,1]");
+	assertEqual(after.abstractForm(), "[0,124,1]");
 	before = 12459;
 	after = roundToPrecision(before, 3);
-	assertEqual(after.toAbstract(), "[0,125,2]");
+	assertEqual(after.abstractForm(), "[0,125,2]");
 //	xint test = "18690473486004564289165545643685440097";
 //	long  count = reduceDigits(test);
 //	roundToPrecision(test);
 		// TODO: (testing) test for subnormal as below...
 /*	Dec32 a = Dec32(0.1);
 	Dec32 b = Dec32.min * Dec32(8888888);
-	assert("[0,8888888,-101]" == b.toAbstract);
+	assert("[0,8888888,-101]" == b.abstractForm);
 	Dec32 c = a * b;
-	assert("[0,888889,-101]" == c.toAbstract);
+	assert("[0,888889,-101]" == c.abstractForm);
 	Dec32 d = a * c;
-	assert("[0,88889,-101]" == d.toAbstract);
+	assert("[0,88889,-101]" == d.abstractForm);
 	Dec32 e = a * d;
-	assert("[0,8889,-101]" == e.toAbstract);
+	assert("[0,8889,-101]" == e.abstractForm);
 	Dec32 f = a * e;
-	assert("[0,889,-101]" == f.toAbstract);
+	assert("[0,889,-101]" == f.abstractForm);
 	Dec32 g = a * f;
-	assert("[0,89,-101]" == g.toAbstract);
+	assert("[0,89,-101]" == g.abstractForm);
 	Dec32 h = a * g;
-	assert("[0,9,-101]" == h.toAbstract);
+	assert("[0,9,-101]" == h.abstractForm);
 	Dec32 i = a * h;
-	assert("[0,1,-101]" == i.toAbstract);*/
+	assert("[0,1,-101]" == i.abstractForm);*/
 	writeln("passed");
 }
 

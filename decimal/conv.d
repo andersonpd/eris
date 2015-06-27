@@ -32,7 +32,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.test.assertion;
+	import eris.decimal.test;
 }
 
 public enum DefaultPrecision = 6;
@@ -81,13 +81,10 @@ public string toString(T)(in T num, string fmStr = "%S") if (isDecimal!T)
 	return str;
 }
 
-unittest  // toString
-{
-	write("-- toString.........");
-
-	static struct S { string num; string fmt; string str; }
-
-	static S[] tests =
+unittest
+{	// toString
+	static struct S { TD num; string fmt; string str; }
+	S[] s =
 	[
 		// default format is scientific form
 		{ "123",		"%s",	"123" },
@@ -133,13 +130,9 @@ unittest  // toString
 		{ "1234567",	 "%.0F",	"1234567" },
 		{ "123",		 "%#.0F",	"123.0" },
 	];
-
-	foreach (i, s; tests)
-	{
-
-		assertEqual(toString(TD(s.num), s.fmt), s.str, i);
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("toString");
+	foreach (t; s) f.test(t, toString(t.num, t.fmt));
+    writefln(f.report);
 }
 
 //--------------------------------
@@ -191,13 +184,10 @@ public string sciForm(T)(in T num) if (isDecimal!T)
 	return signed ? "-" ~ str : str;
 };  // end sciForm
 
-unittest // sciForm
-{
-	write("-- sciForm..........");
-
-	static struct S { string num; string str; }
-
-	static S[] tests =
+unittest
+{	// sciForm
+	static struct S { TD num; string str; }
+	S[] s =
 	[
 		{ "123",		"123" },
 		{ "-123",		"-123" },
@@ -207,12 +197,9 @@ unittest // sciForm
 		{ "123E-1",		"12.3" },
 		{ "inf",		"Infinity" },
 	];
-
-	foreach (i, s; tests)
-	{
-		assertEqual(sciForm(TD(s.num)), s.str, i);
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("sciForm");
+	foreach (t; s) f.test(t, sciForm(t.num));
+    writefln(f.report);
 }
 
 /// Converts a decimal number to a string
@@ -284,28 +271,31 @@ public string engForm(T)(in T num) if (isDecimal!T)
 	return signed ? "-" ~ str : str;
 }  // end engForm()
 
-unittest // engForm
-{
-	write("-- engForm..........");
-
-	static string[] tests =
+unittest
+{	// engForm
+	static struct S { TD num; string str; }
+	S[] s =
 	[
-		"1.23E+3",
-		"1.23E-9",
-		"-1.23E-12",
-		"9.999999E+96",
-		"1.000",
-		"NaN",
-		"-NaN102",
-		"-Infinity",
-		"-0",
+		{ "123",		"123" },
+		{ "-123",		"-123" },
+		{ "12.3E1",		"123" },
+		{ "123E1",		"1.23E+3" },
+		{ "123E3",		"123E+3" },
+		{ "123E-1",		"12.3" },
+		{ "1.23E+3",	"1.23E+3" },
+		{ "1.23E-9",	"1.23E-9" },
+		{ "-1.23E-12",	"-1.23E-12" },
+		{ "9.999999E+96","9.999999E+96" },
+		{ "1.000",		"1.000" },
+		{ "NaN",		"NaN" },
+		{ "-NaN102",	"-NaN102" },
+		{ "-Infinity",	"-Infinity" },
+		{ "inf",		"Infinity" },
+		{ "-0",			"-0" },
 	];
-
-	foreach (i, str; tests)
-	{
-		assertEqual(engForm(TD(str)), str, i);
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("engForm");
+	foreach (t; s) f.test(t, engForm(t.num));
+    writefln(f.report);
 }
 
 private string specialForm(T)(in T num, bool shortForm = false) if (isDecimal!T)
@@ -325,33 +315,23 @@ private string specialForm(T)(in T num, bool shortForm = false) if (isDecimal!T)
 	return str;
 }
 
-unittest  // specialForm
-{
-	write("-- specialForm......");
-
-	static string[] tests =
+unittest
+{	// specialForm
+	static struct S { TD num; string str; }
+	S[] s =
 	[
-		"NaN",
-		"-sNaN102",
-		"-Infinity",
+		{ "NaN",		"NaN" },
+		{ "-sNaN102",	"-sNaN102" },
+		{ "-Infinity",	"-Infinity" },
 	];
-
-	foreach (i, str; tests)
-	{
-		assertEqual(TD(str).specialForm, str, i);
-	}
-
-	tests =
+	auto f = FunctionTest!(S,string)("specForm");
+	foreach (t; s) f.test(t, specialForm(t.num));
+	S[] r =
 	[
-		"Inf",
-		"-Inf",
+		{ "Infinity",	"Inf" },
 	];
-
-	foreach (i, str; tests)
-	{
-		assertEqual(TD(str).specialForm(true), str, i);
-	}
-	writeln("passed");
+	foreach (t; r) f.test(t, specialForm(TD(t.num),true));
+    writefln(f.report);
 }
 
 /// Converts a decimal number to a string in decimal format (xxx.xxx).
@@ -405,13 +385,10 @@ private string decimalForm(T)(in T number,
 	return sign ? ("-" ~ str).idup : str.idup;
 }
 
-unittest // decimalForm
-{
-	write("-- decimalForm......");
-
-	static struct S { string num; int precision; string str; }
-
-	static S[] tests =
+unittest
+{	// decimalForm
+	static struct S { TD num; int precision; string str; }
+	S[] s =
 	[
 		{ "12.345",	6,	"12.345000" },
 		{ "125",	3,	"125.000" },
@@ -425,14 +402,10 @@ unittest // decimalForm
 		{ "123.4567890123",	6,	"123.456789" },
 		{ "123.4567895123",	6,	"123.456790" },
 	];
-
-	foreach (i, s; tests)
-	{
-		assertEqual(decimalForm(TD(s.num), s.precision), s.str, i);
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("decForm");
+	foreach (t; s) f.test(t, decimalForm(t.num, t.precision));
+    writefln(f.report);
 }
-
 
 /// Converts a decimal number to a string using exponential notation.
 private string exponentForm(T)(in T number, int precision = DefaultPrecision,
@@ -461,13 +434,10 @@ private string exponentForm(T)(in T number, int precision = DefaultPrecision,
 	return sign ? "-" ~ str : str;
 }  // end exponentForm
 
-unittest	// exponentForm
-{
-	write("-- exponentForm.....");
-
-	static struct S { string num; int precision; string str; }
-
-	static S[] tests =
+unittest
+{	// exponentForm
+	static struct S { TD num; int precision; string str; }
+	S[] s =
 	[
 		{ "125",	3,	"1.25E+02" },
 		{ "-125",	3,	"-1.25E+02" },
@@ -481,12 +451,9 @@ unittest	// exponentForm
 		{ "123.456789500",	6,	"1.234568E+02" },
 		{ "123.4567895123",	8,	"1.23456790E+02" },
 	];
-
-	foreach (i, s; tests)
-	{
-		assertEqual(exponentForm(TD(s.num), s.precision), s.str, i);
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("expForm");
+	foreach (t; s) f.test(t, exponentForm(t.num, t.precision));
+    writefln(f.report);
 }
 
 /// Returns a string representing the number, formatted as specified.
@@ -542,20 +509,25 @@ private string setWidth(string str, int width,
 	return rightJustify!string(str, width, fillChar);
 }
 
-unittest // setWidth
-{
-	write("-- setWidth.........");
-	auto str = "10E+05";
-	assertEqual(setWidth(str,  8),			"  10E+05");
-	assertEqual(setWidth(str, -8), 			"10E+05  ");
-	assertEqual(setWidth(str,  8, true), 	"10E+05  ");
-	assertEqual(setWidth(str,  8, false, true), "0010E+05");
-	writeln("passed");
+unittest
+{	// setWidth
+	static struct S { string num; int width; bool left; bool zeros; string str; }
+	S[] s =
+	[
+		{ "10+E5",	 8,	false, false, "   10+E5" },
+		{ "10E+05",	-8,	false, false, "10E+05  " },
+		{ "10E+05",	 8,	true,  false, "10E+05  " },
+		{ "10E+05",	 8,	true,  true,  "10E+05  " },
+		{ "10E+05",	 8,	false, true,  "0010E+05" },
+	];
+	auto f = FunctionTest!(S,string)("setWidth");
+	foreach (t; s) f.test(t, setWidth(t.num, t.width, t.left, t.zeros));
+    writefln(f.report);
 }
 
 /// Returns an abstract string representation of a number.
 /// The abstract representation is described in the specification. (p. 9-12)
-public string toAbstract(T)(in T num) if (isDecimal!T)
+public string abstractForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isFinite) {
 		return format("[%d,%s,%d]", num.sign ? 1 : 0,
@@ -579,28 +551,23 @@ public string toAbstract(T)(in T num) if (isDecimal!T)
 	return "[0,qNAN]";
 }
 
-unittest // toAbstract
-{
-	write("-- toAbstract.......");
-	static struct S { string num; string abs; }
-
-	static S[] tests =
+unittest
+{	// abstractForm
+	static struct S { TD num; string str; }
+	S[] s =
 	[
-		{     "-inf",	"[1,inf]" },
-		{      "nan",	"[0,qNaN]" },
-		{ "snan1234",	"[0,sNaN1234]" },
+		{ "-inf",	  "[1,inf]" },
+		{ "nan",	  "[0,qNaN]" },
+		{ "snan1234", "[0,sNaN1234]" },
 	];
-
-	foreach (i, s; tests)
-	{
-		assertEqual(TD(s.num).toAbstract, s.abs, i);
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("absForm");
+	foreach (t; s) f.test(t, abstractForm(t.num));
+    writefln(f.report);
 }
 
-/// Returns a full, exact representation of a number. Similar to toAbstract,
+/// Returns a full, exact representation of a number. Similar to abstractForm,
 /// but it provides a valid string that can be converted back into a number.
-public string toExact(T)(in T num) if (isDecimal!T)
+public string fullForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isFinite) {
 		return format("%s%sE%s%02d", num.sign ? "-" : "+",
@@ -627,26 +594,24 @@ public string toExact(T)(in T num) if (isDecimal!T)
 	return "+NaN";
 }
 
-unittest // toExact
-{
-	write("-- toExact..........");
-
-	static string[] tests =
+unittest
+{	// fullForm
+	static struct S { TD num; string str; }
+	S[] s =
 	[
-		"+9999999E+90",
-		"+1E+00",
-		"+1000E-03",
-		"+NaN",
-		"-NaN102",
-		"-Infinity",
-		"-0E+00",
+		{ "-inf",      "-Infinity" },
+		{ "nan",       "+NaN" },
+		{ "+NaN",      "+NaN" },
+		{ "text",      "+NaN" },
+		{ "1E+00",     "+1E+00" },
+		{ "1000E-03",  "+1000E-03" },
+		{ "-NaN102",   "-NaN102" },
+		{ "-0E+00",    "-0E+00" },
+		{ "9999999E+90", "+9999999E+90" },
 	];
-
-	foreach (i, str; tests)
-	{
-		assertEqual(TD(str).toExact, str, i);
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("fullForm");
+	foreach (t; s) f.test(t, fullForm(t.num));
+    writefln(f.report);
 }
 
 /// Converts a string into a decimal number. This departs from the
@@ -796,12 +761,10 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 	return num;
 }
 
-unittest // toNumber
-{
-	write("-- toNumber.........");
-	static struct S { string num; string str; }
-
-	static S[] tests =
+unittest
+{	// toNumber
+	static struct S { string num; TD str; }
+	S[] s =
 	[
 		{ "2.50",		"2.50" },
 		{ "1.0",		"1.0" },
@@ -814,20 +777,9 @@ unittest // toNumber
 		{ ".E3",		"NaN" },
 		{ "+.",			"NaN" },
 	];
-
-	foreach (i, s; tests)
-	{
-		assertEqual(TD(s.num).toString, s.str, i);
-		auto num = TD(s.num);
-/*	auto len = num.coefficient.getDigitLength;
-	for (int j = 0; j < len; j++)
-	{
-		auto digit = num.coefficient.getDigit(j);
-		writefln("digit = %s", digit);
-//			writefln("num.coefficient.getDigit(i) = %s", num.coefficient.getDigit(i));
-	}*/
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,TD)("toNumber");
+	foreach (t; s) f.test(t, toNumber!TD(t.num));
+    writefln(f.report);
 }
 
 private T setPayload(T)(T num, char[] str, int len) if (isDecimal!T)
@@ -861,12 +813,10 @@ private T setPayload(T)(T num, char[] str, int len) if (isDecimal!T)
 	return num;
 }
 
-unittest // setPayload
-{
-	write("-- setPayload.......");
+unittest
+{	// setPayload
 	static struct S { string num; string str; }
-
-	static S[] tests =
+	S[] s =
 	[
 		{ "NaN167",		"NaN167" },
 		// invalid payload is ignored
@@ -874,14 +824,10 @@ unittest // setPayload
 		// leading zeros in payload are excised
 		{ "-snan0170",		"-sNaN170" },
 	];
-
-	foreach (i, s; tests)
-	{
-		assertEqual(TD(s.num).toString, s.str, i);
-	}
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("setPayload");
+	foreach (t; s) f.test(t, TD(t.num).toString);
+    writefln(f.report);
 }
-
 
 unittest {
 	writeln("==========================");

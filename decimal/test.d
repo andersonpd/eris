@@ -51,6 +51,15 @@ version(unittest)
 			auto input = s.tupleof[0..$-1];
 			auto expect = s.tupleof[$-1];
 
+			// special case: if num is decimal it may be NaN, but NaN != NaN
+			static if (isDecimal!T)
+			{
+				if (actual.isNaN && expect.isNaN)
+				{
+					passCount++;
+					return;
+				}
+			}
 			if (actual == expect)
 			{
 				passCount++;

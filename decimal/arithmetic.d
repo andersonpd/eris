@@ -2355,7 +2355,7 @@ unittest {	// invalidOperation
 	actual = abs!TD(arg);
 	assertTrue(actual.isQuiet);
 	assertTrue(contextFlags.getFlag(InvalidOperation));
-	assertEqual(actual.toAbstract, expect.toAbstract);*/
+	assertEqual(actual.abstractForm, expect.abstractForm);*/
 }
 
 /// Returns a quiet NaN and sets the invalid-operation flag.
