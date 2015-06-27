@@ -609,16 +609,17 @@ public T reciprocal(T)(in T x, Context inContext = T.context) if (isDecimal!T)
 
 unittest
 {	// reciprocal
-	ArithTestData!(TD,1)[] data =
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "1234567890123456789", TD(1)/TD("1234567890123456789") },
 		{ "1234567890678900000", TD(1)/TD("1234567890123456789") },
 		{ "125", "0.008" },
 		{ "0.008", "125" },
 	];
-	TestResults tr = testArith!(TD,1)
-		("reciprocal", &reciprocal!(TD), data);
-    writefln(tr.report);
+	auto f = FunctionTest!(S,TD)("reciprocal");
+	foreach (t; s) f.test(t, reciprocal(t.x));
+    writefln(f.report);
 }
 
 // TODO: see note at reciprocal
@@ -1114,39 +1115,31 @@ package T sin(T)(in T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(sum, inContext);
 }
 
-version(unittest)
-{
-	private T sint1(T)(in T x)
-	{
-		return sin!T(x);
-	}
-
-	private T sint2(T)(in T x, int precision)
-	{
-		return sin!T(x, precision);
-	}
-}
-
 unittest
 {	// sin
-	ArithTestData!(TD,1)[] data1 =
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "0.1", "0.0998334166" },
 		{ "0.333", "0.326879693" },
 		{ "5.0", "-0.958924275" },
 	];
-	TestResults tr1 = testArith!(TD,1)
-		("sin1", &sint1!(TD), data1);
+	auto f = FunctionTest!(S,TD)("sin");
+	foreach (t; s) f.test(t, sin(t.x));
+    writefln(f.report);
+}
 
-	ArithTestData!(TD,1,true)[] data2 =
+unittest
+{	// sin(x,precision)
+	static struct S { TD x; int n; TD expect; }
+	S[] s =
 	[
-		{ "1.0", "0.8414709848078965", 16 },
-		{ "2.0", "0.9092974268256817", 16 },
+		{ "1.0", 16, "0.8414709848078965" },
+		{ "2.0", 16, "0.9092974268256817" },
 	];
-	TestResults tr2 = testPrecision!(TD,1)
-		("sin2", &sint2!(TD), data2);
-    writefln(tr1.report);
-    writefln(tr2.report);
+	auto f = FunctionTest!(S,TD)("sin(x,n)");
+	foreach (t; s) f.test(t, sin(t.x,t.n));
+    writefln(f.report);
 }
 
 /*unittest {
@@ -1215,40 +1208,31 @@ package T cos(T)(in T x, Context inContext) {
 	return roundToPrecision(sum, inContext);
 }
 
-version(unittest)
-{
-	private T cost1(T)(in T x)
-	{
-		return cos!T(x);
-	}
-
-	private T cost2(T)(in T x, int precision)
-	{
-		return cos!T(x, precision);
-	}
-}
-
 unittest
 {	// cos
-// TODO: (testing) one value from each quadrant, reduced value.
-	ArithTestData!(TD,1)[] data1 =
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "1.0", "0.5403023058681397174009" },
 		{ "0.333", "0.945065959" },
 		{ "5.0", "0.283662185" },
 	];
-	TestResults tr1 = testArith!(TD,1)
-		("cos1", &cost1!(TD), data1);
-    writefln(tr1.report);
+	auto f = FunctionTest!(S,TD)("cos");
+	foreach (t; s) f.test(t, cos(t.x));
+    writefln(f.report);
+}
 
-	ArithTestData!(TD,1,true)[] data2 =
+unittest
+{	// cos(x,precision)
+	static struct S { TD x; int n; TD expect; }
+	S[] s =
 	[
-		{ "1.0", "0.540302306", 23 },
-		{ "2.0", "-0.416146837", 16 },
+		{ "1.0", 23, "0.540302306" },
+		{ "2.0", 16, "-0.416146837" },
 	];
-	TestResults tr2 = testPrecision!(TD,1)
-		("cos2", &cost2!(TD), data2);
-    writefln(tr2.report);
+	auto f = FunctionTest!(S,TD)("cos(x,n)");
+	foreach (t; s) f.test(t, cos(t.x,t.n));
+    writefln(f.report);
 }
 
 public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision) {
@@ -1365,24 +1349,6 @@ public T tan(T)(T x, int precision = T.precision) if (isDecimal!T)
 unittest
 {	// cos
 // TODO: (testing) one value from each quadrant, reduced value.
-	ArithTestData!(TD,1)[] data1 =
-	[
-		{ "1.0", "0.5403023058681397174009" },
-		{ "0.333", "0.945065959" },
-		{ "5.0", "0.283662185" },
-	];
-	TestResults tr1 = testArith!(TD,1)
-		("cos1", &cost1!(TD), data1);
-    writefln(tr1.report);
-
-	ArithTestData!(TD,1,true)[] data2 =
-	[
-		{ "1.0", "0.540302306", 23 },
-		{ "2.0", "-0.416146837", 16 },
-	];
-	TestResults tr2 = testPrecision!(TD,1)
-		("cos2", &cost2!(TD), data2);
-    writefln(tr2.report);
 }
 */
 unittest {

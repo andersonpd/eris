@@ -193,12 +193,17 @@ uint256................end
 ==========================
 decimal arithmetic...begin
 ==========================
--- classify.........passed
+classify  :  6 tests ( 6 pass)
 ilogb     :  5 tests ( 5 pass)
-logb      :  6 tests ( 6 pass)
+logb      :  6 tests ( 5 pass, 1 fail).
+  failed at arithmetic.d(183), test 6: <logb(NaN)> should be <NaN> not <NaN>.
 scaleb    :  1 test  ( 1 pass)
-reduce    :  3 tests ( 3 pass)
-minus     :  2 tests ( 2 pass)
+reduce    :  5 tests ( 4 pass, 1 fail).
+  failed at arithmetic.d(301), test 2: <reduce(1.200)> should be <1.2> not <1.3>.
+abs       :  4 tests ( 4 pass)
+sgn       :  7 tests ( 7 pass)
+plus      :  3 tests ( 3 pass)
+minus     :  3 tests ( 3 pass)
 nextPlus  :  6 tests ( 6 pass)
 nextMinus :  5 tests ( 5 pass)
 nextToward:  2 tests ( 2 pass)
@@ -223,9 +228,12 @@ fma       :  4 tests ( 4 pass)
 div       : 10 tests (10 pass)
 divInt    : 15 tests (15 pass)
 remainder : 15 tests (14 pass, 1 fail).
-  failed at arithmetic.d(2075), test 3: <remainder(-10, 3)> should be <-19> not <-1>.
+  failed at arithmetic.d(2101), test 3: <remainder(-10, 3)> should be <-19> not <-1>.
 remNear   :  8 tests ( 8 pass)
-quantize  : 15 tests (15 pass)
+quantize  : 15 tests (12 pass, 3 fail).
+  failed at arithmetic.d(2218), test 7: <quantize(2, Infinity)> should be <NaN> not <NaN>.
+  failed at arithmetic.d(2218), test 10: <quantize(35236450.6, 0.01)> should be <NaN> not <NaN>.
+  failed at arithmetic.d(2218), test 11: <quantize(-35236450.6, 0.01)> should be <NaN> not <NaN>.
 roundIntEx:  8 tests ( 8 pass)
 -- alignOps.........passed
 divisionByZero......test missing
@@ -285,22 +293,22 @@ reciprocal:  4 tests ( 4 pass)
 -- inverse sqrt.....passed
 -- square root......passed
 -- exp..............passed
--- expm1............failed at math.d(839)[0]: expected "-0.329679954" but found "2.03324478".
+-- expm1............failed at math.d(840)[0]: expected "-0.329679954" but found "2.03324478".
 passed
 -- log..............passed
 -- log1p............passed
 -- log10............passed
--- log2.............failed at math.d(992)[0]: expected "3.32192809" but found "43.0285632".
-failed at math.d(993)[0]: expected "1.44269504" but found "21.2960126".
+-- log2.............failed at math.d(993)[0]: expected "3.32192809" but found "43.0285632".
+failed at math.d(994)[0]: expected "1.44269504" but found "21.2960126".
 passed
 pow..........test missing
 -- hypot............passed
-sin1      :  3 tests ( 3 pass)
-sin2      :  2 tests ( 2 pass)
-cos1      :  3 tests ( 3 pass)
-cos2      :  2 tests ( 2 pass)
+sin       :  3 tests ( 3 pass)
+sin(x,n)  :  2 tests ( 2 pass)
+cos       :  3 tests ( 3 pass)
+cos(x,n)  :  2 tests ( 2 pass)
 sincos.........failed
--- tan..............failed at math.d(1392)[0]: expected "1.55740772465490223" but found "1.55740773".
+-- tan..............failed at math.d(1358)[0]: expected "1.55740772465490223" but found "1.55740773".
 passed
 -- asin.............passed
 -- acos.............passed
@@ -309,11 +317,11 @@ atan2..........failed
 -- sinh.............passed
 -- cosh.............passed
 -- tanh.............passed
--- asinh............failed at math.d(1622)[0]: expected "0.88137358701954302523260932497979" but found "14.6426447".
+-- asinh............failed at math.d(1588)[0]: expected "0.88137358701954302523260932497979" but found "14.6426447".
 passed
--- acosh............failed at math.d(1642)[0]: expected "0.96242365011920689499551782684874" but found "14.7236947".
+-- acosh............failed at math.d(1608)[0]: expected "0.96242365011920689499551782684874" but found "14.7236947".
 passed
--- atanh............failed at math.d(1664)[0]: expected "0.54930614433405484569762261846126" but found "NaN".
+-- atanh............failed at math.d(1630)[0]: expected "0.54930614433405484569762261846126" but found "NaN".
 passed
 ==========================
 decimal math...........end

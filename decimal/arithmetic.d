@@ -88,11 +88,10 @@ public string classify(T)(in T x) if (isDecimal!T)
 	return "NaN";
 }
 
-// needs better test
-unittest {	// classify
-	write("-- classify.........");
-	static struct S { TD actual; string expect; }
-	static S[] tests =
+unittest
+{	// classify
+	static struct S { TD x; string expect; }
+	S[] s =
 	[
 		{ TD.nan,         "NaN" },
 		{ TD.snan,        "sNaN" },
@@ -101,9 +100,9 @@ unittest {	// classify
 		{ TD("-0"),       "-Zero" },
 		{ TD("-0.1E-99"), "-Subnormal" },
 	];
-	foreach (i, s; tests)
-		assertEqual(classify(s.actual), s.expect, i);
-	writeln("passed");
+	auto f = FunctionTest!(S,string)("classify");
+	foreach (t; s) f.test(t, classify(t.x));
+    writefln(f.report);
 }
 
 /// Returns the truncated base 10 logarithm of the argument.
@@ -131,8 +130,10 @@ public int ilogb(T)(in T x) if (isDecimal!T)
 	return x.digits + x.exponent - 1;
 }
 
-unittest {	// ilogb
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// ilogb
+	static struct S { TD x; int expect; }
+	S[] s =
 	[
 		{ 250,    2 },
 		{ 2.5,    0 },
@@ -140,9 +141,9 @@ unittest {	// ilogb
 		{ "Inf",  0 },	// sets InvalidOperation flag
 		{ 0,      0 },	// sets DivisionByZero flag
 	];
-	TestResults tr = testArith!(TD,1)
-		("ilogb", &ilogb!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,int)("ilogb");
+	foreach (t; s) f.test(t, ilogb(t.x));
+    writefln(f.report);
 }
 
 /// Returns the truncated base 10 logarithm of the argument.
@@ -166,19 +167,21 @@ public T logb(T)(in T x) if (isDecimal!T)
 	return T(expo);
 }
 
-unittest {	// logb
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// logb
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ 250,    2 },
 		{ 2.5,    0 },
 		{ 0.03,  -2 },
 		{ "Inf", "Inf" },
 		{ 0,     "-Inf" },
-		{ "NaN", "NaN" },
+		{ "NaN", "NaN" }, // NOTE: this test will fail: NaN != NaN
 	];
-	TestResults tr = testArith!(TD,1,true)
-		("logb", &logb!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("logb");
+	foreach (t; s) f.test(t, logb(t.x));
+    writefln(f.report);
 }
 
 /// If the first operand is infinite then that operand is returned,
@@ -283,19 +286,20 @@ public T normalize(T)(in T x,
 	return reduce(x, context);
 }
 
-unittest {	// reduce
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// reduce
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "1.200", "1.2" },
-//		{ "1.200", "1.3" },
-//		{ "1.200", "1.20" },	// should fail
+		{ "1.200", "1.3" },	// should fail
+		{ "1.200", "1.20" },	// NOTE: should fail but doesn't
 		{ "1.2001", "1.2001" },
 		{ "1.200000001", "1.2" },
 	];
-	// NOTE: need to compare strings, not values
-	TestResults tr = testArith!(TD,1,true)
-		("reduce", &reduce!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("reduce");
+	foreach (t; s) f.test(t, reduce(t.x));
+    writefln(f.report);
 }
 
 ///
@@ -318,26 +322,19 @@ public T abs(T)(in T x, Context context = T.context) if (isDecimal!T)
 	return roundToPrecision(x.copyAbs, context);
 }
 
-version(unittest)
-{
-	T abst(T)(in T x) if (isDecimal!T)
-	{
-		return abs(x, TD.context);
-	}
-}
-
-unittest {	// abs
-/*	ATF1 fctn = &abst!TD;
-	static ATD1[] data =
+unittest
+{	// abs
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "-Inf", "Inf" },
 		{ "101.5", "101.5" },
 		{ "-101.5", "101.5" },
 		{ "-1.23456789012E+23", "1.2345678900E+23" },	// rounds the argument
 	];
-	auto test = Test!(ATF1,ATD1)("abs", fctn);
-	foreach (int i, d; data) test.run(d, i);
-	writeln(test.report);*/
+	auto f = FunctionTest!(S,TD)("abs");
+	foreach (t; s) f.test(t, abs(t.x));
+    writefln(f.report);
 }
 
 ///
@@ -351,9 +348,10 @@ public int sgn(T)(in T x) if (isDecimal!T)
 	return x.isNegative ? -1 : 1;
 }
 
-unittest {	// sqn
-/*	ATFI1 fctn = &sgn!TD;
-	static ATDI1[] data =
+unittest
+{	// sgn
+	static struct S { TD x; int expect; }
+	S[] s =
 	[
 		{  "-123", -1 },
 		{  "2345",  1 },
@@ -363,9 +361,9 @@ unittest {	// sqn
 		{  "0.00",  0 },
 		{  "-Inf", -1 },
 	];
-	auto test = Test!(ATFI1,ATDI1)("sgn", fctn);
-	foreach (int i, d; data) test.run(d, i);
-	writeln(test.report);*/
+	auto f = FunctionTest!(S,int)("sgn");
+	foreach (t; s) f.test(t, sgn(t.x));
+    writefln(f.report);
 }
 
 ///
@@ -396,50 +394,19 @@ public T plus(T)(in T x,
 	return roundToPrecision(x, context);
 }
 
-version(unittest)
-{
-	T plust(T)(in T x) if (isDecimal!T)
-	{
-		return plus(x, TD.context);
-	}
+unittest
+{	// plus
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.3", "1.3" },
+		{ "101.5", "101.5" },
+		{ "-101.5", "-101.5" },
+	];
+	auto f = FunctionTest!(S,TD)("plus");
+	foreach (t; s) f.test(t, plus(t.x));
+    writefln(f.report);
 }
-
-/*unittest {	// plus
-	ATD1[] data =
-	[
-		{ "1.3", "1.3" },
-		{ "-101.5", "-101.5" },
-		{ "-101.5", "101.5" },
-	];
-
-	auto test = atest!(ATD1,TD)("plus");
-	foreach (int i, d; data)
-	{
-		if (plus(d) == d.expect)
-		{
-			test.add(true);
-		}
-		else
-		{
-			test.add(false, d, actual);
-		}
-
-	}
-	writeln(test.report);
-}*/
-
-/*unittest {	// plus
-	ATF1 fctn = &plust!TD;
-	ATD1[] data =
-	[
-		{ "1.3", "1.3" },
-		{ "-101.5", "-101.5" },
-//		{ "-101.5", "101.5" },
-	];
-	auto test = Test!(ATF1,ATD1)("plus", fctn);
-	foreach (int i, d; data) test.run(d, i);
-	writeln(test.report);
-}*/
 
 ///
 /// Returns a copy of the argument with the opposite sign.
@@ -459,16 +426,18 @@ public T minus(T)(in T x,
 	return roundToPrecision(x.copyNegate, context);
 }
 
-unittest {	// minus
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// minus
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "1.3", "-1.3" },
-//		{ "-101.5", "-101.5" },
+		{ "101.5", "-101.5" },
 		{ "-101.5", "101.5" },
 	];
-	TestResults tr = testArith!(TD,1)
-		("minus", &minus!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("minus");
+	foreach (t; s) f.test(t, minus(t.x));
+    writefln(f.report);
 }
 
 //-----------------------------------
@@ -513,8 +482,10 @@ public T nextPlus(T)(in T x,
 	return roundToPrecision(z);
 }
 
-unittest {
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// nextPlus
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "1", 			 "1.00000001" },
 		{ "-1E-107", 	 "-0E-107" },
@@ -523,9 +494,9 @@ unittest {
 		{ "9.99999999E+99",	 "Infinity" },	// overflow flag should not be set!
 		{ "1E+101",	 "Infinity" },
 	];
-	TestResults tr = testArith!(TD,1)
-		("nextPlus", &nextPlus!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("nextPlus");
+	foreach (t; s) f.test(t, nextPlus(t.x));
+    writefln(f.report);
 }
 
 ///
@@ -563,8 +534,10 @@ public T nextMinus(T)(in T x,
 	return y;
 }
 
-unittest {	// nextMinus
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// nextMinus
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "1", 					"0.999999999" },
 		{ "1E-107",				"0E-107" },
@@ -572,9 +545,9 @@ unittest {	// nextMinus
 		{ "Infinity",			"9.99999999E+99" },
 		{ "-9.99999999E+99",	"-Infinity" },
 	];
-	TestResults tr = testArith!(TD,1)
-		("nextMinus", &nextMinus!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("nextMinus");
+	foreach (t; s) f.test(t, nextMinus(t.x));
+    writefln(f.report);
 }
 
 ///
@@ -599,15 +572,17 @@ public T nextToward(T)(in T x, in T y,
 	return roundToPrecision(x.copySign(y), context);
 }
 
-unittest {
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// nextToward
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ " 1",          "2", " 1.00000001" },
 		{ "-1.00000003", "0", "-1.00000002" },
 	];
-	TestResults tr = testArith!(TD,2)
-		("nextToward", &nextToward!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("nextToward");
+	foreach (t; s) f.test(t, nextToward(t.x, t.y));
+    writefln(f.report);
 }
 
 //--------------------------------
@@ -707,22 +682,24 @@ public int compare(T)(in T x, in T y,
 	return xx.sign ? -comp : comp;
 }
 
-unittest {	// compare
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// compare
+	static struct S { TD x; TD y; int expect; }
+	S[] s =
 	[
-		{ " 3  ", " 2.1 ", " 1" },
-		{ "-3  ", " 2.1 ", "-1" },
-		{ " 2.1", "-3   ", " 1" },
-		{ " 2.1", " 2.1 ", " 0" },
-		{ " 2.1", " 2.10", " 0" },
-		{ " Inf", "-Inf ", " 1" },
-		{ " Inf", " Inf ", " 0" },
-		{ " Inf", " 12  ", " 1" },
-		{ "-Inf", " 12  ", "-1" },
+		{ " 3  ", " 2.1 ",  1 },
+		{ "-3  ", " 2.1 ", -1 },
+		{ " 2.1", "-3   ",  1 },
+		{ " 2.1", " 2.1 ",  0 },
+		{ " 2.1", " 2.10",  0 },
+		{ " Inf", "-Inf ",  1 },
+		{ " Inf", " Inf ",  0 },
+		{ " Inf", " 12  ",  1 },
+		{ "-Inf", " 12  ", -1 },
 	];
-	TestResults tr = testArith!(TD,2)
-		("compare", &compare!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,int)("compare");
+	foreach (t; s) f.test(t, compare(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Returns true if the operands are equal to the context precision.
@@ -788,8 +765,10 @@ public bool equals(T)(in T x, in T y,
 	return rx.coefficient == ry.coefficient;
 }
 
-unittest {	// equals
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// equals
+	static struct S { TD x; TD y; bool expect; }
+	S[] s =
 	[
 		{ " 123.4567     ", " 123.4568   ", false},
 		{ " 123.4567     ", " 123.4567   ", true },
@@ -798,9 +777,9 @@ unittest {	// equals
 		{ "+100000000E-08", "+1E+00      ", true },
 		{ "-1.00000000   ", "-1          ", true },
 	];
-	TestResults tr = testArith!(TD,2)
-		("equals", &equals!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,bool)("equals");
+	foreach (t; s) f.test(t, equals(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Returns true if the operands are equal to the specified precision. Special
@@ -830,22 +809,24 @@ public int compareSignal(T) (in T x, in T y,
 	return (compare!T(x, y, context));
 }
 
-unittest {	// compareSignal
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// compareSignal
+	static struct S { TD x; TD y; int expect; }
+	S[] s =
 	[
-/*		{ " 3  ", " 2.1 ", " 1" },
-		{ "-3  ", " 2.1 ", "-1" },
-		{ " 2.1", "-3   ", " 1" },
-		{ " 2.1", " 2.1 ", " 0" },
-		{ " 2.1", " 2.10", " 0" },
-		{ " Inf", "-Inf ", " 1" },
-		{ " Inf", " Inf ", " 0" },
-		{ " Inf", " 12  ", " 1" },
-		{ "-Inf", " 12  ", "-1" },*/
+/*		{ " 3  ", " 2.1 ",  1 },
+		{ "-3  ", " 2.1 ", -1 },
+		{ " 2.1", "-3   ",  1 },
+		{ " 2.1", " 2.1 ",  0 },
+		{ " 2.1", " 2.10",  0 },
+		{ " Inf", "-Inf ",  1 },
+		{ " Inf", " Inf ",  0 },
+		{ " Inf", " 12  ",  1 },
+		{ "-Inf", " 12  ", -1 },*/
 	];
-	TestResults tr = testArith!(TD,2)
-		("compSignal", &compareSignal!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,int)("compSignal");
+	foreach (t; s) f.test(t, compareSignal(t.x, t.y));
+    writefln(f.report);
 }
 
 unittest {
@@ -976,6 +957,20 @@ public int compareTotal(T)(in T x, in T y) if (isDecimal!T)
 	return (comp > 0) ? ret2 : ret1;
 }
 
+unittest
+{	// compareTotal
+	static struct S { TD x; TD y; int expect; }
+	S[] s =
+	[
+		{ " 12.30", " 12.3  ", -1},
+		{ " 12.30", " 12.30 ",  0},
+		{ " 12.3 ", " 12.300",  1},
+	];
+	auto f = FunctionTest!(S,int)("compTotal");
+	foreach (t; s) f.test(t, compareTotal(t.x, t.y));
+    writefln(f.report);
+}
+
 /// compare-total-magnitude takes two numbers and compares them
 /// using their abstract representation rather than their numerical value
 /// with their sign ignored and assumed to be 0.
@@ -987,18 +982,6 @@ public int compareTotal(T)(in T x, in T y) if (isDecimal!T)
 int compareTotalMagnitude(T)(T x, T y) if (isDecimal!T)
 {
 	return compareTotal(x.copyAbs, y.copyAbs);
-}
-
-unittest {	// compareTotal
-	ArithTestData!(TD,2)[] data =
-	[
-		{ " 12.30", " 12.3  ", -1},
-		{ " 12.30", " 12.30 ",  0},
-		{ " 12.3 ", " 12.300",  1},
-	];
-	TestResults tr = testArith!(TD,2)
-		("compTotal", &compareTotal!TD, data);
-    writeln(tr.report);
 }
 
 /// Returns true if the numbers have the same exponent.
@@ -1017,16 +1000,18 @@ public bool sameQuantum(T)(in T x, in T y) if (isDecimal!T)
 	return x.exponent == y.exponent;
 }
 
-unittest {	// sameQuantum
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// sameQuantum
+	static struct S { TD x; TD y; bool expect; }
+	S[] s =
 	[
 		{ "2.17", "0.001", false },
 		{ "2.17", "0.01 ", true },
 		{ "2.17", "0.1  ", false },
 	];
-	TestResults tr = testArith!(TD,2)
-		("sameQuant", &sameQuantum!TD, data);
-    writefln(tr.report);
+	auto f = FunctionTest!(S,bool)("sameQuant");
+	foreach (t; s) f.test(t, sameQuantum(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Returns the maximum of the two operands (or NaN).
@@ -1089,15 +1074,17 @@ public T max(T)(in T x, in T y,
 	return roundToPrecision(result, context);
 }
 
-unittest {	// max
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// max
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{   3, 2, 3 },
 		{ -10, 3, 3 },
 	];
-	TestResults tr = testArith!(TD,2)
-		("max", &max!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("max");
+	foreach (t; s) f.test(t, max(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Returns the larger of the two operands (or NaN). Returns the same result
@@ -1122,17 +1109,19 @@ public T maxMagnitude(T)(in T x, in T y,
 	return roundToPrecision(y, context);
 }
 
-unittest {	// maxMagnitude
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// maxMagnitude
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{   -1, -2, -2 },
 		{    1, -2, -2 },
 		{    1,  2,  2 },
 		{   -1,  2,  2 },
 	];
-	TestResults tr = testArith!(TD,2)
-		("maxMag", &maxMagnitude!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("maxMag");
+	foreach (t; s) f.test(t, maxMagnitude(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Returns the minimum of the two operands (or NaN).
@@ -1192,15 +1181,17 @@ public T min(T)(in T x, in T y,
 	return roundToPrecision(min, context);
 }
 
-unittest {	// min
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// min
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{   3, 2,   2 },
 		{ -10, 3, -10 },
 	];
-	TestResults tr = testArith!
-		(TD,2)("min", &min!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("min");
+	foreach (t; s) f.test(t, min(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Returns the smaller of the two operands (or NaN). Returns the same result
@@ -1225,17 +1216,19 @@ public T minMagnitude(T)(in T x, in T y,
 	return roundToPrecision(x, context);
 }
 
-unittest {	// minMagnitude
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// minMagnitude
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{   -1, -2, -1 },
 		{    1, -2,  1 },
 		{    1,  2,  1 },
 		{   -1,  2, -1 },
 	];
-	TestResults tr = testArith!(TD,2)
-		("minMag", &minMagnitude!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("minMag");
+	foreach (t; s) f.test(t, minMagnitude(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Returns a number with a coefficient of 1 and
@@ -1245,14 +1238,16 @@ public T quantum(T)(in T x)  {
 	return T(1, x.exponent);
 }
 
-unittest {	// plus
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// quantum
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "23.14E-12", "1E-14" },
 	];
-	TestResults tr = testArith!(TD,1)
-		("quantum", &quantum!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("quantum");
+	foreach (t; s) f.test(t, quantum(t.x));
+    writefln(f.report);
 }
 
 //--------------------------------
@@ -1329,8 +1324,10 @@ public T shift(T, U:int)(in T x, U n,
 	return xx;
 }
 
-unittest {	// shift
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// shift
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ 34, 8, 400000000 },
 		{ 12, 9, 0 },
@@ -1338,9 +1335,9 @@ unittest {	// shift
 		{ 123456789,  0, 123456789 },
 		{ 123456789,  2, 345678900 },
 	];
-	TestResults tr = testArith!(TD,2)
-		("shift", &shift!(TD,TD), data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("shift");
+	foreach (t; s) f.test(t, shift(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Rotates the first operand by the specified number of decimal digits.
@@ -1419,8 +1416,10 @@ public T rotate(T, U:int)(in T x, U n,
 	return xx;
 }
 
-unittest {	// rotate
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// rotate
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ 34, 8, 400000003 },
 		{ 12, 9, 12 },
@@ -1433,8 +1432,9 @@ unittest {	// rotate
 		{ 123000456789,  2, 45678900 },
 		{ 123000456789, -2, 890004567 },
 	];
-	TestResults tr = testArith!(TD,2)("rotate", &rotate!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("rotate");
+	foreach (t; s) f.test(t, rotate(t.x, t.y));
+    writefln(f.report);
 }
 
 /*unittest {
@@ -1570,8 +1570,10 @@ public T add(T, U)(in T x, in U y,
 	return add(x, T(y), context, setFlags);
 }
 
-unittest {	// add, addLong
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// add
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ "12", "7.00", "19.00" },
 		{ "1E+2", "1E+4", "1.01E+4" },
@@ -1579,8 +1581,9 @@ unittest {	// add, addLong
 		{ "1.3", "-2.07", "-0.77" },
 //		{ "1.3", "2.07", "-0.77" }, // uncomment to test failure
 	];
-	TestResults tr = testArith!(TD,2)("add", &add!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("add");
+	foreach (t; s) f.test(t, add(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Subtracts the second operand from the first operand.
@@ -1604,18 +1607,21 @@ public T sub(T, U)(in T x, U y,
 }	// end sub(x, y)
 
 unittest
-{
-	ArithTestData!(TD,2)[] data =
+{	// sub
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ "1.3", "1.07", "0.23" },
 		{ "1.3", "1.30", "0.00" },
 		{ "1.3", "2.07", "-0.77" },
 //		{ "1.3", "2.07", "0.77" },	// uncomment to test failure
 	];
-	TestResults tr = testArith!(TD,2)("sub", &sub!(TD,TD), data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("sub");
+	foreach (t; s) f.test(t, sub(t.x, t.y));
+    writefln(f.report);
 }
 
+///
 /// Multiplies the two operands.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'multiply' function in the specification. (p. 33-34)
@@ -1702,8 +1708,10 @@ public T mul(T, U)(in T x, in U y, Context context = T.context)
 	return mul(x, T(y), context);
 }	// end mul(x, y)
 
-unittest {	// mul
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// mul
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ "1.20", "3", "3.60" },
 //		{ "1.20", "3", "3.61" },	// uncomment to test failure
@@ -1711,8 +1719,9 @@ unittest {	// mul
 		{ "-7000", "3", "-21000" },
 		{ "Infinity", "3", "Infinity" },
 	];
-	TestResults tr = testArith!(TD,2)("mul", &mul!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("mul");
+	foreach (t; s) f.test(t, mul(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Squares the argument and returns the xx.
@@ -1743,10 +1752,10 @@ public T sqr(T)(in T x, Context context = T.context) if (isDecimal!T)
 	return roundToPrecision(copy, context);
 }
 
-//TODO: need to test high-precision numbers. Requires
-// a test with a high-precision context.
-unittest {	// sqr
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// sqr
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ "-Inf", "Inf" },
 		{ "101.5", "10302.25" },
@@ -1754,9 +1763,15 @@ unittest {	// sqr
 		{ "-1.23456789012E+23", "1.52415788E+46" },
 		{ "0.8535533905932737622000", "0.728553391" },
 	];
-	TestResults tr = testArith!(TD,1)
-		("sqr", &sqr!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("sqr");
+	foreach (t; s) f.test(t, sqr(t.x));
+    writefln(f.report);
+}
+
+//TODO: need to test high-precision numbers. Requires
+// a test with a high-precision context.
+unittest
+{	// sqr
 }
 
 
@@ -1771,16 +1786,19 @@ public T fma(T)(in T x, in T y, in T z,
 	return add(xy, z, context);
 }
 
-unittest {	// fma
-	ArithTestData!(TD,3)[] data =
+unittest
+{	// fma
+	static struct S { TD x; TD y; TD z; TD expect; }
+	S[] s =
 	[
 		{ 3,  5, 7, 22 },
 		{ 3, -5, 7, -8 },
 		{ "888565290", "1557.96930", "-86087.7578", "1.38435736E+12" },
 		{ 888565290, 1557.96930, -86087.7578, 1.38435736E+12 },
 	];
-	TestResults tr = testArith!(TD,3)("fma", &fma!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("fma");
+	foreach (t; s) f.test(t, fma(t.x, t.y, t.z));
+    writefln(f.report);
 }
 
 /// Divides the first operand by the second operand and returns their quotient.
@@ -1896,9 +1914,10 @@ private T reduceToIdeal(T)(T x, int ideal) if (isDecimal!T) {
 	x.digits = numDigits(x.coefficient);
 	return x;
 }
-
-unittest {	// div
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// div
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ 1, 3, "0.333333333" },
 		{ 2, 3, "0.666666667" },
@@ -1912,8 +1931,9 @@ unittest {	// div
 		{ "2.4E+6", "2.0", "1.2E+6" },
 //		{ "1.3", "2.07", "0.77" },	// uncomment to test failure
 	];
-	TestResults tr = testArith!(TD,2,true)("div", &div!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("div");
+	foreach (t; s) f.test(t, div(t.x, t.y));
+    writefln(f.report);
 }
 
 /*public T integerPart(T)(T x) if (isDecimal!T)
@@ -2011,8 +2031,10 @@ public T remquo(T)(in T x, in T y, out T quotient) if (isDecimal!T)
 	return remainder;
 }
 
-unittest {	// divideInteger
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// divideInteger
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{  1,  3, 0 },
 		{  2,  3, 0 },
@@ -2030,8 +2052,9 @@ unittest {	// divideInteger
 		{ 1000,  1, 1000 },
 		{ "2.4E+6", "2.0", "1.2E+6" },
 	];
-	TestResults tr = testArith!(TD,2)("divInt", &divideInteger!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("divInt");
+	foreach (t; s) f.test(t, divideInteger(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Divides the first operand by the second and returns the
@@ -2053,8 +2076,10 @@ public T remainder(T)(in T x, in T y,
 	return remainder;
 }
 
-unittest {	// remainder
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// remainder
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ 2.1, 3,  2.1 },
 		{  10, 3,  1 },
@@ -2072,8 +2097,9 @@ unittest {	// remainder
 		{ 1000,  1, 0 },
 		{ "2.4E+6", "2.0", "0.0" },
 	];
-	TestResults tr = testArith!(TD,2)("remainder", &remainder!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("remainder");
+	foreach (t; s) f.test(t, remainder(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Divides the first operand by the second and returns the
@@ -2093,8 +2119,10 @@ public T remainderNear(T)(in T x, in T y) if (isDecimal!T)
 	return remainder;
 }
 
-unittest {	// remainder
-	ArithTestData!(TD,2)[] data =
+unittest
+{	// remainderNear
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ 2.1, 3, -0.9 },
 		{   3, 2, -1 },
@@ -2105,11 +2133,10 @@ unittest {	// remainder
         {  10, 0.3, 0.1 },
 		{ 3.6, 1.3, -0.3 },
 	];
-	TestResults tr = testArith!(TD,2)
-		("remNear", &remainderNear!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("remNear");
+	foreach (t; s) f.test(t, remainderNear(t.x, t.y));
+    writefln(f.report);
 }
-
 
 // TODO: (behavior) add 'remquo' function. (Uses remainder-near(?))
 
@@ -2163,8 +2190,11 @@ public T quantize(T)(in T x, in T y,
 	}
 }
 
-unittest {	// quantize
-	ArithTestData!(TD,2)[] data =
+// TODO: need to handle NaNs
+unittest
+{	// quantize
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
 	[
 		{ "2.17", "0.001", "2.170" },
 		{ "2.17", "0.01", "2.17" },
@@ -2184,9 +2214,9 @@ unittest {	// quantize
 		{ "217", "1E+1", "2.2E+2" },
 		{ "217", "1E+2", "2E+2" },
 	];
-	TestResults tr = testArith!(TD,2,true)
-		("quantize", &quantize!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("quantize");
+	foreach (t; s) f.test(t, quantize(t.x, t.y));
+    writefln(f.report);
 }
 
 /// Returns the nearest integer value to the argument.
@@ -2207,8 +2237,10 @@ public T roundToIntegralExact(T)(in T x,
 	return result;
 }
 
-unittest {	// roundToIntegralExact
-	ArithTestData!(TD,1)[] data =
+unittest
+{	// roundToIntegralExact
+	static struct S { TD x; TD expect; }
+	S[] s =
 	[
 		{ 2.1, 2 },
 		{ 0.7, 1 },
@@ -2219,9 +2251,9 @@ unittest {	// roundToIntegralExact
 		{ "7.89E+77", "7.89E+77" },
 		{ "-Inf", "-Inf" },
 	];
-	TestResults tr = testArith!(TD,1,true)
-		("roundIntEx", &roundToIntegralExact!TD, data);
-    writeln(tr.report);
+	auto f = FunctionTest!(S,TD)("roundIntEx");
+	foreach (t; s) f.test(t, roundToIntegralExact(t.x));
+    writefln(f.report);
 }
 
 // TODO: (behavior) need to re-implement this so no flags are set.
@@ -2240,6 +2272,18 @@ public T roundToIntegralValue(T)(in T arg,
 	result = roundToPrecision(result, context);
 	return result;
 }
+
+// TODO: implement
+/*unittest
+{	// roundToIntegralValue
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+	];
+	auto f = FunctionTest!(S,TD)("roundIntVal");
+	foreach (t; s) f.test(t, roundToIntegralValue(t.x));
+    writefln(f.report);
+}*/
 
 /// Aligns the two operands by raising the smaller exponent
 /// to the value of the larger exponent, and adjusting the
