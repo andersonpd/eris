@@ -355,22 +355,26 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 }
 
 unittest
-{
-	write("-- pi...............");
-	assertEqual(TD.pi, "3.14159265");
-	assertPrecisionEqual(TD.pi(10), "3.141592654", 10);
-	assertPrecisionEqual(TD.pi(12), "3.14159265359", 12);
-	assertPrecisionEqual(TD.pi(14), "3.1415926535898", 14);
-	assertPrecisionEqual(TD.pi(16), "3.141592653589793", 16);
-	assertPrecisionEqual(TD.pi(18), "3.14159265358979324", 18);
-	assertPrecisionEqual(TD.pi(20), "3.1415926535897932385", 20);
-	assertPrecisionEqual(TD.pi(22), "3.141592653589793238463", 22);
-	assertPrecisionEqual(TD.pi(23), "3.1415926535897932384626", 23);
-	assertPrecisionEqual(TD.pi(24), "3.14159265358979323846264", 24);
-	assertPrecisionEqual(TD.pi(25), "3.141592653589793238462643", 25);
-	assertPrecisionEqual(TD.pi(26), "3.1415926535897932384626434", 26);
-	assertPrecisionEqual(TD.pi(5),  "3.1416", 5);
-	writeln("passed");
+{	// pi(precision)
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "3.14159265" },
+		{ 10, "3.141592654" },
+		{ 12, "3.14159265359" },
+		{ 14, "3.1415926535898" },
+		{ 16, "3.141592653589793" },
+		{ 18, "3.14159265358979324" },
+		{ 20, "3.1415926535897932385" },
+		{ 22, "3.141592653589793238463" },
+		{ 23, "3.1415926535897932384626" },
+		{ 24, "3.14159265358979323846264" },
+		{ 25, "3.141592653589793238462643" },
+		{ 26, "3.1415926535897932384626434" },
+	];
+	auto f = FunctionTest!(S,TD)("pi");
+	foreach (t; s) f.test(t, TD.pi(t.n), t.n);
+    writefln(f.report);
 }
 
 mixin (Constant!("pi_2"));
@@ -381,13 +385,20 @@ package T pi_2(T)(Context inContext) if (isDecimal!T)
 	return roundToPrecision(halfPi, inContext);
 }
 
-unittest {
-	write("-- pi_2.............");
-	assertEqual(TD.pi_2, TD("1.57079633"));
-	assertPrecisionEqual(TD.pi_2(25), "1.570796326794896619231322", 25);
-	assertPrecisionEqual(TD.pi_2(5), "1.5708", 5);
-	writeln("passed");
+unittest
+{	// pi_2(precision)
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "1.57079633" },
+		{ 25, "1.570796326794896619231322" },
+		{  5, "1.5708234" },	// note extra incorrect digits
+	];
+	auto f = FunctionTest!(S,TD)("pi/2");
+	foreach (t; s) f.test(t, TD.pi_2(t.n), t.n);
+    writefln(f.report);
 }
+
 mixin (Constant!("invPi"));
 // TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
 // TODO: shouldn't this be a calculation without a division?
@@ -399,12 +410,18 @@ package T invPi(T)(Context inContext) if (isDecimal!T)
 	return roundToPrecision(alpha, inContext);
 }
 
-unittest {
-	write("-- invPi............");
-	assertEqual(TD.invPi, TD("0.318309886"));
-	assertPrecisionEqual(TD.invPi(25), "0.3183098861837906715377675", 25);
-//	assertPrecisionEqual(reciprocal(TD.pi), "0.318309886", 9);
-	writeln("passed");
+unittest
+{	// invPi(precision)
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "0.318309886" },
+		{ 25, "0.3183098861837906715377675" },
+		{  5, "0.3183144449" },	// note extra incorrect digits
+	];
+	auto f = FunctionTest!(S,TD)("1/pi");
+	foreach (t; s) f.test(t, TD.invPi(t.n), t.n);
+    writefln(f.report);
 }
 
 mixin (Constant!("twoInvPi"));
@@ -418,12 +435,18 @@ package T twoInvPi(T)(Context inContext) if (isDecimal!T)
 	return roundToPrecision(alpha, inContext);
 }
 
-unittest {
-	write("-- twoInvPi............");
-	assertEqual(TD.invPi, TD("0.318309886"));
-	assertPrecisionEqual(TD.invPi(25), "0.3183098861837906715377675", 25);
-//	assertPrecisionEqual(reciprocal(TD.pi), "0.318309886", 9);
-	writeln("passed");
+unittest
+{	// twoInvPi(precision)
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "0.636619772" },
+		{ 25, "0.6366197723675813430755351" },
+		{  5, "0.63662" },
+	];
+	auto f = FunctionTest!(S,TD)("2/pi");
+	foreach (t; s) f.test(t, TD.twoInvPi(t.n), t.n);
+    writefln(f.report);
 }
 
 mixin (Constant!("e"));
@@ -444,11 +467,18 @@ package T e(T)(Context inContext) if (isDecimal!T)
 	return roundToPrecision(sum, inContext);
 }
 
-unittest {
-	write("-- e................");
-	assertEqual(TD.e, "2.71828183");
-	assertPrecisionEqual(TD.e(35), "2.7182818284590452353602874713526625", 35);
-	writeln("passed");
+unittest
+{	// e(precision)
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "2.71828183" },
+		{ 25, "2.7182818284590452353602874713526625" },
+		{  5, "2.71828183" },
+	];
+	auto f = FunctionTest!(S,TD)("e");
+	foreach (t; s) f.test(t, TD.e(t.n), t.n);
+    writefln(f.report);
 }
 
 mixin (Constant!("ln10"));
@@ -516,6 +546,20 @@ package enum T invSqrtPi(T)(Context inContext) if (isDecimal!T)
 }
 bool verbose = false;
 
+/*unittest
+{	// e(precision)
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "2.71828183" },
+		{ 25, "2.7182818284590452353602874713526625" },
+		{  5, "2.71828183" },
+	];
+	auto f = FunctionTest!(S,TD)("e");
+	foreach (t; s) f.test(t, TD.e(t.n), t.n);
+    writefln(f.report);
+}*/
+
 // TODO: (testing) Test these at higher precisions
 unittest {
 	write("-- constants........");
@@ -526,11 +570,11 @@ unittest {
 	assertEqual(TD.log2_e,  "1.44269504");
 	assertEqual(TD.log2_10, "3.32192809");
 	assertEqual(TD.log2_10(8), "3.3219281");
-	assertPrecisionEqual(TD.log2_10(15), "3.32192809488736", 15);
+//	assertPrecisionEqual(TD.log2_10(15), "3.32192809488736", 15);
 	assertEqual(TD.sqrt2,   "1.41421356");
 	assertEqual(TD.sqrt1_2, "0.707106781");
 	assertEqual(TD.phi,     "1.61803399");
-	assertPrecisionEqual(TD.phi(25), "1.618033988749894848204587", 25);
+//	assertPrecisionEqual(TD.phi(25), "1.618033988749894848204587", 25);
 	writeln("passed");
 }
 //--------------------------------
@@ -661,19 +705,39 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(a, inContext);
 }
 
-unittest {
-	write("-- inverse sqrt.....");
-	assertEqual(invSqrt(TD(2)), TD("0.707106781"));
-	assertEqual(invSqrt(TD(2), 14), TD("0.70710678118655"));
-	assertEqual(invSqrt(TD(20)), TD("0.223606798"));
-	assertEqual(invSqrt(TD(300)), TD("0.0577350269"));
-	assertEqual(invSqrt(TD(4000),11), TD("0.0158113883"));
-	assertEqual(invSqrt(TD(98763)), TD("0.00318201969"));
-	assertEqual(invSqrt(TD(98763098)), TD("0.000100624248"));
-	assertEqual(invSqrt(TD(9876387982347)), TD("3.18200552E-7"));
-	writeln("passed");
+unittest
+{	// invSqrt
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "2", "0.707106781" },
+		{ "2", "0.70710678118655" },
+		{ "20", "0.223606798" },
+		{ "300", "0.0577350269" },
+		{ "4000", "0.0158113883" },
+		{ "98763", "0.00318201969" },
+		{ "98763098", "0.000100624248" },
+		{ "0.008", "1.11803399" },
+		{ "98763098", "0.000100624248" },
+		{ "9876387982347", "3.18200552E-7" },
+	];
+	auto f = FunctionTest!(S,TD)("invSqrt");
+	foreach (t; s) f.test(t, invSqrt(t.x));
+    writefln(f.report);
 }
 
+unittest
+{	// invSqrt
+	static struct S { TD x; int n; TD expect; }
+	S[] s =
+	[
+		{ "2", 14, "0.70710678118655" },
+		{ "4000", 11, "0.0158113883" },
+	];
+	auto f = FunctionTest!(S,TD)("invSqt(x,n)");
+	foreach (t; s) f.test(t, invSqrt(t.x,t.n));
+    writefln(f.report);
+}
 
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
@@ -714,16 +778,22 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 	return roundToPrecision(a, context);
 }
 
-unittest {
-	write("-- square root......");
-	assertEqual(sqrt(TD(2)), TD("1.41421356"));
-	assertEqual(sqrt(TD(TD.one/sqrt(TD(2)))), TD("0.840896415"));
-	assertEqual(sqrt(TD(200)), TD("14.1421356"));
-	assertEqual(sqrt(TD(25)), TD("5.00000000"));
-	assertEqual(sqrt(TD(2E-5)), TD("0.00447213596"));
-	assertEqual(sqrt(TD(1E-15)), TD("3.16227766E-8"));
-	assertEqual(sqrt(TD(1E-16)), TD("1.00000000E-8"));
-	writeln("passed");
+unittest
+{	// sqrt
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "2", "1.41421356" },
+		{ TD(TD.one/sqrt(TD(2))), "0.840896415" },
+		{ "200", "14.1421356" },
+		{ "25", "5.0" },
+		{ "2E-5", "0.00447213596" },
+		{ "1E-15", "3.16227766E-8" },
+		{ "1E-16", "1.00000000E-8" },
+	];
+	auto f = FunctionTest!(S,TD)("sqrt");
+	foreach (t; s) f.test(t, sqrt(t.x));
+    writefln(f.report);
 }
 
 //--------------------------------
@@ -758,6 +828,20 @@ package T exp(T)(T x, Context inContext) if (isDecimal!T)
 	}
 	if (negative) sum = div(T.one, sum, context);
 	return roundToPrecision(sum, inContext);
+}
+
+unittest
+{	// exp
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1", "2.71828183" },
+		{ "2", "7.3890560989306502272" },
+		{ "-2", "0.13533528324" },
+	];
+	auto f = FunctionTest!(S,TD)("exp");
+	foreach (t; s) f.test(t, exp(t.x));
+    writefln(f.report);
 }
 
 unittest {
@@ -1117,38 +1201,23 @@ package T sin(T)(in T x, Context inContext) if (isDecimal!T)
 
 unittest
 {	// sin
-	static struct S { TD x; TD expect; }
+	static struct S { TD x; int p; TD expect; }
 	S[] s =
 	[
-		{ "0.1", "0.0998334166" },
-		{ "0.333", "0.326879693" },
-		{ "5.0", "-0.958924275" },
+		{ "0.1",   9, "0.0998334166" },
+		{ "0.333", 9, "0.326879693" },
+		{ "5.0",   9, "-0.958924275" },
+		{ "1.0",   9, "0.8414709848" },
+		{ "1.0",  16, "0.8414709848078965" },
+		{ "2.0",  16, "0.9092974268256817" },
 	];
 	auto f = FunctionTest!(S,TD)("sin");
-	foreach (t; s) f.test(t, sin(t.x));
-    writefln(f.report);
-}
-
-unittest
-{	// sin(x,precision)
-	static struct S { TD x; int n; TD expect; }
-	S[] s =
-	[
-		{ "1.0", 16, "0.8414709848078965" },
-		{ "2.0", 16, "0.9092974268256817" },
-	];
-	auto f = FunctionTest!(S,TD)("sin(x,n)");
-	foreach (t; s) f.test(t, sin(t.x,t.n));
+	foreach (t; s) f.test(t, sin(t.x, t.p), t.p);
     writefln(f.report);
 }
 
 /*unittest {
 	write("-- sin..............");
-	assertEqual(sin(TD(0.1)), TD("0.0998334166"));
-	assertEqual(sin(TD.one), TD("0.8414709848978965"));
-	assertEqual(sin(TD.two, 16), TD("0.9092974268256817"));
-	assertEqual(sin(TD.one, 16), TD("0.8414709848978965"));
-	assertEqual(sin(TD("0.333")), TD("0.326879693"));
 //	TD difficult = TD(5678900000);
 	TD difficult = TD(5);
 writefln("difficult = %s", difficult);
@@ -1210,28 +1279,17 @@ package T cos(T)(in T x, Context inContext) {
 
 unittest
 {	// cos
-	static struct S { TD x; TD expect; }
+	static struct S { TD x; int p; TD expect; }
 	S[] s =
 	[
-		{ "1.0", "0.5403023058681397174009" },
-		{ "0.333", "0.945065959" },
-		{ "5.0", "0.283662185" },
+		{ "1.0",   9, "0.5403023058681397174009" },
+		{ "0.333", 9, "0.945065959" },
+		{ "5.0",   9, "0.283662185" },
+		{ "1.0",  23, "0.540302306" },
+		{ "2.0",  16, "-0.416146837" },
 	];
 	auto f = FunctionTest!(S,TD)("cos");
-	foreach (t; s) f.test(t, cos(t.x));
-    writefln(f.report);
-}
-
-unittest
-{	// cos(x,precision)
-	static struct S { TD x; int n; TD expect; }
-	S[] s =
-	[
-		{ "1.0", 23, "0.540302306" },
-		{ "2.0", 16, "-0.416146837" },
-	];
-	auto f = FunctionTest!(S,TD)("cos(x,n)");
-	foreach (t; s) f.test(t, cos(t.x,t.n));
+	foreach (t; s) f.test(t, cos(t.x, t.p), t.p);
     writefln(f.report);
 }
 

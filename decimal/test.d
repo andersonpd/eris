@@ -44,23 +44,40 @@ version(unittest)
 			this.name = name;
 		}
 
-		void test(S s, T actual,
+		void test(S s, T actual, int precision = 0,
 			string file = __FILE__, int line = __LINE__)
 		{
 			testCount++;
 			auto input = s.tupleof[0..$-1];
 			auto expect = s.tupleof[$-1];
+			bool passed = false;
 
-			// special case: if num is decimal it may be NaN, but NaN != NaN
 			static if (isDecimal!T)
 			{
-				if (actual.isNaN && expect.isNaN)
+				if (precision)
 				{
-					passCount++;
-					return;
+
+					// must be equal at specified precision
+					passed = precisionEquals!T(expect, actual, precision);
+				}
+				else
+				{
+					// equal at context precision
+					passed = (actual == expect);
+				}
+
+				if (!passed)	// check for NaN, NaN
+				{
+					passed = actual.isNaN && expect.isNaN;
 				}
 			}
-			if (actual == expect)
+			else
+			{
+				passed = (actual == expect);
+			}
+			// end static if
+
+			if (passed)
 			{
 				passCount++;
 			}

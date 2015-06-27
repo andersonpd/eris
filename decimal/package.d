@@ -32,6 +32,7 @@ version(unittest)
 {
 	import std.stdio;
 	import eris.test.assertion;
+	import eris.decimal.test;
 }
 
 alias xint = ExtendedInt;
@@ -598,6 +599,28 @@ unittest {
 	}
 
 	static if (context == TestContext) {
+/*	unittest
+	{	// quantum
+		static struct S { real x; real expect; }
+		S[] s =
+		[
+			{ 1.0, 1.0 },
+			{ 2.0, 2.0 },
+			{ 1.0E5, 1.0E5 },
+			{ 0.1, 0.1 },
+			{123.456, 123.456},	// fails because r == r only when exact
+			{ 32E-27, 32E-27 },
+			{ double.max, double.max },
+			{ real.max, real.max },
+		];
+		auto f = FunctionTest!(S,real)("toReal");
+		foreach (t; s)
+		{
+			f.test(t, toDecimal(t.x).toReal);
+		}
+    	writefln(f.report);
+	}*/
+
 	unittest {	// toReal, toDecimal
 		write("-- toReal...........");
 		static real[] tests =
@@ -660,21 +683,27 @@ unittest {
 	}
 
 	static if (context == TestContext) {
-	unittest {
-		write("-- this(decimal)....");
-/*		TD abc = 12345;
-		dec99 def = dec99(abc);
-		assertEqual(abc, def);
-		TD ghi = dec99(def);
-		assertEqual(def, ghi);
-		TD klm = TD(-dec99.infinity);
-		assertEqual(klm, "-Infinity");
-		assertEqual(TD.infinity, dec99.infinity);*/
-		writeln("test missing");
+	unittest
+	{	// this(decimal)
+		static struct S { TD x; TD expect; }
+		S[] s =
+		[
+			{ 1.0, 1.0 },
+			{ 2.0, 2.0 },
+			{ 1.0E5, 1.0E5 },
+			{ 0.1, 0.1 },
+			{123.456, 123.456},	// fails because r == r only when exact
+			{ 32E-27, 32E-27 },
+			{ double.max, double.max },
+			{ real.max, real.max },
+		];
+		auto f = FunctionTest!(S,TD)("this(dec)");
+		foreach (t; s) f.test(t, decimal(t.x));
+    	writefln(f.report);
 	}}
 
 	// copy constructor
-	//@safe
+	@safe
 	public this(const decimal that)
 	{
 		this.signed = that.signed;
@@ -701,8 +730,26 @@ unittest {
 			return assertZero!T(compareTotal(num, copy));
 		}
 	}}*/
-
 	static if (context == TestContext) {
+	unittest
+	{	// copy
+		static struct S { TD x; TD expect; }
+		S[] s =
+		[
+			{ 1.0, 1.0 },
+			{ 2.0, 2.0 },
+			{ 1.0E5, 1.0E5 },
+			{ 0.1, 0.1 },
+			{123.456, 123.456},	// fails because r == r only when exact
+			{ 32E-27, 32E-27 },
+			{ double.max, double.max },
+			{ real.max, real.max },
+		];
+		auto f = FunctionTest!(S,TD)("copy");
+		foreach (t; s) f.test(t, t.x.copy);
+    	writefln(f.report);
+	}
+
 	unittest {	// dup
 		write("-- dup..............");
 		TD num, copy;
