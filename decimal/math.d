@@ -79,10 +79,46 @@ public T rint(T)(T x) {
 	return round(x, HALF_EVEN);
 }
 
+unittest
+{	// rint
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{  "2.1",  2 },
+		{  "2.5",  2 },
+		{  "3.5",  4 },
+		{  "2.9",  3 },
+		{ "-2.1", -2 },
+		{ "-2.9", -3 },
+		{ "-2.5", -2 },
+	];
+	auto f = FunctionTest!(S,TD)("rint");
+	foreach (t; s) f.test(t, rint(t.x));
+    writefln(f.report);
+}
+
 /// Returns the nearest integer less than or equal to the argument.
 /// Rounds toward negative infinity.
 public T floor(T)(T x) {
 	return round(x, ROUND_FLOOR);
+}
+
+unittest
+{	// floor
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{  "2.1",  2 },
+		{  "2.5",  2 },
+		{  "3.5",  3 },
+		{  "2.9",  2 },
+		{ "-2.1", -3 },
+		{ "-2.9", -3 },
+		{ "-2.5", -3 },
+	];
+	auto f = FunctionTest!(S,TD)("floor");
+	foreach (t; s) f.test(t, floor(t.x));
+    writefln(f.report);
 }
 
 /// Returns the nearest integer greater than or equal to the argument.
@@ -91,10 +127,46 @@ public T ceil(T)(T x) {
 	return round(x, ROUND_CEILING);
 }
 
+unittest
+{	// ceil
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{  "2.1",  3 },
+		{  "2.5",  3 },
+		{  "3.5",  4 },
+		{  "2.9",  3 },
+		{ "-2.1", -2 },
+		{ "-2.9", -2 },
+		{ "-2.5", -2 },
+	];
+	auto f = FunctionTest!(S,TD)("ceil");
+	foreach (t; s) f.test(t, ceil(t.x));
+    writefln(f.report);
+}
+
 /// Returns the truncated argument.
 /// Rounds toward zero.
 public T trunc(T)(T x) {
 	return round(x, ROUND_DOWN);
+}
+
+unittest
+{	// trunc
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{  "2.1",  2 },
+		{  "2.5",  2 },
+		{  "3.5",  3 },
+		{  "2.9",  2 },
+		{ "-2.1", -2 },
+		{ "-2.9", -2 },
+		{ "-2.5", -2 },
+	];
+	auto f = FunctionTest!(S,TD)("trunc");
+	foreach (t; s) f.test(t, trunc(t.x));
+    writefln(f.report);
 }
 
 /// Returns the nearest integer value. If the value is greater (less) than
@@ -151,47 +223,6 @@ public xint toBigInt(T)(T x, Rounding mode = HALF_EVEN)
 		return round(x, mode).coefficient;
 	}
 	return x.coefficient;
-}
-
-unittest {	// rounding
-	write("-- rounding.........");
-	TD num;
-	num = TD("2.1");
-	assertEqual(rint(num) , TD("2"));
-	assertEqual(floor(num), TD("2"));
-	assertEqual(ceil(num) , TD("3"));
-	assertEqual(trunc(num), TD("2"));
-	num = TD("2.5");
-	assertEqual(rint(num) , TD("2"));
-	assertEqual(floor(num), TD("2"));
-	assertEqual(ceil(num) , TD("3"));
-	assertEqual(trunc(num), TD("2"));
-	num = TD("3.5");
-	assertEqual(rint(num) , TD("4"));
-	assertEqual(floor(num), TD("3"));
-	assertEqual(ceil(num) , TD("4"));
-	assertEqual(trunc(num), TD("3"));
-	num = TD("2.9");
-	assertEqual(rint(num) , TD("3"));
-	assertEqual(floor(num), TD("2"));
-	assertEqual(ceil(num) , TD("3"));
-	assertEqual(trunc(num), TD("2"));
-	num = TD("-2.1");
-	assertEqual(rint(num) , TD("-2"));
-	assertEqual(floor(num), TD("-3"));
-	assertEqual(ceil(num) , TD("-2"));
-	assertEqual(trunc(num), TD("-2"));
-	num = TD("-2.9");
-	assertEqual(rint(num) , TD("-3"));
-	assertEqual(floor(num), TD("-3"));
-	assertEqual(ceil(num) , TD("-2"));
-	assertEqual(trunc(num), TD("-2"));
-	num = TD("-2.5");
-	assertEqual(rint(num) , TD("-2"));
-	assertEqual(floor(num), TD("-3"));
-	assertEqual(ceil(num) , TD("-2"));
-	assertEqual(trunc(num), TD("-2"));
-	writeln("passed");
 }
 
 //--------------------------------
@@ -355,7 +386,7 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 }
 
 unittest
-{	// pi(precision)
+{	// pi
 	static struct S { int n; TD expect; }
 	S[] s =
 	[
@@ -386,7 +417,7 @@ package T pi_2(T)(Context inContext) if (isDecimal!T)
 }
 
 unittest
-{	// pi_2(precision)
+{	// pi_2
 	static struct S { int n; TD expect; }
 	S[] s =
 	[
@@ -411,7 +442,7 @@ package T invPi(T)(Context inContext) if (isDecimal!T)
 }
 
 unittest
-{	// invPi(precision)
+{	// invPi
 	static struct S { int n; TD expect; }
 	S[] s =
 	[
@@ -436,7 +467,7 @@ package T twoInvPi(T)(Context inContext) if (isDecimal!T)
 }
 
 unittest
-{	// twoInvPi(precision)
+{	// twoInvPi
 	static struct S { int n; TD expect; }
 	S[] s =
 	[
@@ -468,7 +499,7 @@ package T e(T)(Context inContext) if (isDecimal!T)
 }
 
 unittest
-{	// e(precision)
+{	// e
 	static struct S { int n; TD expect; }
 	S[] s =
 	[
@@ -544,39 +575,32 @@ package enum T invSqrtPi(T)(Context inContext) if (isDecimal!T)
 	T alpha =  div(T.one, sqrt(pi!T(context), context), context);
 	return roundToPrecision(alpha, inContext);
 }
-bool verbose = false;
 
-/*unittest
-{	// e(precision)
-	static struct S { int n; TD expect; }
+unittest
+{	// constants
+	static struct S { TD x; int p; TD expect; }
 	S[] s =
 	[
-		{  9, "2.71828183" },
-		{ 25, "2.7182818284590452353602874713526625" },
-		{  5, "2.71828183" },
+		{ TD.ln10,    9,  "2.30258509" },
+		{ TD.ln2,     9,  "0.693147181" },
+		{ TD.log2_e,  9,  "1.44269504" },
+		{ TD.log2_10, 9,  "3.32192809" },
+		{ TD.sqrt2,   9,  "1.41421356" },
+		{ TD.sqrt1_2, 9,  "0.707106781" },
+		{ TD.phi,     9,  "1.61803399" },
+		{ TD.ln10(16),    16, "2.302585092994046" },
+		{ TD.ln2(16),     16, "0.6931471805599453" },
+		{ TD.log2_e(16),  16, "1.442695040888963" },
+		{ TD.log2_10(16), 16, "3.21928094887362" }, // FIXTHIS: returns 3.321457567817785
+		{ TD.sqrt2(16),   16, "1.414213562373095" },
+		{ TD.sqrt1_2(16), 16, "0.7071067811865475" },
+		{ TD.phi(16),     16, "1.618033988749895" },
 	];
-	auto f = FunctionTest!(S,TD)("e");
-	foreach (t; s) f.test(t, TD.e(t.n), t.n);
+	auto f = FunctionTest!(S,TD)("constants");
+	foreach (t; s) f.test(t, t.x, t.p);
     writefln(f.report);
-}*/
-
-// TODO: (testing) Test these at higher precisions
-unittest {
-	write("-- constants........");
-	assertEqual(TD.ln10,    "2.30258509");
-	assertEqual(TD.ln2,     "0.693147181");
-	assertEqual(TD.log2_e,  "1.44269504");
-	assertEqual(TD.log2_10, "3.32192809");
-	assertEqual(TD.log2_e,  "1.44269504");
-	assertEqual(TD.log2_10, "3.32192809");
-	assertEqual(TD.log2_10(8), "3.3219281");
-//	assertPrecisionEqual(TD.log2_10(15), "3.32192809488736", 15);
-	assertEqual(TD.sqrt2,   "1.41421356");
-	assertEqual(TD.sqrt1_2, "0.707106781");
-	assertEqual(TD.phi,     "1.61803399");
-//	assertPrecisionEqual(TD.phi(25), "1.618033988749894848204587", 25);
-	writeln("passed");
 }
+
 //--------------------------------
 //	ALGEBRAIC FUNCTIONS
 //--------------------------------
@@ -707,34 +731,21 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest
 {	// invSqrt
-	static struct S { TD x; TD expect; }
-	S[] s =
-	[
-		{ "2", "0.707106781" },
-		{ "2", "0.70710678118655" },
-		{ "20", "0.223606798" },
-		{ "300", "0.0577350269" },
-		{ "4000", "0.0158113883" },
-		{ "98763", "0.00318201969" },
-		{ "98763098", "0.000100624248" },
-		{ "0.008", "1.11803399" },
-		{ "98763098", "0.000100624248" },
-		{ "9876387982347", "3.18200552E-7" },
-	];
-	auto f = FunctionTest!(S,TD)("invSqrt");
-	foreach (t; s) f.test(t, invSqrt(t.x));
-    writefln(f.report);
-}
-
-unittest
-{	// invSqrt
 	static struct S { TD x; int n; TD expect; }
 	S[] s =
 	[
+		{ "2", 6, "0.707107" },
+		{ "20", 9, "0.223606798" },
+		{ "300", 9, "0.0577350269" },
+		{ "98763", 9, "0.00318201969" },
+		{ "98763098", 9, "0.000100624248" },
+		{ "0.008", 9, "1.11803399" },
+		{ "98763098", 9, "0.000100624248" },
+		{ "9876387982347", 9, "3.18200552E-7" },
 		{ "2", 14, "0.70710678118655" },
 		{ "4000", 11, "0.0158113883" },
 	];
-	auto f = FunctionTest!(S,TD)("invSqt(x,n)");
+	auto f = FunctionTest!(S,TD)("invSqt");
 	foreach (t; s) f.test(t, invSqrt(t.x,t.n));
     writefln(f.report);
 }
@@ -780,19 +791,19 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 
 unittest
 {	// sqrt
-	static struct S { TD x; TD expect; }
+	static struct S { TD x; int p; TD expect; }
 	S[] s =
 	[
-		{ "2", "1.41421356" },
-		{ TD(TD.one/sqrt(TD(2))), "0.840896415" },
-		{ "200", "14.1421356" },
-		{ "25", "5.0" },
-		{ "2E-5", "0.00447213596" },
-		{ "1E-15", "3.16227766E-8" },
-		{ "1E-16", "1.00000000E-8" },
+		{ "2", 9, "1.41421356" },
+		{ "0.707106781187", 12, "0.840896415254" },
+		{ "200", 21, "14.142135623730950488000" },
+		{ "25", 8, "5.0" },
+		{ "2E-5", 10, "0.00447213595500" },
+		{ "1E-15", 9, "3.16227766E-8" },
+		{ "1E-16", 9, "1.00000000E-8" },
 	];
 	auto f = FunctionTest!(S,TD)("sqrt");
-	foreach (t; s) f.test(t, sqrt(t.x));
+	foreach (t; s) f.test(t, sqrt(t.x, t.p), t.p);
     writefln(f.report);
 }
 
@@ -832,27 +843,22 @@ package T exp(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest
 {	// exp
-	static struct S { TD x; TD expect; }
+	static struct S { TD x; int p; TD expect; }
 	S[] s =
 	[
-		{ "1", "2.71828183" },
-		{ "2", "7.3890560989306502272" },
-		{ "-2", "0.13533528324" },
+		{  1, 9, "2.71828183" },
+		{  2, 9, "7.3890560989306502272" },
+		{ -2, 9, "0.13533528324" },
+		{  1, 9, "2.71828183" },
+		{  1, 11, "2.7182818285" },
+		{  1, 15, "2.71828182845905" },
+		{  2, 15, "7.3890560989306502272" },
+		{  2, 11, "7.3890560989306502272" },
+		{ -2, 11, "0.13533528324" },
 	];
 	auto f = FunctionTest!(S,TD)("exp");
-	foreach (t; s) f.test(t, exp(t.x));
+	foreach (t; s) f.test(t, exp(t.x, t.p), t.p);
     writefln(f.report);
-}
-
-unittest {
-	write("-- exp..............");
-	assertEqual(exp(TD.one), TD("2.71828183"));
-	assertEqual(exp(TD.one, 11), TD("2.7182818285"));
-	assertEqual(exp(TD.one, 15), TD("2.71828182845905"));
-	assertEqual(exp(TD.two, 15), TD("7.3890560989306502272"));
-	assertEqual(exp(TD.two, 11), TD("7.3890560989306502272"));
-	assertEqual(exp(-TD.two, 11), TD("0.13533528324"));
-	writeln("passed");
 }
 
 /+
@@ -914,18 +920,19 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(sum, inContext);
 }
 
-// TODO: (testing) unittest this
-unittest {
-	write("-- expm1............");
-	TD num;
-	num = "0.1";
-	assertEqual(expm1(num), TD("0.105170918"));
-	num = "-0.4";
-	assertEqual(expm1(num), TD("-0.329679954"));
+unittest
+{	// expm1
+	static struct S { TD x; int p; TD expect; }
+	S[] s =
+	[
+		{  "0.1", 9, "0.105170918" },
 	// FIXTHIS: incorrect result for negative numbers.
-	num = "-2";
-	assertEqual(expm1(num), TD("-0.864664717"));
-	writeln("passed");
+		{ "-0.4", 9, "-0.329679954" },
+		{ "-2",   9, "-0.864664717" },
+	];
+	auto f = FunctionTest!(S,TD)("expm1");
+	foreach (t; s) f.test(t, expm1(t.x, t.p), t.p);
+    writefln(f.report);
 }
 
 mixin (UnaryFunction!("log"));
@@ -937,6 +944,7 @@ mixin (UnaryFunction!("log2"));
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 // TODO: efficiency) see Natural Logarithm, Wikipedia.
+// FIXTHIS -- log(x,precision) doesn't work
 package T log(T)(T x, Context inContext,
 		bool reduceArg = true) if (isDecimal!T)
 {
@@ -973,6 +981,29 @@ package T log(T)(T x, Context inContext,
 		a = d;
 		n += 2;
 	}
+}
+
+unittest
+{	// log
+	static struct S { TD x; int p; TD expect; }
+	S[] s =
+	[
+		{   "2.71828183", 9,  "1.0" },
+		{  "10.00",       12, "2.30258509" },
+		{  "10.00",       9, "2.30258509" },
+		{ "123.45",       9,  "4.81583622" },
+		{  "99.999E+8",   6,  "23.0258409" },
+		{  "99.999E+8",   9,  "23.0258409" },
+		{  "99.999E+8",   15, "23.0258409" },
+		{  "99.999E+8",   9, "23.0258409" },
+	];
+	auto f = FunctionTest!(S,TD)("log");
+	foreach (t; s)
+	{
+		f.test(t, log(t.x, t.p), t.p);
+		writefln("log(%s,%s) = %s", t.x, t.p, log(t.x, t.p));
+	}
+    writefln(f.report);
 }
 
 unittest {
@@ -1122,15 +1153,16 @@ public T hypot(T)(T x, T y, Context context) if (isDecimal!T)
 }
 
 // TODO: (testing) Need to test operation near precisions where this operation is really useful.
-unittest {
-	write("-- hypot............");
-	TD x = 3;
-	TD y = 4;
-	TD expect = 5;
-	TD actual = hypot(x,y);
-	assertTrue(actual == expect);
-	assertEqual(actual, expect);
-	writeln("passed");
+unittest
+{	// hypot
+	static struct S { TD x; TD y; TD expect; }
+	S[] s =
+	[
+		{  "3", "4", "5" },
+	];
+	auto f = FunctionTest!(S,TD)("hypot");
+	foreach (t; s) f.test(t, hypot(t.x, t.y));
+    writefln(f.report);
 }
 
 //--------------------------------
@@ -1205,6 +1237,7 @@ unittest
 	S[] s =
 	[
 		{ "0.1",   9, "0.0998334166" },
+		{ "0.1",   2, "0.10" },
 		{ "0.333", 9, "0.326879693" },
 		{ "5.0",   9, "-0.958924275" },
 		{ "1.0",   9, "0.8414709848" },
@@ -1391,96 +1424,23 @@ public T tan(T)(T x, int precision = T.precision) if (isDecimal!T)
 	}
 }
 
-/*version(unittest)
-{
-	private T cost1(T)(in T x)
-	{
-		return cos!T(x);
-	}
-
-	private T cost2(T)(in T x, int precision)
-	{
-		return cos!T(x, precision);
-	}
-}
-
 unittest
-{	// cos
-// TODO: (testing) one value from each quadrant, reduced value.
-}
-*/
-unittest {
-	write("-- tan..............");
-	// TODO: (testing) one value from each quadrant, reduced value.
-	assertEqual(tan(TD.one), TD("1.55740772465490223"));
-	assertEqual(tan(TD.one, 14), TD("1.55740772465490223"));
-	assertEqual(tan(TD("0.333")), TD("0.345880295"));
-	writeln("passed");
-}
-
-/// Calculates the value of pi in the specified context.
-package T arctan(T)(T x, Context inContext = T.context) if (isDecimal!T)
-{
-	auto context = guard(inContext, 3);
-	int k = 1;
-	sqrt1_2!T(context);
-	T a1 = sqrt(T.one + sqr(x));
-	T b1 = T.one;
-	T s1 = T.half;
-	T a2, b2, s2;
-	// AGM
-	while (!equals(a1, b1, context)) {
-		a2 = mul(T.half, add(a1, b1, context),context);
-		b2 = sqrt(mul(a1, b1, context), context);
-		k *= 2;
-		s2 = sub(s1, mul(sub(sqr(a2, context), sqr(b2, context), context), k, context), context);
-		a1 = a2;
-		b1 = b2;
-		s1 = s2;
-	}
-	T pi = mul(div(sqr(a2, context), s2, context), 2, context);
-	// round the result in the original context
-	return roundToPrecision(pi, inContext);
-}
-
-
-//arcsin x = 2 * arctan(x/(1+sqrt{1-x^^2))
-//\arccos x = 2 \arctan \frac{\sqrt{1-x^2}}{1+x},\text{ if }-1 < x \leq +1
-//\arctan x = 2 \arctan \frac{x}{1+\sqrt{1+x^2}}
-
-/// Decimal version of std.math function.
-// TODO: (behavior) convert to std unary function.
-public T asin(T)(T x) if (isDecimal!T)
-{
-	T result = 2 * atan!T(x/(1+sqrt(1-sqr(x)))); //^^2)));
-	return result;
-}
-
-unittest {
-	write("-- asin.............");
-	assertEqual(asin(TD.half), TD("0.523598776"));
-//	assertEqual(asin(TD.one, 14), TD("1.55740772465490223"));
-	assertEqual(asin(TD("0.333")), TD("0.339483378"));
-	writeln("passed");
-}
-
-/// Decimal version of std.math function.
-// TODO: (behavior) convert to std unary function.
-public T acos(T)(T x) if (isDecimal!T)
-{
-	T result = 2 * atan(sqrt(1-sqr(x))/(1 + x));
-	return result;
-}
-
-unittest {
-	write("-- acos.............");
-	assertEqual(acos(TD.half), TD("1.0471975511965977461542144610932"));
-//	assertEqual(acos(TD.one, 14), TD("1.55740772465490223"));
-	assertEqual(acos(TD("0.333")), TD("1.23131295"));
-	writeln("passed");
+{	// tan
+	static struct S { TD x; int p; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   9, "1.55740772465490223" },
+		{ "1.0",   14, "1.55740772465490223" },
+		{ "0.333", 9, "0.345880295" },
+	];
+	auto f = FunctionTest!(S,TD)("tan");
+	foreach (t; s) f.test(t, tan(t.x, t.p), t.p);
+    writefln(f.report);
 }
 
 mixin (UnaryFunction!("atan"));
+mixin (UnaryFunction!("asin"));
+mixin (UnaryFunction!("acos"));
 
 /// Returns the arctangent of the argument in the specified context.
 /// Algorithm uses Taylor's theorem for arctangent.
@@ -1512,20 +1472,67 @@ public T atan(T)(T x, Context inContext) if (isDecimal!T)
 }
 
 
-unittest {
-	write("-- atan.............");
-	assertEqual(atan(TD.half), TD("0.463647609"));
-	assertEqual(atan(TD.one, 14), TD("0.78539816339745"));
-	assertEqual(atan(TD("0.333")), TD("0.321450524"));
-	assertEqual(atan(TD("0.1")), TD("0.099668652491162038065120043484057532623410224914551"));
-	assertEqual(atan(TD("0.9")), TD("0.73281510178650655085164089541649445891380310058594"));
-	writeln("passed");
+unittest
+{	// atan
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "0.785398163397" },
+		{ "0.5",   "0.463647609" },
+		{ "0.333", "0.32145052439664" },
+		{ "0.1", "0.099668652491162038065120043484057532623410224914551" },
+		{ "0.9", "0.73281510178650655085164089541649445891380310058594" },
+	];
+	auto f = FunctionTest!(S,TD)("atan");
+	foreach (t; s) f.test(t, atan(t.x));
+    writefln(f.report);
 }
 
-/**
- * Decimal version of std.math function.
- *
- */
+/// Decimal version of std.math function.
+// TODO: (behavior) convert to std unary function.
+public T asin(T)(T x) if (isDecimal!T)
+{
+	T result = 2 * atan!T(x/(1+sqrt(1-sqr(x)))); //^^2)));
+	return result;
+}
+
+unittest
+{	// asin
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "1.57079632679" },
+		{ "0.5",   "0.523598775598" },
+		{ "0.333", "0.339483378150" },
+	];
+	auto f = FunctionTest!(S,TD)("asin");
+	foreach (t; s) f.test(t, asin(t.x));
+    writefln(f.report);
+}
+
+/// Decimal version of std.math function.
+// TODO: (behavior) convert to std unary function.
+public T acos(T)(T x) if (isDecimal!T)
+{
+	T result = 2 * atan(sqrt(1-sqr(x))/(1 + x));
+	return result;
+}
+
+unittest
+{	// acos
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "0" },
+		{ "0.5",   "1.04719755120" },
+		{ "0.333", "1.23131294864" },
+	];
+	auto f = FunctionTest!(S,TD)("acos");
+	foreach (t; s) f.test(t, acos(t.x));
+    writefln(f.report);
+}
+
+/// Decimal version of std.math function.
 public TD atan2(T)(T y, TD x) if (isDecimal!T)
 {
 	TD result;
@@ -1567,25 +1574,21 @@ public T sinh(T)(T x, Context inContext) if (isDecimal!T)
 }
 
 
+unittest
+{	// sinh
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "1.1752011936438" },
+		{ "0.5",   "0.521095305494" },
+		{ "0.333", "0.339188552157" },
+	];
+	auto f = FunctionTest!(S,TD)("sinh");
+	foreach (t; s) f.test(t, sinh(t.x));
+    writefln(f.report);
+}
+
 /// Decimal version of std.math function.
-// TODO: why does this perform so poorly?
-public T sinh1(T)(T x) if (isDecimal!T)
-{
-	return (exp(x) - exp(-x))*T.half;
-}
-
-
-unittest {
-	write("-- sinh.............");
-	assertEqual(sinh(TD("1.0")), TD("1.1752011936438014568823818505956008151557179813341"));
-//	assertEqual(sinh1(TD("1.0")), TD("1.1752011936438014568823818505956008151557179813341"));
-	writeln("passed");
-}
-
-/**
- * Decimal version of std.math function.
- *
- */
 public T cosh(T)(T x, Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
@@ -1605,16 +1608,21 @@ public T cosh(T)(T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(sum, inContext);
 }
 
-unittest {
-	write("-- cosh.............");
-	assertEqual(cosh(TD("1.0")), TD("1.5430806348152437784779056207570616826015291123659"));
-	writeln("passed");
+unittest
+{	// cosh
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "1.543080634815" },
+		{ "0.5",   "1.12762596521" },
+		{ "0.333", "1.05595874631" },
+	];
+	auto f = FunctionTest!(S,TD)("cosh");
+	foreach (t; s) f.test(t, cosh(t.x));
+    writefln(f.report);
 }
 
-/**
- * Decimal version of std.math function.
- *
- */
+/// Decimal version of std.math function.
 public T tanh(T)(T x, Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
@@ -1622,10 +1630,18 @@ public T tanh(T)(T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(tan, inContext);
 }
 
-unittest {
-	write("-- tanh.............");
-	assertEqual(tanh(TD("1.0")), TD("0.76159415595576488811945828260479"));
-	writeln("passed");
+unittest
+{	// tanh
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "0.761594155956" },
+		{ "0.5",   "0.462117157260" },
+		{ "0.333", "0.321213828989" },
+	];
+	auto f = FunctionTest!(S,TD)("tanh");
+	foreach (t; s) f.test(t, tanh(t.x));
+    writefln(f.report);
 }
 
 mixin (UnaryFunction!("asinh"));
@@ -1641,16 +1657,21 @@ public T asinh(T)(T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(log(arg, context), inContext);
 }
 
-unittest {
-	write("-- asinh............");
-	assertEqual(asinh(TD("1.0")), TD("0.88137358701954302523260932497979"));
-	writeln("passed");
+unittest
+{	// asinh
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "0.881373587020" },
+		{ "0.5",   "0.481211825060" },
+		{ "0.333", "0.327133906664" },
+	];
+	auto f = FunctionTest!(S,TD)("asinh");
+	foreach (t; s) f.test(t, asinh(t.x));
+    writefln(f.report);
 }
 
-/**
- * Decimal version of std.math function.
- *
- */
+/// Decimal version of std.math function.
 public T acosh(T)(T x, Context inContext) if (isDecimal!T)
 {
 	// TODO: (behavior) special values
@@ -1661,16 +1682,21 @@ public T acosh(T)(T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(log(arg, context), inContext);
 }
 
-unittest {
-	write("-- acosh............");
-	assertEqual(acosh(TD("1.5")), TD("0.96242365011920689499551782684874"));
-	writeln("passed");
+unittest
+{	// acosh
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "0.0" },
+		{ "1.5",   "0.962423650119" },
+		{ "1.333", "0.794987388708" },
+	];
+	auto f = FunctionTest!(S,TD)("acosh");
+	foreach (t; s) f.test(t, acosh(t.x));
+    writefln(f.report);
 }
 
-/**
- * Decimal version of std.math function.
- *
- */
+/// Decimal version of std.math function.
 public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 {
 	// TODO: (behavior) special values
@@ -1683,10 +1709,18 @@ public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 	// also atanh(x) = x + x^3/3 + x^5/5 + x^7/7 + ... (speed of convergence?)
 }
 
-unittest {
-	write("-- atanh............");
-	assertEqual(atanh(TD("0.5")), TD("0.54930614433405484569762261846126"));
-	writeln("passed");
+unittest
+{	// atanh
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.0",   "Infinity" },
+		{ "0.5",   "0.549306144334" },
+		{ "0.333", "0.346198637132" },
+	];
+	auto f = FunctionTest!(S,TD)("atanh");
+	foreach (t; s) f.test(t, atanh(t.x));
+    writefln(f.report);
 }
 
 unittest {

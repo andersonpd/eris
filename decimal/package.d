@@ -182,7 +182,7 @@ unittest {
 	public this(const bool value)
 	{
 		this = zero;
-        if (value) {
+		if (value) {
 			mant = 1;
 			this.digits = 1;
 		}
@@ -457,7 +457,7 @@ unittest {
 			if (sign) n = n.copyNegate;
 			// scale factor
 			auto scale = decimal(1L << c);
-    		// multiply or divide
+			// multiply or divide
 			if (expo < 0)
 			{
 				this(n / scale);
@@ -573,7 +573,7 @@ unittest {
 		// if smaller than the smallest value, return zero
 		if (this.expo <= real.min_10_exp) {
 			if (this.copyAbs < RealMinNorm) return this.sign ? -0.0 : 0.0;
-        }
+		}
 
 		// will the coefficent fit into a long integer?
 		if (this.coefficient.getDigitLength <= 2)
@@ -618,7 +618,7 @@ unittest {
 		{
 			f.test(t, toDecimal(t.x).toReal);
 		}
-    	writefln(f.report);
+		writefln(f.report);
 	}*/
 
 	unittest {	// toReal, toDecimal
@@ -699,7 +699,7 @@ unittest {
 		];
 		auto f = FunctionTest!(S,TD)("this(dec)");
 		foreach (t; s) f.test(t, decimal(t.x));
-    	writefln(f.report);
+		writefln(f.report);
 	}}
 
 	// copy constructor
@@ -747,7 +747,7 @@ unittest {
 		];
 		auto f = FunctionTest!(S,TD)("copy");
 		foreach (t; s) f.test(t, t.x.copy);
-    	writefln(f.report);
+		writefln(f.report);
 	}
 
 	unittest {	// dup
@@ -899,7 +899,7 @@ unittest {
 		this.mant	 = that.mant;
 	}
 
-	///    Assigns an xint value.
+	///	Assigns an xint value.
 	void opAssign(T:xint)(T that)
 	{
 		this = decimal(that);
@@ -918,7 +918,7 @@ unittest {
 		this = decimal(that);
 	}
 
-	///    Assigns a string value.
+	///	Assigns a string value.
 	void opAssign(T:string)(in T that)
 	{
 		this = decimal(that);
@@ -1896,7 +1896,7 @@ unittest {
 //--------------------------------
 
 	/// Constants are computed at compile time to the type precision.
-	/// For values of the constant at other precisions use constant(n),
+	/// For values of the constant at other precisions use e.g. pi(n),
 	/// where n is the desired precision.
 
 	/// Returns pi, pi = 3.14159266...
@@ -1924,7 +1924,7 @@ unittest {
 	enum decimal LOG2_E = roundString("1.44269504088896340735992468100189213"
 		"742664595415298593413544940693110921918118507988552662289350634");
 
-//	/// base 2 logarithm of 10 = 3.32192809...
+	/// base 2 logarithm of 10 = 3.32192809...
 	mixin Constant!("log2_10");
 	enum decimal LOG2_10 = roundString("3.3219280948873623478703194294893901"
 		"7586483139302458061205475639581593477660862521585013974335937016");
@@ -1975,25 +1975,29 @@ unittest {
 	enum decimal PHI = roundString("1.6180339887498948482045868343656381177"
 		"20309179805762862135448622705260462818902449707207204189391137");
 
-	static if (context == TestContext) {
-	unittest {
-		write("-- constants........");
-		assertEqual(TD.E,     "2.71828183");
-		assertEqual(TD.pi,    "3.14159265");
-		assertEqual(TD.PI,    "3.14159265");
-		assertEqual(TD.LN2,   "0.693147181");
-		assertEqual(TD.LN10,  "2.30258509");
-		assertEqual(TD.SQRT2, "1.41421356");
-		assertEqual(TD.INV_PI,"0.318309886");
-		assertEqual(TD.invPi, "0.318309886");
-		writeln("passed");
-	}}
+unittest
+{	// constants
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ TD.E,     "2.71828183" },
+		{ TD.pi,    "3.14159265" },
+		{ TD.PI,    "3.14159265" },
+		{ TD.LN2,   "0.693147181" },
+		{ TD.LN10,  "2.30258509" },
+		{ TD.SQRT2, "1.41421356" },
+		{ TD.INV_PI,"0.318309886" },
+	];
+	auto f = FunctionTest!(S,TD)("constants");
+	foreach (t; s) f.test(t, t.x);
+	writefln(f.report);
+}
 
 //--------------------------------
 // decimal constant boilerplate
 //--------------------------------
 
-    /// mixin template to create a constant at the type precision,
+	/// mixin template to create a constant at the type precision,
 	/// with an option to create an arbitrary precision constant.
 	mixin template Constant(string name)
 	{
@@ -2005,7 +2009,7 @@ unittest {
 		}");
 	}
 
-    /// mixin template to create a constant at the type precision,
+	/// mixin template to create a constant at the type precision,
 	/// with an option to create an arbitrary precision constant.
 	mixin template Constant(string lcName, string ucName)
 	{

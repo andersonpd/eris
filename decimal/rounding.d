@@ -686,7 +686,6 @@ unittest {	// shiftLeft(xint)
 	return num;
 }*/
 
-bool verbose = false;
 /// Shifts the number right the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted left.

@@ -54,7 +54,7 @@ version(unittest)
 
 			static if (isDecimal!T)
 			{
-				if (precision)
+				if (precision > 0)
 				{
 
 					// must be equal at specified precision
@@ -88,19 +88,19 @@ version(unittest)
 				msg ~= format(", test %d", testCount);
 				static if (N == 0)
 					msg ~= format(": <%s()> should be <%s> not <%s>.",
-					name, actual, expect);
+					name, expect, actual);
 				else static if (N == 1)
 					msg ~= format(": <%s(%s)> should be <%s> not <%s>.",
-					name, input[0], actual, expect);
+					name, input[0], expect, actual);
 				else static if (N == 2)
-					msg ~= format(": <%s(%s, %s)> should be <%s> not <%s>.",
-					name, input[0], input[1], actual, expect);
+					msg ~= format(": <%s(%s,%s)> should be <%s> not <%s>.",
+					name, input[0], input[1], expect, actual);
 				else static if (N == 3)
-					msg ~= format(": <%s(%s, %s, %s)> should be <%s> not <%s>.",
-					name, input[0], input[1], input[2], actual, expect);
+					msg ~= format(": <%s(%s,%s,%s)> should be <%s> not <%s>.",
+					name, input[0], input[1], input[2], expect, actual);
 				else
-					msg ~= format(": <%s(%s, %s, %s, ...)> should be <%s> not <%s>.",
-					name, input[0], input[1], input[2], actual, expect);
+					msg ~= format(": <%s(%s,%s,%s, ...)> should be <%s> not <%s>.",
+					name, input[0], input[1], input[2], expect, actual);
 				messages.length++;
 				messages[$-1] = msg;
 			}
@@ -131,7 +131,7 @@ version(unittest)
 		}
 	}
 
-	/// Returns true if the actual value equals the expected value to the specified precision.
+/*	/// Returns true if the actual value equals the expected value to the specified precision.
 	/// Otherwise prints an error message and returns false.
 	public bool assertPrecisionEqual(T, U)(T actual, U expected, int precision,
 			string file = __FILE__, int line = __LINE__ ) if (isDecimal!T && isDecimal!U){
@@ -161,7 +161,7 @@ version(unittest)
 	        		" but found \"", actual, "\".");
 			return false;
 		}
-	}
+	}*/
 
 }
 
