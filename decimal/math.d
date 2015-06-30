@@ -1627,34 +1627,71 @@ mixin (UnaryFunction!("atanh"));
 /// Decimal version of std.math function.
 public T asinh(T)(T x, Context inContext) if (isDecimal!T)
 {
-	// TODO: (behavior) special values
+	if (x.isZero) return T.zero;	// TODO: (behavior) special values
 	auto context = guard(inContext);
-	T arg = add(x, sqrt(add(sqr(x, context), T.one, context), context), context);
-	return roundToPrecision(log(arg, context), inContext);
+	// TODO: fix the cutoff -- is the series expansion needed?
+	if (x.copyAbs >= "1.0E-6")
+	{
+		T arg = add(x, sqrt(add(sqr(x, context), T.one, context), context), context);
+		return roundToPrecision(log(arg, context), inContext);
+	}
+	else
+	{
+		T sum = 0;
+		T powx = x;
+		T sqrx = sqr(x, context);
+		T n = 1;
+		T term = x;
+		T scl = 1;
+		int count = 0;
+		while (term.copyAbs > T.epsilon(context)) {
+			sum = add(sum, term, context);
+			powx = mul(-powx, sqrx, context);
+			n += 2;
+			scl *= (n/(n+1));
+			term = mul(T(scl), div(powx, T(n), context), context);
+		}
+		return roundToPrecision(sum, inContext);
+	}
 }
 
 unittest
 {	// asinh
-	static struct S { TD x; TD expect; }
+	static struct S { TD x; int p; TD expect; }
 	S[] s =
 	[
-		{ "1.0",   "0.881373587020" },
-		{ "0.5",   "0.481211825060" },
-		{ "0.333", "0.327133906664" },
+		// TODO: add tests for small and large arguments for deviations
+		{ "1.0",   9, "0.881373587020" },
+		{ "0.5",   9,  "0.481211825060" },
+		{ "0.333", 9,  "0.327133906664" },
+		{ TD.PI,   9,  "1.86229574331" },
+		{ "1.1E-3", 9,    "1.1E-3" },
+		{ "1.0E-3", 9,    "0.000999999998" },
+		{ "0.9E-3", 9,    "0.000899999878500" },
+		{ "1.0E-5", 9,    "1.0E-5" },
+		{ "1.0E-6", 12,    "1.0E-6" },
+		{ "1.0E-7", 9,    "1.0E-7" },
+		{ "1.234567E-7",  9,   "1.234567E-7" },
+		{ "0.0",   9,  "0.0" },
 	];
 	auto f = FunctionTest!(S,TD)("asinh");
-	foreach (t; s) f.test(t, asinh(t.x));
+	foreach (t; s) f.test(t, asinh(t.x, t.p), t.p);
     writefln(f.report);
 }
 
 /// Decimal version of std.math function.
 public T acosh(T)(T x, Context inContext) if (isDecimal!T)
 {
-	// TODO: (behavior) special values
+	if (x.copyAbs < T.one) {
+		contextFlags.set(INVALID_OPERATION);
+		return T.nan;
+	}
+	if (x.copyAbs.isOne) {
+		return T.zero;
+	}
 	auto context = guard(inContext);
-	T sqp = sqrt(add(x, T.one, context));
-	T sqm = sqrt(sub(x, T.one, context));
-	T arg = add(x, mul(sqp, sqm, context), context);
+	// TODO: this is imprecise at small arguments -- Taylor series?
+	T arg = add(x, sqrt(sub(sqr(x, context), T.one, context), context), context);
 	return roundToPrecision(log(arg, context), inContext);
 }
 
@@ -1664,6 +1701,9 @@ unittest
 	S[] s =
 	[
 		{ "1.0",   "0.0" },
+		{ "2.0",   "1.31695790" },
+		{ "1.0000001",   "0.000447213592" },
+		{ "0.0",   "NaN" },
 		{ "1.5",   "0.962423650119" },
 		{ "1.333", "0.794987388708" },
 	];
@@ -1675,29 +1715,42 @@ unittest
 /// Decimal version of std.math function.
 public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 {
-	// Taylor series.
-	// Common formula is for complex numbers, not reals.
-	if (x.copyAbs > T.one) {
+	T abs = x.copyAbs;
+	if (abs > T.one) {
 		contextFlags.set(INVALID_OPERATION);
 		return T.nan;
 	}
-	if (x.copyAbs.isOne) {
+	if (abs.isOne) {
 		return T.infinity(x.sign);
 	}
+
 	auto context = guard(inContext, 3);
-	T sum = 0;
-	T powx = x;
-	T sqrx = sqr(x, context);
-	long dvsr = 1;
-	T term = powx;
-	int count = 0;
-	while (term.copyAbs > T.epsilon(context)) {
-		sum = add(sum, term, context);
-		powx = mul(powx, sqrx, context);
-		dvsr = dvsr + 2;
-		term = div!T(powx, dvsr, context);
+	T cutoff = "1.0E-6"; // cutoff point for switch to series expansion
+	if(abs > cutoff)
+	{	// atanh(x) = 1/2 * log((1+x)/(1-x))
+		T n = add(T.one, x, context);
+		T d = sub(T.one, x, context);
+		T q = div(n, d, context);
+		T l = log(q, context);
+		T a = mul(T.half, l, context);
+		return roundToPrecision(a, inContext);
 	}
-	return roundToPrecision(sum, inContext);
+	else
+	{	// series expansion
+		T sum = 0;
+		T powx = x;
+		T sqrx = sqr(x, context);
+		long dvsr = 1;
+		T term = powx;
+		int count = 0;
+		while (term.copyAbs > T.epsilon(context)) {
+			sum = add(sum, term, context);
+			powx = mul(powx, sqrx, context);
+			dvsr += 2;
+			term = div!T(powx, dvsr, context);
+		}
+		return roundToPrecision(sum, inContext);
+	}
 }
 
 unittest
@@ -1710,6 +1763,8 @@ unittest
 		{ " 1.01", 9, "NaN" },
 		{ "-1.01", 9, "NaN" },
 		{ "0.9",   9, "1.47221949" },
+		{ "0.99999",   9, "6.10303382276" },
+		{ "1.0E-7",   9, "1.0E-7" },
 		{ "0.5",   12, "0.549306144334" },
 		{ "0.333", 11, "0.346198637132" },
 		{ "0.333", 12, "0.346198637132" },

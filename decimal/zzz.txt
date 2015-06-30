@@ -296,29 +296,17 @@ sqrt      :  7 tests ( 6 pass, 1 fail).
 exp       :  9 tests ( 9 pass)
 expm1     :  3 tests ( 2 pass, 1 fail).
   failed at math.d(934), test 2: <expm1(-0.4,9)> should be <-0.329679954> not <2.03324478>.
-log(2.71828183,9) = 1.00000000
-log(10.00,12) = 2.30258509
-log(10.00,9) = 2.30258509
-log(123.45,9) = 4.81583622
-log(9.9999E+9,6) = 17.5126
-log(9.9999E+9,9) = 23.0258409
-log(9.9999E+9,15) = 23.0258409
-log(9.9999E+9,9) = 23.0258409
-log       :  8 tests ( 7 pass, 1 fail).
-  failed at math.d(1003), test 5: <log(9.9999E+9,6)> should be <23.0258409> not <17.5126>.
--- log..............passed
+log       :  8 tests ( 8 pass)
 -- log1p............passed
 -- log10............passed
--- log2.............failed at math.d(1108)[0]: expected "3.32192809" but found "43.0285632".
-failed at math.d(1109)[0]: expected "1.44269504" but found "21.2960126".
-passed
+-- log2.............passed
 pow..........test missing
 hypot     :  1 test  ( 1 pass)
 sin       :  7 tests ( 7 pass)
 cos       :  5 tests ( 5 pass)
 sincos.........failed
 tan       :  3 tests ( 2 pass, 1 fail).
-  failed at math.d(1437), test 2: <tan(1.0,14)> should be <1.55740772465490223> not <1.55740773>.
+  failed at math.d(1413), test 2: <tan(1.0,14)> should be <1.55740772465490223> not <1.55740773>.
 atan      :  5 tests ( 5 pass)
 asin      :  3 tests ( 3 pass)
 acos      :  3 tests ( 3 pass)
@@ -326,17 +314,15 @@ atan2..........failed
 sinh      :  3 tests ( 3 pass)
 cosh      :  3 tests ( 3 pass)
 tanh      :  3 tests ( 3 pass)
-asinh     :  3 tests ( 0 pass, 3 fail).
-  failed at math.d(1670), test 1: <asinh(1.0)> should be <0.881373587020> not <14.6426447>.
-  failed at math.d(1670), test 2: <asinh(0.5)> should be <0.481211825060> not <14.2424829>.
-  failed at math.d(1670), test 3: <asinh(0.333)> should be <0.327133906664> not <14.0884050>.
-acosh     :  3 tests ( 0 pass, 3 fail).
-  failed at math.d(1695), test 1: <acosh(1.0)> should be <0.0> not <13.7612711>.
-  failed at math.d(1695), test 2: <acosh(1.5)> should be <0.962423650119> not <14.7236947>.
-  failed at math.d(1695), test 3: <acosh(1.333)> should be <0.794987388708> not <14.5562585>.
-atanh     :  3 tests ( 1 pass, 2 fail).
-  failed at math.d(1722), test 2: <atanh(0.5)> should be <0.549306144334> not <NaN>.
-  failed at math.d(1722), test 3: <atanh(0.333)> should be <0.346198637132> not <NaN>.
+asinh     : 12 tests ( 7 pass, 5 fail).
+  failed at math.d(1678), test 5: <asinh(0.0011,9)> should be <0.0011> not <0.00109999978>.
+  failed at math.d(1678), test 6: <asinh(0.0010,9)> should be <0.000999999998> not <0.000999999832>.
+  failed at math.d(1678), test 7: <asinh(0.0009,9)> should be <0.000899999878500> not <0.000899999876>.
+  failed at math.d(1678), test 8: <asinh(0.000010,9)> should be <0.000010> not <0.000009999952>.
+  failed at math.d(1678), test 9: <asinh(0.0000010,12)> should be <0.0000010> not <9.99999498E-7>.
+acosh     :  6 tests ( 5 pass, 1 fail).
+  failed at math.d(1711), test 3: <acosh(1.0000001)> should be <0.000447213592> not <0.000447213586>.
+atanh     : 10 tests (10 pass)
 ==========================
 decimal math...........end
 ==========================
@@ -400,7 +386,7 @@ numDigUL  : 14 tests (14 pass)
 reduceDigits...test missing
 1stDigBig :  2 tests ( 2 pass)
 1stDigUL  : 12 tests (12 pass)
-shiftRight...test missing
+shiftRight...passed
 lastDigit : 12 tests (12 pass)
 ==========================
 decimal rounding.......end
