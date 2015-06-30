@@ -107,6 +107,7 @@ version(unittest) {
 //--------------------------------
 
 	// Returns a hexadecimal string representation of an array of digits.
+	@safe
 	public string toString(in digit[] digits) {
 		char[] str;
 		if (digits.length == 0) {
@@ -1358,7 +1359,7 @@ unittest {
 
 	// shifts by whole digits (not bits)
 	@safe
-	public digit[] shrDigits(in digit[] x, int nd) {
+	public digit[] shrDigits(in digit[] x, size_t nd) {
 		if (nd == 0) return x.dup;
 		if (nd >= x.length || nd < 0) {
 			throw new InvalidOperationException();
@@ -1366,7 +1367,7 @@ unittest {
 		bool sign = cast(int)x[$-1] < 0;
 		if (sign) {
 			auto y = x[nd..$].dup;
-			for (int i = nd; i < x.length; i++)
+			for (size_t i = nd; i < x.length; i++)
 				y ~= 0xFFFFFFFF;
 			return y;
 		}
@@ -1395,11 +1396,13 @@ unittest {
 				if (arithmetic) {
 					temp = cast(long)temp >> nb;
 				} else {
-					temp >>>= nb;
+//					temp >>>= nb;
+					temp >>= nb;
 				}
 				first = false;
 			} else {
-				temp >>>= nb;
+//				temp >>>= nb;
+				temp >>= nb;
 			}
 			shout = low(temp);
 			shifted[i] = high(temp) | shin;
@@ -1431,6 +1434,7 @@ unittest {
 
 	unittest {	// right and left shifts
 		write("-- shifts...........");
+		// TODO: parameterize this unit test
 		digit[] array, shifted;
 		array = [1, 2, 3, 5];
 		shifted = shlDigits(array, 1);
@@ -1449,6 +1453,19 @@ unittest {
 		array = randomDigits(4);
 		shifted = shlBits(array, 4);
 		assertEqual(compareDigits(shifted, mulDigit(array, 16)), 0);
+
+        array = [0x194F7000, 0xAAD13656];
+		shifted = shrBits(array, 8);
+		assertEqual(shifted, [0x56194F70,0xFFAAD136]);
+        array = [0x194F7000, 0xAAD13656];
+		shifted = shrBits(array, 11);
+		assertEqual(shifted, [0xCAC329EE, 0xFFF55A26]);
+        array = [0x194F7000, 0xAAD13656];
+		shifted = shrBits(shifted, 1);
+		assertEqual(shifted, [0x656194F7, 0xFFFAAD13]);
+        array = [0x194F7000, 0xAAD13656];
+		shifted = shrBits(array, 12);
+		assertEqual(shifted, [0x656194F7, 0xFFFAAD13]);
 
 		array = [0xAAAAAAAA, 0x55555555, 0x33333333, 0xCCCCCCCC];
 		shifted = shlBits(array, 1);

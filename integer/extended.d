@@ -972,6 +972,7 @@ public struct ExtendedInt {
 	/// Converts the extended integer value to a hexadecimal string.
 	/// If the sign of the extended integer is true, the two's complement
 	/// of the integer is returned (without a minus sign).
+	@safe
 	public string toHexString() const {
 		char[] str;
 		size_t length = numDigits(digits);
@@ -1349,6 +1350,12 @@ public struct ExtendedInt {
 		y = xint("14567890123456789");
 		assertEqual(x/y, 10);
 		assertThrows!DivByZeroException(x/0);
+		x = "0x001FFFFF_FFFFFFFF";
+		y = "9765625";
+		assertEqual(x/y, 0x36F9BFB3);
+		x = "0xFFE00000_00000000";
+		y = "9765625";
+		assertEqual(x/y, "0x000001B7_9703DDC8");
 		writeln("passed");
 	}
 

@@ -433,15 +433,6 @@ public enum ulong[19] TENS = [10UL^^0,
 		10UL^^7,  10UL^^8,  10UL^^9,  10UL^^10, 10UL^^11, 10UL^^12,
 		10UL^^13, 10UL^^14, 10UL^^15, 10UL^^16, 10UL^^17, 10UL^^18];
 
-/// An array of unsigned long integers with values of
-/// powers of five from 5^^0 to 5^^26
-public enum ulong[27] FIVES = [5L^^0,
-		5L^^1,  5L^^2,  5L^^3,  5L^^4,  5L^^5,  5L^^6,
-		5L^^7,  5L^^8,  5L^^9,  5L^^10, 5L^^11, 5L^^12,
-		5L^^13, 5L^^14, 5L^^15, 5L^^16, 5L^^17, 5L^^18,
-		5L^^19, 5L^^20, 5L^^21, 5L^^22, 5L^^23, 5L^^24,
-		5L^^25, 5L^^26];
-
 /// The maximum number of decimal digits that fit in an int value.
 public enum int MAX_INT_DIGITS = 9;
 /// The maximum decimal value that fits in an int.
@@ -606,10 +597,12 @@ unittest
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted right.
 public xint shiftLeft(xint num, int n) {
+	// NOTE: simply multiplies by 10^^n.
+	// An earlier version shifted by twos and multiplied by fives,
+	// but that caused more problems than it solved.
 	if (n > 0) {
-		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
-		num = num << n;
-		num *= fives;
+		xint tens = n < 19 ? xint(TENS[n]) : BIG_TEN^^n;
+		num *= tens;
 	}
 	if (n < 0) {
 		num = shiftRight(num, -n);
@@ -689,12 +682,15 @@ unittest {	// shiftLeft(xint)
 /// Shifts the number right the specified number of decimal digits.
 /// If n == 0 the number is returned unchanged.
 /// If n < 0 the number is shifted left.
-public xint shiftRight(xint num, int n) {
-
-	if (n > 0) {
-		xint fives = n < 27 ? xint(FIVES[n]) : BIG_FIVE^^n;
-		num = num >> n;
-		num /= fives;
+public xint shiftRight(xint num, int n)
+{
+	// NOTE: simply divides by 10^^n.
+	// An earlier version shifted by twos and divided by fives,
+	// but that caused more problems than it solved.
+	if (n > 0)
+	{
+		xint tens = n < 19 ? xint(TENS[n]) : BIG_TEN^^n;
+		num /= tens;
 	}
 	if (n < 0) {
 		num = shiftLeft(num, -n/*, precision*/);
@@ -704,12 +700,16 @@ public xint shiftRight(xint num, int n) {
 
 unittest {
 	write("shiftRight...");
-	xint num = "1000000000000000";
-//	num = 10;
-//	writefln("num = %s", num);
-//	res = shiftRight(num, 1);
-//	writefln("res = %s", res);
-	writeln("test missing");
+	xint num;
+	xint res;
+	num = "9223372036854775807";
+	res = shiftRight(num, 10);
+	assertEqual(res, "922337203");
+
+	num = "9223372036854775808";
+	res = shiftRight(num, 10);
+	assertEqual(res, "922337203");
+	writeln("passed");
 }
 
 /*/// Shifts the number right the specified number of decimal digits.

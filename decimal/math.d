@@ -944,7 +944,6 @@ mixin (UnaryFunction!("log2"));
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 // TODO: efficiency) see Natural Logarithm, Wikipedia.
-// FIXTHIS -- log(x,precision) doesn't work
 package T log(T)(T x, Context inContext,
 		bool reduceArg = true) if (isDecimal!T)
 {
@@ -974,9 +973,9 @@ package T log(T)(T x, Context inContext,
 		if (equals(a, d, context)) {
 			T ln = mul(a, 2, context);
 			if (reduceArg) {
-				ln = add(ln, mul(ln10!T(context), k, context));
+				ln = add(ln, mul(ln10!T(context), k, context), context);
 			}
-			return roundToPrecision(ln, inContext);
+		return roundToPrecision(ln, inContext);
 		}
 		a = d;
 		n += 2;
@@ -988,32 +987,18 @@ unittest
 	static struct S { TD x; int p; TD expect; }
 	S[] s =
 	[
-		{   "2.71828183", 9,  "1.0" },
-		{  "10.00",       12, "2.30258509" },
+		{  "2.71828183",  9, "1.0" },
+		{  "10.00",      12, "2.30258509299" },
 		{  "10.00",       9, "2.30258509" },
-		{ "123.45",       9,  "4.81583622" },
-		{  "99.999E+8",   6,  "23.0258409" },
-		{  "99.999E+8",   9,  "23.0258409" },
-		{  "99.999E+8",   15, "23.0258409" },
+		{ "123.45",       9, "4.81583622" },
+		{  "99.999E+8",   9, "23.0258409" },
+		{  "99.999E+8",   7, "23.0258409" },
+		{  "99.999E+8",  15, "23.0258409298905" },
 		{  "99.999E+8",   9, "23.0258409" },
 	];
 	auto f = FunctionTest!(S,TD)("log");
-	foreach (t; s)
-	{
-		f.test(t, log(t.x, t.p), t.p);
-		writefln("log(%s,%s) = %s", t.x, t.p, log(t.x, t.p));
-	}
+	foreach (t; s) f.test(t, log(t.x, t.p), t.p);
     writefln(f.report);
-}
-
-unittest {
-	write("-- log..............");
-	TD one = TD.one;
-	assertEqual(log(exp(one)), one);
-	assertEqual(log(TD(10)), "2.30258509");
-	assertEqual(log(TD(123.45)), "4.81583622");
-	assertEqual(log(TD("99.999E+8")), "23.0258409");
-	writeln("passed");
 }
 
 /**
@@ -1285,27 +1270,18 @@ public T cos(T)(in T x, int precision = T.precision) if (isDecimal!T)
 /// Precondition: x is in 1st quadrant.
 package T cos(T)(in T x, Context inContext) {
 	auto context = guard(inContext);
-//writefln("\nx = %s", x);
 	T sum = 0;
 	int n = 0;
 	T powx = 1;
 	T sqrx = sqr(x, context);
 	T fact = 1;
 	T term = powx;
-//writefln("sum = %s", sum);
-//writefln("term = %s", term);
-//writefln("fact = %s", fact);
-//writefln("powx = %s", powx);
 	while (term.copyAbs > T.epsilon(context)) {
 		sum = add(sum, term, context);
 		n += 2;
 		powx = mul(powx.copyNegate, sqrx, context);
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
-//writefln("sum = %s", sum);
-//writefln("term = %s", term);
-//writefln("fact = %s", fact);
-//writefln("powx = %s", powx);
 	}
 	return roundToPrecision(sum, inContext);
 }
@@ -1699,27 +1675,47 @@ unittest
 /// Decimal version of std.math function.
 public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 {
-	// TODO: (behavior) special values
-	auto context = guard(inContext);
-	T sqp = add(x, T.one, context);
-	T sqm = sub(x, T.one, context);
-	T arg = div(sqp, sqm, context);
-	return mul(T.half, log(arg, context), context);
-//	return sqm;
-	// also atanh(x) = x + x^3/3 + x^5/5 + x^7/7 + ... (speed of convergence?)
+	// Taylor series.
+	// Common formula is for complex numbers, not reals.
+	if (x.copyAbs > T.one) {
+		contextFlags.set(INVALID_OPERATION);
+		return T.nan;
+	}
+	if (x.copyAbs.isOne) {
+		return T.infinity(x.sign);
+	}
+	auto context = guard(inContext, 3);
+	T sum = 0;
+	T powx = x;
+	T sqrx = sqr(x, context);
+	long dvsr = 1;
+	T term = powx;
+	int count = 0;
+	while (term.copyAbs > T.epsilon(context)) {
+		sum = add(sum, term, context);
+		powx = mul(powx, sqrx, context);
+		dvsr = dvsr + 2;
+		term = div!T(powx, dvsr, context);
+	}
+	return roundToPrecision(sum, inContext);
 }
 
 unittest
 {	// atanh
-	static struct S { TD x; TD expect; }
+	static struct S { TD x; int p; TD expect; }
 	S[] s =
 	[
-		{ "1.0",   "Infinity" },
-		{ "0.5",   "0.549306144334" },
-		{ "0.333", "0.346198637132" },
+		{ " 1.0",  9, "Infinity" },
+		{ "-1.0",  9, "-Infinity" },
+		{ " 1.01", 9, "NaN" },
+		{ "-1.01", 9, "NaN" },
+		{ "0.9",   9, "1.47221949" },
+		{ "0.5",   12, "0.549306144334" },
+		{ "0.333", 11, "0.346198637132" },
+		{ "0.333", 12, "0.346198637132" },
 	];
 	auto f = FunctionTest!(S,TD)("atanh");
-	foreach (t; s) f.test(t, atanh(t.x));
+	foreach (t; s) f.test(t, atanh!TD(t.x, t.p), t.p);
     writefln(f.report);
 }
 
