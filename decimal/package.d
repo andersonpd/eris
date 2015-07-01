@@ -24,6 +24,7 @@ import eris.decimal.context;
 import eris.decimal.arithmetic;
 import eris.decimal.logical;
 import eris.decimal.rounding;
+import eris.decimal.conv;
 
 // temporary import
 	import std.stdio;
@@ -969,6 +970,7 @@ unittest {
 		return eris.decimal.conv.fullForm(this);
 	}
 
+	// TODO: retain these formatters?
 	/// Converts a decimal to a "scientific" string representation.
 	public string toSciString() const
 	{
@@ -982,10 +984,12 @@ unittest {
 	}
 
 	/// Converts a number to the default string representation.
-	public string toString() const
+	public string toString(string fmStr = "%s") const
 	{
-		return eris.decimal.conv.sciForm(this);
+		return eris.decimal.conv.toString(this, fmStr);
 	}
+
+// TODO: should unittest these here
 
 //--------------------------------
 // member properties

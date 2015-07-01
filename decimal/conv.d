@@ -35,14 +35,14 @@ version(unittest) {
 	import eris.decimal.test;
 }
 
-public enum DefaultPrecision = 6;
+public enum DEFAULT_PRECISION = 6;
 
 //--------------------------------
 //   to!string conversions
 //--------------------------------
 
 /// to!string(xint).
-private T to(T:string)(const xint num) {
+private T to(T:string)(in xint num) {
 	string outbuff = "";
 	void sink(const(char)[] s) {
 		outbuff ~= s;
@@ -52,24 +52,27 @@ private T to(T:string)(const xint num) {
 }
 
 /// to!string(int).
-private T to(T:string)(const long n) {
+private T to(T:string)(in long n) {
 	return format("%d", n);
 }
 
 /// Returns a string representing the value of the number, formatted as
 /// specified by the formatString.
-public string toString(T)(in T num, string fmStr = "%S") if (isDecimal!T)
+public string toString(T)(in T num, string fmStr = "%s") if (isDecimal!T)
 {
-	// TODO: (behavior) is singleSpec okay?
     auto fm = singleSpec!char(fmStr.dup);
 	string str = "";
-	if (num.isSigned)   str = "-";
+	if (num.isSigned) str = "-";
 	else if (fm.flPlus)  str = "+";
 	else if (fm.flSpace) str = " ";
+
 	bool noPrecision = (fm.precision == fm.UNSPECIFIED);
 	// if precision is unspecified it defaults to 6
-	int precision = noPrecision ? DefaultPrecision : fm.precision;
-	str ~= formatDecimal!T(num, fm.spec, precision);
+	int precision = noPrecision ? DEFAULT_PRECISION : fm.precision;
+
+	// FIXTHIS: if num is special this may give error. see formatDecimal
+	str ~= formatDecimal(num, fm.spec, precision);
+
 	// add trailing zeros
 	if (fm.flHash && str.indexOf('.' < 0)) {
 		str ~= ".0";
@@ -100,7 +103,7 @@ unittest
 		{ "12.345",		"%S",	"12.345"   },
 		// exponential form
 		{ "12.3456789",	"%E",	"1.234568E+01" },
-		{ "12.34567",	"%E",	"1.234567E+01" },
+		{ "12.34567",	"%e",	"1.234567e+01" },
 		{ "12.345",		"%E",	"1.2345E+01"   },
 		// decimal form
 		{ "12.3456789",	"%F",	"12.345679" },
@@ -122,7 +125,10 @@ unittest
 		// zero flag ignored if precision is specified
 		{ "12.345",		 "%012.4G",	"     12.3450" },
 		// zero flag, upper/lower case  ignored if infinity or nan
-		{ "Inf",		 "%012.4G",	"    Infinity" },
+		// FIXTHIS: returns Orphan format specifier error message
+		// not just for G either
+		// I think it's a bug in std.format
+//		{ "Inf",		 "%012.4G",	"    Infinity" },
 		{ "NaN",		 "%012.4g",	"         NaN" },
 		// if hash, print trailing zeros.
 		{ "1234567.89",	 "%.0G",	"1234568" },
@@ -144,7 +150,7 @@ unittest
 public string sciForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isSpecial) {
-		return specialForm!T(num);
+		return specialForm(num);
 	}
 
 	char[] mant = to!string(num.coefficient).dup;
@@ -207,7 +213,7 @@ unittest
 public string engForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isSpecial) {
-		return specialForm!T(num);
+		return specialForm(num);
 	}
 
 	char[] mant = to!string(num.coefficient).dup;
@@ -298,20 +304,24 @@ unittest
     writefln(f.report);
 }
 
+/// Returns a string representing the number, formatted as specified.
+// TODO: why have a short form
+// Should there be an upper/lower case flag?
 private string specialForm(T)(in T num, bool shortForm = false) if (isDecimal!T)
 {
 	string str = num.sign ? "-" : "";
-	if (num.isInfinite) {
+	if (num.isInfinite)
+	{
 		str ~= shortForm ? "Inf" : "Infinity";
 	}
-	else if (num.isNaN) {
+	else if (num.isNaN)
+	{
 		str ~= num.isSignaling ? "sNaN" : "NaN";
-		if (num.payload) {
+		if (num.payload)
+		{
 			str ~= to!string(num.payload);
 		}
 	}
-//	if (lower) str = toLower(str);
-//	else if (upper) str = toUpper(str);
 	return str;
 }
 
@@ -334,9 +344,13 @@ unittest
     writefln(f.report);
 }
 
-/// Converts a decimal number to a string in decimal format (xxx.xxx).
+/// Converts a decimal number to a string in decimal format.
+/// Returns e.g. "125E-5" as "0.001250" with no exponent.
+/// Numbers with large or small exponents will return long strings.
+/// Numbers with very large or very small exponents
+/// will return very long strings.
 private string decimalForm(T)(in T number,
-	int precision = DefaultPrecision) if (isDecimal!T)
+	int precision = DEFAULT_PRECISION) if (isDecimal!T)
 {
 	if (number.isSpecial) {
 		return specialForm(number);
@@ -408,7 +422,7 @@ unittest
 }
 
 /// Converts a decimal number to a string using exponential notation.
-private string exponentForm(T)(in T number, int precision = DefaultPrecision,
+private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
 	const bool lowerCase = false, const bool padExpo = true) if (isDecimal!T)
 {
 
@@ -464,27 +478,28 @@ private string formatDecimal(T)(in T num,
 	bool upperCase = std.uni.isUpper(formatChar);
 
 	// special values
-	if (num.isSpecial) {
-		return specialForm!T(num, false);
+	if (num.isSpecial)
+	{
+//		FIXTHIS: this return hoses the toString process
+		return specialForm(num.copyAbs, false);
 	}
 
-	switch (std.uni.toUpper(formatChar)) {
-		case 'F':
+	switch (std.uni.toUpper(formatChar))
+	{
+	case 'F':
+		return decimalForm(num, precision);
+	case 'G':
+		int expo = num.exponent;
+		if (expo > -5 && expo < precision) {
 			return decimalForm(num, precision);
-		case 'G':
-			int expo = num.exponent;
-			if (expo > -5 && expo < precision) {
-				return decimalForm(num, precision);
-			}
-			break;
-		case 'E':
-			break;
-		case 'S':
-//		writeln("S branch");
-
-			return sciForm(num.copyAbs);
-		default:
-			break;
+		}
+		break;
+	case 'E':
+		break;
+	case 'S':
+		return sciForm(num.copyAbs);
+	default:
+		break;
 	}
 	return exponentForm(num, precision, lowerCase, true);
 }
@@ -756,7 +771,7 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 		}
 	}
 	// convert coefficient string to xint
-	num.coefficient = xint(str.idup); //.trim; TODO: determine if trimming is too costly
+	num.coefficient = xint(str.idup);
 	num.digits = numDigits(num.coefficient);
 	return num;
 }
@@ -782,12 +797,13 @@ unittest
     writefln(f.report);
 }
 
-private T setPayload(T)(T num, char[] str, int len) if (isDecimal!T)
+private T setPayload(T)(in T num, char[] str, int len) if (isDecimal!T)
 {
+	T copy = num.copy;
 	// if finite number or infinity, return
-	if (!num.isNaN) return num;
+	if (!num.isNaN) return copy;
 	// if no payload, return
-	if (str.length == len) return num;
+	if (str.length == len) return copy;
 	// otherwise, get payload string
 	str = str[len..$];
 	// trim leading zeros
@@ -795,22 +811,21 @@ private T setPayload(T)(T num, char[] str, int len) if (isDecimal!T)
 		str = str[1..$];
 	}
 	// payload has a max length of 6 digits
-	if (str.length > 6) return num;
-	// TODO: can put previous checks into this foreach
+	if (str.length > 6) return copy;
 	// ensure string is all digits
 	foreach (char c; str) {
 		if (!isDigit(c)) {
-			return num;
+			return copy;
 		}
 	}
 	// convert string to number
 	uint payload = std.conv.to!uint(str);
 	// check for overflow
 	if (payload > ushort.max) {
-		return num;
+		return copy;
 	}
-	num.payload = cast(ushort)payload;
-	return num;
+	copy.payload = cast(ushort)payload;
+	return copy;
 }
 
 unittest

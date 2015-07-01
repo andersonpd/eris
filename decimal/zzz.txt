@@ -197,8 +197,7 @@ classify  :  6 tests ( 6 pass)
 ilogb     :  5 tests ( 5 pass)
 logb      :  6 tests ( 6 pass)
 scaleb    :  1 test  ( 1 pass)
-reduce    :  5 tests ( 4 pass, 1 fail).
-  failed at arithmetic.d(301), test 2: <reduce(1.200)> should be <1.3> not <1.2>.
+reduce    :  4 tests ( 4 pass)
 abs       :  4 tests ( 4 pass)
 sgn       :  7 tests ( 7 pass)
 plus      :  3 tests ( 3 pass)
@@ -227,7 +226,7 @@ fma       :  4 tests ( 4 pass)
 div       : 10 tests (10 pass)
 divInt    : 15 tests (15 pass)
 remainder : 15 tests (14 pass, 1 fail).
-  failed at arithmetic.d(2053), test 3: <remainder(-10,3)> should be <-1> not <-19>.
+  failed at arithmetic.d(2054), test 3: <remainder(-10,3)> should be <-1> not <-19>.
 remNear   :  8 tests ( 8 pass)
 quantize  : 15 tests (15 pass)
 roundIntEx:  8 tests ( 8 pass)
@@ -245,7 +244,7 @@ decimal context........end
 ==========================
 decimal conversion...begin
 ==========================
-toString  : 34 tests (34 pass)
+toString  : 33 tests (33 pass)
 sciForm   :  7 tests ( 7 pass)
 engForm   : 16 tests (16 pass)
 specForm  :  4 tests ( 4 pass)
@@ -314,14 +313,9 @@ atan2..........failed
 sinh      :  3 tests ( 3 pass)
 cosh      :  3 tests ( 3 pass)
 tanh      :  3 tests ( 3 pass)
-asinh     : 12 tests ( 7 pass, 5 fail).
-  failed at math.d(1678), test 5: <asinh(0.0011,9)> should be <0.0011> not <0.00109999978>.
-  failed at math.d(1678), test 6: <asinh(0.0010,9)> should be <0.000999999998> not <0.000999999832>.
-  failed at math.d(1678), test 7: <asinh(0.0009,9)> should be <0.000899999878500> not <0.000899999876>.
-  failed at math.d(1678), test 8: <asinh(0.000010,9)> should be <0.000010> not <0.000009999952>.
-  failed at math.d(1678), test 9: <asinh(0.0000010,12)> should be <0.0000010> not <9.99999498E-7>.
-acosh     :  6 tests ( 5 pass, 1 fail).
-  failed at math.d(1711), test 3: <acosh(1.0000001)> should be <0.000447213592> not <0.000447213586>.
+asinh     :  7 tests ( 6 pass, 1 fail).
+  failed at math.d(1679), test 5: <asinh(0.0011,9)> should be <0.0011> not <0.00109999978>.
+acosh     :  5 tests ( 5 pass)
 atanh     : 10 tests (10 pass)
 ==========================
 decimal math...........end
@@ -337,8 +331,8 @@ decimal..............begin
 -- this(big,int)....passed
 -- this(long).......passed
 -- this(string).....passed
--- this(real).......failed at package.d(516)[16]: expected "2.179769313E+306" but found "Infinity".
-failed at package.d(516)[17]: expected "1.1897314953572317649E+4932" but found "Infinity".
+-- this(real).......failed at package.d(517)[16]: expected "2.179769313E+306" but found "Infinity".
+failed at package.d(517)[17]: expected "1.1897314953572317649E+4932" but found "Infinity".
 passed
 -- toReal...........passed
 toDouble...x.toDouble = 3.14159
