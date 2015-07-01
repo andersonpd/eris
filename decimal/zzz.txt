@@ -325,14 +325,16 @@ decimal math...........end
 ==========================
 decimal..............begin
 ==========================
--- special values...passed
--- this(bool).......passed
--- this(s,big,int)..passed
--- this(big,int)....passed
--- this(long).......passed
+specials  :  6 tests ( 6 pass)
+this(bool):  2 tests ( 2 pass)
+this(bxi) :  2 tests ( 2 pass)
+this(xi)  :  2 tests ( 2 pass)
+this(li)  :  2 tests ( 2 pass)
+this(l)   :  2 tests ( 2 pass)
+this(str) : 12 tests (12 pass)
 -- this(string).....passed
--- this(real).......failed at package.d(517)[16]: expected "2.179769313E+306" but found "Infinity".
-failed at package.d(517)[17]: expected "1.1897314953572317649E+4932" but found "Infinity".
+-- this(real).......failed at package.d(538)[16]: expected "2.179769313E+306" but found "Infinity".
+failed at package.d(538)[17]: expected "1.1897314953572317649E+4932" but found "Infinity".
 passed
 -- toReal...........passed
 toDouble...x.toDouble = 3.14159

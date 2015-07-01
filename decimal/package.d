@@ -50,7 +50,7 @@ alias dec99 = BigDecimal!(Context99);
 // special values for NaN, Inf, etc.
 private enum SV { None, Inf, qNaN, sNaN };
 
-version(unittest)
+/*version(unittest)
 {
 	struct testStruct(T, U)
 	{
@@ -60,7 +60,7 @@ version(unittest)
 
 alias DD = testStruct!(TD, TD);
 alias DS = testStruct!(TD, string);
-}
+}*/
 /// A struct representing an arbitrary-precision decimal floating-point number.
 ///
 /// The implementation follows the General Decimal Arithmetic
@@ -121,14 +121,10 @@ unittest {
 		enum decimal negZero	= decimal(SV.None, true);
 
 	static if (context == TestContext) {
-	unittest {// decimal special values
-		write("-- special values...");
-
-//		static struct S { TD num; string val; }
-
-		alias ts = testStruct!(TD, string);
-		static DS[] tests =
-//		static testStruct!(TD, string)[] tests =
+	unittest
+	{	// special values
+		static struct S { TD x; string expect; }
+		S[] s =
 		[
 			{ NaN,		"NaN" },
 			{ sNaN,		"sNaN" },
@@ -137,12 +133,9 @@ unittest {
 			{ Infinity,	"Infinity" },
 			{ negInf,	"-Infinity" },
 		];
-
-		foreach (i, s; tests)
-		{
-			assertEqual(s.actual.toString, s.expect, i);
-		}
-		writeln("passed");
+		auto f = FunctionTest!(S,string)("specials");
+		foreach (t; s) f.test(t, t.x.toString);
+    	writefln(f.report);
 	}}
 
 	// common decimal numbers
@@ -190,13 +183,20 @@ unittest {
 	}
 
 	static if (context == TestContext) {
-	unittest {	// boolean construction
-		write("-- this(bool).......");
-		assertEqual(TD(false), TD(0));
-		assertEqual(TD(true), TD(1));
-		writeln("passed");
+	unittest
+	{	// this(bool)
+		static struct S { bool x; TD expect; }
+		S[] s =
+		[
+			{ false, TD.zero},
+			{ true,  TD.one},
+		];
+		auto f = FunctionTest!(S,TD)("this(bool)");
+		foreach (t; s) f.test(t, TD(t.x));
+    	writefln(f.report);
 	}}
 
+	// TODO: reduce the number of constructors
 	/// Constructs a number from a boolean sign, a xint coefficient and
 	/// an optional integer exponent.
 	/// The sign of the number is the value of the sign parameter
@@ -214,16 +214,18 @@ unittest {
 	}
 
 	static if (context == TestContext) {
-	unittest {	// bool, xint, int construction
-		write("-- this(s,big,int)..");
-		TD num;
-		num = TD(true, xint(7254), 94);
-		assertEqual(num, TD("-7.254E+97"));
-		num = TD(true, xint(7254), 194);
-		num = TD(true, xint(1), 194);
-		num = roundToPrecision(num);
-		assertEqual(num, TD("-Infinity"));
-		writeln("passed");
+	unittest
+	{	// this(b,x,i)
+		static struct S { bool sign; xint cf; int expo; TD expect; }
+		S[] s =
+		[
+			{ true, 7254, 94, "-7.254E+97" },
+			// NOTE: new constructions aren't rounded and may be too large for type
+			{ true, 1,   194, "-1E+194" },
+		];
+		auto f = FunctionTest!(S,TD)("this(bxi)");
+		foreach (t; s) f.test(t, TD(t.sign, t.cf, t.expo));
+    	writefln(f.report);
 	}}
 
 	/// Constructs a decimal from a xint coefficient and an
@@ -238,50 +240,31 @@ unittest {
 	}
 
 	static if (context == TestContext) {
-	unittest {	// xint, int construction
-		write("-- this(big,int)....");
-		TD num;
-		num = TD(xint(7254), 94);
-		assertEqual(num, TD("7.254E+97"));
-		num = TD(xint(-7254));
-		assertEqual(num, TD("-7254"));
-		writeln("passed");
+	unittest
+	{	// this(b,x,i)
+		static struct S { xint cf; int expo; TD expect; }
+		S[] s =
+		[
+			{  7254,  94, "7.254E+97" },
+			// NOTE: new constructions aren't rounded and may be too large for type
+			{ -7254, 194, "-7.25E+194" },
+		];
+		auto f = FunctionTest!(S,TD)("this(xi)");
+		foreach (t; s) f.test(t, TD(t.cf, t.expo));
+    	writefln(f.report);
 	}}
 
 	/// Constructs a number from a sign, a long integer coefficient and
 	/// an integer exponent.
+	// TODO: need to ensure correct construction if cf is negative.
 	//@safe
 	public this(bool sign, long coefficient, int exponent)
 	{
 		this(sign, xint(coefficient), exponent);
 	}
 
-/*	/// Constructs a number from a sign, a long integer coefficient and
-	/// an integer exponent.
-	this(const bool sign, const xint coefficient, const int exponent, const int digits) {
-		xint big = coefficient.abs;
-		this = zero();
-		this.signed = sign;
-		this.mant = big;
-		this.expo = exponent;
-		this.digits = digits;
-	}
-
-	unittest {
-		write("w/digits...");
-	//	const xint mant = xint(314159);
-		xint mant = xint("314159");
-		TD d = TD(false, mant, -5, 6);
-		writefln("d = %s", d);
-		mant = xint("3141590000000000000000000000000000000000000");
-		d = TD(false, mant, -42, 43);
-		writefln("d = %s", d);
-
-		writeln("test missing");
-	}*/
-
 	/// Constructs a number from a long integer coefficient
-	/// and an optional integer exponent.
+	/// and an integer exponent.
 	this(long coefficient, int exponent)
 	{
 		this(xint(coefficient), exponent);
@@ -294,14 +277,28 @@ unittest {
 	}
 
 	static if (context == TestContext) {
-	unittest {	// long value construction
-		write("-- this(long).......");
-		TD num;
-		num = TD(7254, 94);
-		assertEqual(num, TD("7.254E+97"));
-		num = TD(-7254L);
-		assertEqual(num, TD("-7254"));
-		writeln("passed");
+	unittest
+	{	// this(l,i)
+		static struct S { long cf; int expo; TD expect; }
+		S[] s =
+		[
+			{  7254,  94, "7.254E+97" },
+			// NOTE: new constructions aren't rounded and may be too large for type
+			{ -7254, 194, "-7.25E+194" },
+		];
+		auto f = FunctionTest!(S,TD)("this(li)");
+		foreach (t; s) f.test(t, TD(t.cf, t.expo));
+    	writefln(f.report);
+
+		static struct R { long cf; TD expect; }
+		R[] r =
+		[
+			{  7254,  "7.254E+3" },
+			{ -7254, "-7.254E+3" },
+		];
+		auto g = FunctionTest!(R,TD)("this(l)");
+		foreach (t; r) g.test(t, TD(t.cf));
+    	writefln(g.report);
 	}}
 
 	// Constructs a decimal number from a string representation
@@ -311,12 +308,12 @@ unittest {
 	}
 
 	static if (context == TestContext) {
-	unittest {	// string construction
-		write("-- this(string).....");
-
-		static struct S { string num; string val; }
-
-		static S[] tests =
+	unittest
+	{	// this(string)
+		// NOTE: this is a chicken and an egg sort of test:
+		// Tests to and from strings at once
+		static struct S { string str; string expect; }
+		S[] s =
 		[
 			{ "7254E94",		"7.254E+97" },
 			{ "7254.005",		"7254.005" },
@@ -331,12 +328,9 @@ unittest {
 			{ "-2147483649",	"-2147483649" },
 			{ "inf",			"Infinity" },
 		];
-
-		foreach (i, s; tests)
-		{
-			assertEqual(TD(s.num).toString, s.val, i);
-		}
-		writeln("passed");
+		auto f = FunctionTest!(S, string)("this(str)");
+		foreach (t; s) f.test(t, TD(t.str).toString);
+    	writefln(f.report);
 	}}
 
 	private static int countZeros(ulong f, int e)
@@ -725,12 +719,7 @@ unittest {
 		return decimal(this);
 	}
 
-/*	static if (context == TestContext) {
-	version(unittest) {
-		private bool assertCopy(T) (T num, T copy)if (isDecimal!T) {
-			return assertZero!T(compareTotal(num, copy));
-		}
-	}}*/
+	// TODO: modify this to use a compareTotal?
 	static if (context == TestContext) {
 	unittest
 	{	// copy
