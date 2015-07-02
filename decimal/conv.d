@@ -153,40 +153,40 @@ public string sciForm(T)(in T num) if (isDecimal!T)
 		return specialForm(num);
 	}
 
-	char[] mant = to!string(num.coefficient).dup;
+	char[] coff = to!string(num.coefficient).dup;
 	int  expo = num.exponent;
 	bool signed = num.isSigned;
 
-	int adjx = expo + cast(int)mant.length - 1;
+	int adjx = expo + cast(int)coff.length - 1;
 	// if the exponent is small use decimal notation
 	if (expo <= 0 && adjx >= -6) {
 		// if the exponent is not zero, insert a decimal point
 		if (expo != 0) {
 			int point = std.math.abs(expo);
 			// if the coefficient is too small, pad with zeroes
-			if (point > mant.length) {
-				mant = rightJustify(mant, point, '0');
+			if (point > coff.length) {
+				coff = rightJustify(coff, point, '0');
 			}
 			// if no chars precede the decimal point, prefix a zero
-			if (point == mant.length) {
-				mant = "0." ~ mant;
+			if (point == coff.length) {
+				coff = "0." ~ coff;
 			}
 			// otherwise insert the decimal point into the string
 			else {
-				insertInPlace(mant, mant.length - point, ".");
+				insertInPlace(coff, coff.length - point, ".");
 			}
 		}
-		return signed ? ("-" ~ mant).dup : mant.dup;
+		return signed ? ("-" ~ coff).dup : coff.dup;
 	}
 	// if the exponent is large enough use exponential notation
-	if (mant.length > 1) {
-		insertInPlace(mant, 1, ".");
+	if (coff.length > 1) {
+		insertInPlace(coff, 1, ".");
 	}
 	string xstr = to!string(adjx);
 	if (adjx >= 0) {
 		xstr = "+" ~ xstr;
 	}
-	string str = (mant ~ "E" ~ xstr).dup;
+	string str = (coff ~ "E" ~ xstr).dup;
 	return signed ? "-" ~ str : str;
 };  // end sciForm
 
@@ -216,30 +216,30 @@ public string engForm(T)(in T num) if (isDecimal!T)
 		return specialForm(num);
 	}
 
-	char[] mant = to!string(num.coefficient).dup;
+	char[] coff = to!string(num.coefficient).dup;
 	int  expo = num.exponent;
 	bool signed = num.isSigned;
 
-	int adjx = expo + cast(int)mant.length - 1;
+	int adjx = expo + cast(int)coff.length - 1;
 	// if exponent is small, don't use exponential notation
 	if (expo <= 0 && adjx >= -6) {
 		// if exponent is not zero, insert a decimal point
 		if (expo != 0) {
 			int point = std.math.abs(expo);
 			// if coefficient is too small, pad with zeroes
-			if (point > mant.length) {
-				mant = rightJustify(mant, point, '0');
+			if (point > coff.length) {
+				coff = rightJustify(coff, point, '0');
 			}
 			// if no chars precede the decimal point, prefix a zero
-			if (point == mant.length) {
-				mant = "0." ~ mant;
+			if (point == coff.length) {
+				coff = "0." ~ coff;
 			}
 			// otherwise insert a decimal point
 			else {
-				insertInPlace(mant, mant.length - point, ".");
+				insertInPlace(coff, coff.length - point, ".");
 			}
 		}
-		return signed ? ("-" ~ mant).idup : mant.idup;
+		return signed ? ("-" ~ coff).idup : coff.idup;
 	}
 	// use exponential notation
 	if (num.isZero) {
@@ -255,18 +255,18 @@ public string engForm(T)(in T num) if (isDecimal!T)
 	if (num.isZero) {
 		dot = 1;
 		int count = 3 - std.math.abs(mod);
-		mant.length = 0;
+		coff.length = 0;
 		for (size_t i = 0; i < count; i++) {
-			mant ~= '0';
+			coff ~= '0';
 		}
 	}
-	while (dot > mant.length) {
-		mant ~= '0';
+	while (dot > coff.length) {
+		coff ~= '0';
 	}
-	if (mant.length > dot) {
-		insertInPlace(mant, dot, ".");
+	if (coff.length > dot) {
+		insertInPlace(coff, dot, ".");
 	}
-	string str = mant.idup;
+	string str = coff.idup;
 	if (adjx != 0) {
 		string xstr = to!string(adjx);
 		if (adjx > 0) {
@@ -431,12 +431,12 @@ private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
 	}
 	T num = number.dup;
 	num = roundToPrecision(num, precision + 1);
-	char[] mant = to!string(num.coefficient).dup;
+	char[] coff = to!string(num.coefficient).dup;
 	int expo = num.exponent;
 	bool sign = num.isSigned;
-	int adjx = expo + cast(int)mant.length - 1;
-	if (mant.length > 1) {
-		insertInPlace(mant, 1, ".");
+	int adjx = expo + cast(int)coff.length - 1;
+	if (coff.length > 1) {
+		insertInPlace(coff, 1, ".");
 	}
 	string xstr = to!string(std.math.abs(adjx));
 	if (padExpo && xstr.length < 2) {
@@ -444,7 +444,7 @@ private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
 	}
 	xstr = adjx < 0 ? "-" ~ xstr : "+" ~ xstr;
 	string expoChar = lowerCase ? "e" : "E";
-	string str = (mant ~ expoChar ~ xstr).idup;
+	string str = (coff ~ expoChar ~ xstr).idup;
 	return sign ? "-" ~ str : str;
 }  // end exponentForm
 

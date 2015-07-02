@@ -11,6 +11,7 @@
 		"unittest": {
 			"buildOptions": ["unittests", "debugMode"],
 			"buildOptions-posix": ["debugInfo"],
+			"dflags-dmd": [""],
 		},
 		"debug": {
 			"buildOptions": ["unittests", "debugMode"],

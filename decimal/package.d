@@ -89,7 +89,7 @@ unittest {
 		SV sval = SV.qNaN;		// special value: default is quiet NaN
 		bool signed = false;	// true if the value is negative, false otherwise.
 		int expo = 0;			// the exponent of the decimal value
-		xint mant;				// the coefficient of the decimal value
+		xint coff;				// the coefficient of the decimal value
 
 	package:
 		 int digits; 			// the number of decimal digits in this number.
@@ -177,7 +177,7 @@ unittest {
 	{
 		this = zero;
 		if (value) {
-			mant = 1;
+			coff = 1;
 			this.digits = 1;
 		}
 	}
@@ -208,9 +208,9 @@ unittest {
 	{
 		this = zero();
 		this.signed = sign;
-		this.mant = coefficient.abs;
+		this.coff = coefficient.abs;
 		this.expo = exponent;
-		this.digits = numDigits(this.mant);
+		this.digits = numDigits(this.coff);
 	}
 
 	static if (context == TestContext) {
@@ -705,7 +705,7 @@ unittest {
 		this.sval	= that.sval;
 		this.digits = that.digits;
 		this.expo	= that.expo;
-		this.mant	= that.mant.dup;
+		this.coff	= that.coff.dup;
 	};
 
 //--------------------------------
@@ -886,7 +886,7 @@ unittest {
 		this.sval	 = that.sval;
 		this.digits  = that.digits;
 		this.expo	 = that.expo;
-		this.mant	 = that.mant;
+		this.coff	 = that.coff;
 	}
 
 	///	Assigns an xint value.
@@ -1009,23 +1009,23 @@ unittest {
 	xint coefficient() const
 	{
 		if (isSpecial) return xint(0);
-		return this.mant.dup;
+		return this.coff.dup;
 	}
 
 	@property
 	@safe
-	xint coefficient(xint mant)
+	xint coefficient(xint coff)
 	{
-		this.mant = mant;
-		return this.mant;
+		this.coff = coff;
+		return this.coff;
 	}
 
 	@property
 	@safe
-	xint coefficient(long mant)
+	xint coefficient(long coff)
 	{
-		this.mant = mant;
-		return this.mant;
+		this.coff = coff;
+		return this.coff;
 	}
 
 	@property
@@ -1033,7 +1033,7 @@ unittest {
 	ushort payload() const
 	{
 		if (this.isNaN) {
-			return cast(ushort)(this.mant.toLong);
+			return cast(ushort)(this.coff.toLong);
 		}
 		return 0;
 	}
@@ -1043,7 +1043,7 @@ unittest {
 	ushort payload(const ushort value)
 	{
 		if (this.isNaN) {
-			this.mant = xint(value);
+			this.coff = xint(value);
 			return value;
 		}
 		return 0;
@@ -1211,17 +1211,22 @@ unittest {
 	/// Returns true if this number's representation is canonical.
 	///
 	/// All decimal numbers are canonical, whether or not they are
-	/// reduced to their simplest form. However, the representation
+	/// reduced to their simplest form.
+
+    /// NOTE: not for bigint
+	/// However, the representation
 	/// of the coefficient may have leading zeros.
 	/// If this is the case, this function returns `false`.
 	/// Otherwise it returns `true`.
+
 	@safe
 	const bool isCanonical()
 	{
-		// if the coefficient array has only one digit, return true;
+		return true;
+/*		// if the coefficient array has only one digit, return true;
 		if (coefficient.getDigitLength == 1) return true;
 		// if 1st digit of the coefficient array is zero, return false
-		return coefficient.getDigit(0) ? true : false;
+		return coefficient.getDigit(0) ? true : false;*/
 	}
 
 	/// Returns the canonical form of the number.

@@ -17,9 +17,7 @@ module eris.decimal.rounding;
 import eris.decimal;
 import eris.decimal.context;
 import eris.decimal.test;
-//import eris.decimal.arithmetic: copyNegate;
 import eris.integer.extended;
-
 
 unittest {
 	writeln("==========================");
@@ -311,12 +309,12 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 	xint divisor = pow10(diff);
 	xint dividend = x.coefficient;
 	xint quotient = dividend/divisor;
-	auto mant = dividend - quotient*divisor;
-	if (mant != 0) {
+	auto coff = dividend - quotient*divisor;
+	if (coff != 0) {
 		remainder.zero;
 		remainder.digits = diff;
 		remainder.exponent = x.exponent;
-		remainder.coefficient = mant;
+		remainder.coefficient = coff;
 		contextFlags.set(INEXACT);
 	}
 	x.coefficient = quotient;
