@@ -22,6 +22,7 @@ import std.format;
 import eris.decimal;
 import eris.decimal.context;
 import eris.decimal.rounding;
+import eris.decimal.bigint;
 import eris.integer.extended;
 
 unittest {
@@ -50,6 +51,16 @@ private T to(T:string)(in xint num) {
 	num.toString(&sink, "%d");
 	return outbuff;
 }
+
+public T to(T:string)(in bigint x) {
+	string outbuff = "";
+	void sink(const(char)[] s) {
+		outbuff ~= s;
+	}
+	x.toString(&sink, "%d");
+	return outbuff;
+}
+
 
 /// to!string(int).
 private T to(T:string)(in long n) {
@@ -771,6 +782,7 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 		}
 	}
 	// convert coefficient string to xint
+//	bigint big = toBigInt(str.idup);
 	num.coefficient = xint(str.idup);
 	num.digits = numDigits(num.coefficient);
 	return num;

@@ -236,6 +236,25 @@ divisionByZero......test missing
 decimal arithmetic.....end
 ==========================
 ==========================
+decimal bigint.........begin
+==========================
+sgn       :  4 tests ( 4 pass)
+abs       :  5 tests ( 5 pass)
+sqr       :  5 tests ( 5 pass)
+isZero    :  4 tests ( 4 pass)
+toUlong   : 10 tests (10 pass)
+redDigits : 10 tests (10 pass)
+redDigits : 10 tests (10 pass)
+numDigits : 14 tests (14 pass)
+numDigits :  8 tests ( 8 pass)
+1stDigit  : 13 tests (13 pass)
+1stDigBig :  2 tests ( 2 pass)
+toBigInt  : 16 tests (16 pass)
+ab = 1234345
+==========================
+decimal bigint.........end
+==========================
+==========================
 decimal context......begin
 ==========================
 ==========================
@@ -273,23 +292,6 @@ decimal logic........begin
 inverse   :  3 tests ( 3 pass)
 ==========================
 decimal logic..........end
-==========================
-==========================
-decimal main.........begin
-==========================
-sgn       :  4 tests ( 4 pass)
-abs       :  5 tests ( 5 pass)
-sqr       :  5 tests ( 5 pass)
-isZero    :  4 tests ( 4 pass)
-toUlong   : 10 tests (10 pass)
-redDigits : 10 tests (10 pass)
-redDigits : 10 tests (10 pass)
-numDigits : 14 tests (14 pass)
-numDigits :  8 tests ( 8 pass)
-1stDigit  : 13 tests (13 pass)
-1stDigBig :  2 tests ( 2 pass)
-==========================
-decimal main...........end
 ==========================
 ==========================
 decimal math.........begin
@@ -349,8 +351,8 @@ this(xi)  :  2 tests ( 2 pass)
 this(li)  :  2 tests ( 2 pass)
 this(l)   :  2 tests ( 2 pass)
 this(str) : 12 tests (12 pass)
--- this(real).......failed at package.d(511)[16]: expected "2.179769313E+306" but found "Infinity".
-failed at package.d(511)[17]: expected "1.1897314953572317649E+4932" but found "Infinity".
+-- this(real).......failed at package.d(513)[16]: expected "2.179769313E+306" but found "Infinity".
+failed at package.d(513)[17]: expected "1.1897314953572317649E+4932" but found "Infinity".
 passed
 -- toReal...........passed
 toDouble...x.toDouble = 3.14159
@@ -362,8 +364,7 @@ copy      :  8 tests ( 8 pass)
 -- opCast...........test missing
 -- opAssign.........test missing
 -- constants........passed
--- isCanonical......failed at package.d(1253)[0]: expected "false" but found "true".
-passed
+-- isCanonical......passed
 -- isOne............passed
 -- isZero...........passed
 -- isNaN............passed

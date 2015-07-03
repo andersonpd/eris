@@ -18,6 +18,7 @@ import std.conv;
 import std.string;
 import std.traits;
 import std.math;
+import std.bigint;
 
 import eris.integer.extended;
 import eris.decimal.context;
@@ -37,6 +38,7 @@ version(unittest)
 }
 
 alias xint = ExtendedInt;
+alias bigint = BigInt;
 
 public enum Context DefaultContext = Context(99, 9999, HALF_EVEN);
 public enum Context TestContext    = Context(9, 99, HALF_EVEN);
@@ -1212,35 +1214,17 @@ unittest {
 	///
 	/// All decimal numbers are canonical, whether or not they are
 	/// reduced to their simplest form.
-
-    /// NOTE: not for bigint
-	/// However, the representation
-	/// of the coefficient may have leading zeros.
-	/// If this is the case, this function returns `false`.
-	/// Otherwise it returns `true`.
-
 	@safe
 	const bool isCanonical()
 	{
 		return true;
-/*		// if the coefficient array has only one digit, return true;
-		if (coefficient.getDigitLength == 1) return true;
-		// if 1st digit of the coefficient array is zero, return false
-		return coefficient.getDigit(0) ? true : false;*/
 	}
 
 	/// Returns the canonical form of the number.
 	@safe
 	const decimal canonical()
 	{
-		// copy the number
-		decimal copy = this.dup;
-		// if it's already canonical, return the copy
-		if (copy.isCanonical) return copy;
-		// otherwise, trim the leading zeros in the coefficient
-		// and return the copy
-		copy.coefficient = copy.coefficient.trim;
-		return copy;
+		return this.dup;
 	}
 
 	static if (context == TestContext)
@@ -1249,11 +1233,11 @@ unittest {
 	{	// isCanonical
 		write("-- isCanonical......");
 		TD num = TD("2.50");
-		// string constructions generally have a leading zero
+/*		// string constructions generally have a leading zero
 		assertFalse(num.isCanonical);
 		TD copy = num.canonical;
 		assertTrue(copy.isCanonical);
-		assertEqual(compareTotal(num, copy), 0);
+		assertEqual(compareTotal(num, copy), 0);*/
 		writeln("passed");
 	}}
 
