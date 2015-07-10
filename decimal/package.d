@@ -1983,24 +1983,28 @@ unittest
 	/// with an option to create an arbitrary precision constant.
 	mixin template Constant(string name)
 	{
-		mixin ("public static decimal " ~ name ~ "(int precision = decimal.precision) {
-			if (precision != decimal.precision) {
-				return eris.decimal.math." ~ name ~ "!decimal(precision);
-			}
-			return " ~ name.toUpper ~ ";
-		}");
+		mixin ("public static decimal " ~ name ~ "(int precision = decimal.precision)"
+			~ "{"
+				~ "if (precision != decimal.precision)"
+				~ "{"
+					~ "return eris.decimal.math." ~ name ~ "!decimal(precision);"
+				~ "}"
+			~ "return " ~ name.toUpper ~ ";"
+			~ "}");
 	}
 
 	/// mixin template to create a constant at the type precision,
 	/// with an option to create an arbitrary precision constant.
 	mixin template Constant(string lcName, string ucName)
 	{
-		mixin ("public static decimal " ~ lcName ~ "(int precision = decimal.precision) {
-			if (precision != decimal.precision) {
-				return eris.decimal.math." ~ lcName ~ "!decimal(precision);
-			}
-			return " ~ ucName ~ ";
-		}");
+		mixin ("public static decimal " ~ lcName ~ "(int precision = decimal.precision)"
+			~ "{"
+				~ "if (precision != decimal.precision)"
+				~ "{"
+					~ "return eris.decimal.math." ~ lcName ~ "!decimal(precision);"
+				~ "}"
+			~ "return " ~ ucName ~ ";"
+			~ "}");
 	}
 
 	/// Rounds a decimal string representation of a number
