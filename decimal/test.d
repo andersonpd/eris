@@ -1,23 +1,28 @@
 // Written in the D programming language
 
 /**
- *	A D programming language implementation of the
+ * Test routines for floating-point decimal arithmetic.
+ *
+ * An implementation of the
+ * General Decimal Arithmetic Specification.
+ *
+ * Authors: Paul D. Anderson
+ *
+ * Copyright: Copyright 2009-2016 by Paul D. Anderson.
+ *
+ * License: <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>
+ *
+ * Standards: Conforms to the
  *	General Decimal Arithmetic Specification,
  *	Version 1.70, (25 March 2009).
- *	http://www.speleotrove.com/decimal/decarith.pdf)
- *
- *	Copyright Paul D. Anderson 2009 - 2015.
- *	Distributed under the Boost Software License, Version 1.0.
- *	(See accompanying file LICENSE_1_0.txt or copy at
- *	http://www.boost.org/LICENSE_1_0.txt)
-**/
+ */
 
 module eris.decimal.test;
 
 version(unittest)
 {
 
-	import std.path: baseName;
+	import std.path : baseName;
 	import std.stdio;
 	import std.string;
 	import std.traits;
@@ -26,9 +31,11 @@ version(unittest)
 	import eris.decimal.context;
 	import eris.decimal.arithmetic;
 
-	// S is a struct containing input data and the expected value
-	// T is the return type of the function being tested
-	// N is the number of inputs
+	/**
+	 * S is a struct containing input data and the expected value
+	 * T is the return type of the function being tested
+	 * N is the number of inputs
+	 */
 	package struct FunctionTest(S,T,int N = S.tupleof.length-1)
 	{
 		string name;
@@ -75,7 +82,7 @@ version(unittest)
 			{
 				passed = (actual == expect);
 			}
-			// end static if
+			// end static if/else
 
 			if (passed)
 			{
@@ -108,7 +115,7 @@ version(unittest)
 
 		string report()
 		{
-			string rep = format("%-10s: %s", name, tests(testCount));
+			string rep = format("%-11s: %s", name, tests(testCount));
 			if (failCount == 0)
 			{
 				rep ~= format(" (%2d pass)", passCount);

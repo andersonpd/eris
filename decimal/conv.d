@@ -1,29 +1,37 @@
 // Written in the D programming language
 
 /**
- *	A D programming language implementation of the
+ * Conversion of floating-point decimals to/from strings.
+ *
+ * An implementation of the
+ * General Decimal Arithmetic Specification.
+ *
+ * Authors: Paul D. Anderson
+ *
+ * Copyright: Copyright 2009-2016 by Paul D. Anderson.
+ *
+ * License: <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>
+ *
+ * Standards: Conforms to the
  *	General Decimal Arithmetic Specification,
  *	Version 1.70, (25 March 2009).
- *	http://www.speleotrove.com/decimal/decarith.pdf)
- *
- *	Copyright Paul D. Anderson 2009 - 2015.
- *	Distributed under the Boost Software License, Version 1.0.
- *	(See accompanying file LICENSE_1_0.txt or copy at
- *	http://www.boost.org/LICENSE_1_0.txt)
-**/
+ */
 
 module eris.decimal.conv;
 
 import std.array: insertInPlace, replicate;
+//static import std.array;
 import std.ascii: isDigit;
 import std.string;
 import std.format;
+import std.stdio;
+static import std.uni;
+static import std.conv;
+static import std.math;
 
 import eris.decimal;
 import eris.decimal.context;
 import eris.decimal.rounding;
-import eris.decimal.bigint;
-import eris.integer.extended;
 
 unittest {
 	writeln("==========================");
@@ -42,16 +50,7 @@ public enum DEFAULT_PRECISION = 6;
 //   to!string conversions
 //--------------------------------
 
-/// to!string(xint).
-private T to(T:string)(in xint num) {
-	string outbuff = "";
-	void sink(const(char)[] s) {
-		outbuff ~= s;
-	}
-	num.toString(&sink, "%d");
-	return outbuff;
-}
-
+/// to!string(bigint).
 public T to(T:string)(in bigint x) {
 	string outbuff = "";
 	void sink(const(char)[] s) {
@@ -61,14 +60,16 @@ public T to(T:string)(in bigint x) {
 	return outbuff;
 }
 
-
-/// to!string(int).
+/// to!string(long).
 private T to(T:string)(in long n) {
 	return format("%d", n);
 }
 
-/// Returns a string representing the value of the number, formatted as
-/// specified by the formatString.
+/**
+ * Returns a string representing the value of the number, formatted as
+ * specified by the format string.
+ * Params: num, fmtstr.
+ */
 public string toString(T)(in T num, string fmStr = "%s") if (isDecimal!T)
 {
     auto fm = singleSpec!char(fmStr.dup);
@@ -152,12 +153,20 @@ unittest
     writefln(f.report);
 }
 
+/*    void toString(T)(
+		scope void delegate(const(char)[]) sink,
+		ref FormatSpec!char f) if (isDecimal!T) const
+	{
+
+	}*/
 //--------------------------------
 //  formatting
 //--------------------------------
 
-/// Converts a decimal number to a string
-/// using "scientific" notation, per the spec.
+/**
+ *  Converts a decimal number to a string
+ *  using "scientific" notation, per the spec.
+ */
 public string sciForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isSpecial) {
@@ -193,11 +202,11 @@ public string sciForm(T)(in T num) if (isDecimal!T)
 	if (coff.length > 1) {
 		insertInPlace(coff, 1, ".");
 	}
-	string xstr = to!string(adjx);
+	string expStr = to!string(adjx);
 	if (adjx >= 0) {
-		xstr = "+" ~ xstr;
+		expStr = "+" ~ expStr;
 	}
-	string str = (coff ~ "E" ~ xstr).dup;
+	string str = (coff ~ "E" ~ expStr).dup;
 	return signed ? "-" ~ str : str;
 };  // end sciForm
 
@@ -219,8 +228,10 @@ unittest
     writefln(f.report);
 }
 
-/// Converts a decimal number to a string
-/// using "engineering" notation, per the spec.
+/**
+ *  Converts a decimal number to a string
+ *  using "engineering" notation, per the spec.
+ */
 public string engForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isSpecial) {
@@ -279,11 +290,11 @@ public string engForm(T)(in T num) if (isDecimal!T)
 	}
 	string str = coff.idup;
 	if (adjx != 0) {
-		string xstr = to!string(adjx);
+		string expStr = to!string(adjx);
 		if (adjx > 0) {
-			xstr = '+' ~ xstr;
+			expStr = '+' ~ expStr;
 		}
-		str = str ~ "E" ~ xstr;
+		str = str ~ "E" ~ expStr;
 	}
 	return signed ? "-" ~ str : str;
 }  // end engForm()
@@ -315,7 +326,9 @@ unittest
     writefln(f.report);
 }
 
-/// Returns a string representing the number, formatted as specified.
+/**
+ *  Returns a string representing the number, formatted as specified.
+ */
 // TODO: why have a short form
 // Should there be an upper/lower case flag?
 private string specialForm(T)(in T num, bool shortForm = false) if (isDecimal!T)
@@ -355,15 +368,19 @@ unittest
     writefln(f.report);
 }
 
-/// Converts a decimal number to a string in decimal format.
-/// Returns e.g. "125E-5" as "0.001250" with no exponent.
-/// Numbers with large or small exponents will return long strings.
-/// Numbers with very large or very small exponents
-/// will return very long strings.
+/**
+ *  Converts a decimal number to a string in decimal format.
+ *
+ *  Returns e.g. "125E-5" as "0.001250" with no exponent.
+ *  Numbers with large or small exponents will return long strings.
+ *  Numbers with very large or very small exponents
+ *  will return very long strings.
+ */
 private string decimalForm(T)(in T number,
 	int precision = DEFAULT_PRECISION) if (isDecimal!T)
 {
-	if (number.isSpecial) {
+	if (number.isSpecial)
+	{
 		return specialForm(number);
 	}
 	T num = number.dup;
@@ -432,7 +449,9 @@ unittest
     writefln(f.report);
 }
 
-/// Converts a decimal number to a string using exponential notation.
+/**
+ *  Converts a decimal number to a string using exponential notation.
+ */
 private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
 	const bool lowerCase = false, const bool padExpo = true) if (isDecimal!T)
 {
@@ -449,13 +468,13 @@ private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
 	if (coff.length > 1) {
 		insertInPlace(coff, 1, ".");
 	}
-	string xstr = to!string(std.math.abs(adjx));
-	if (padExpo && xstr.length < 2) {
-		xstr = "0" ~ xstr;
+	string expStr = to!string(std.math.abs(adjx));
+	if (padExpo && expStr.length < 2) {
+		expStr = "0" ~ expStr;
 	}
-	xstr = adjx < 0 ? "-" ~ xstr : "+" ~ xstr;
+	expStr = adjx < 0 ? "-" ~ expStr : "+" ~ expStr;
 	string expoChar = lowerCase ? "e" : "E";
-	string str = (coff ~ expoChar ~ xstr).idup;
+	string str = (coff ~ expoChar ~ expStr).idup;
 	return sign ? "-" ~ str : str;
 }  // end exponentForm
 
@@ -481,7 +500,9 @@ unittest
     writefln(f.report);
 }
 
-/// Returns a string representing the number, formatted as specified.
+/**
+ *  Returns a string representing the number, formatted as specified.
+ */
 private string formatDecimal(T)(in T num,
 	char formatChar, int precision) if (isDecimal!T)
 {
@@ -515,10 +536,12 @@ private string formatDecimal(T)(in T num,
 	return exponentForm(num, precision, lowerCase, true);
 }
 
-/// Returns a string that is at least as long as the specified width. If the
-/// string is already greater than or equal to the specified width the original
-/// string is returned. If the specified width is negative or if the
-/// flag is set the widened string is left justified.
+/**
+ *  Returns a string that is at least as long as the specified width. If the
+ *  string is already greater than or equal to the specified width the original
+ *  string is returned. If the specified width is negative or if the
+ *  flag is set the widened string is left justified.
+ */
 private string setWidth(string str, int width,
 		bool justifyLeft = false, bool padZero = false) {
 
@@ -551,8 +574,10 @@ unittest
     writefln(f.report);
 }
 
-/// Returns an abstract string representation of a number.
-/// The abstract representation is described in the specification. (p. 9-12)
+/**
+ *  Returns an abstract string representation of a number.
+ *  The abstract representation is described in the specification. (p. 9-12)
+ */
 public string abstractForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isFinite) {
@@ -591,8 +616,10 @@ unittest
     writefln(f.report);
 }
 
-/// Returns a full, exact representation of a number. Similar to abstractForm,
-/// but it provides a valid string that can be converted back into a number.
+/**
+ *  Returns a full, exact representation of a number. Similar to abstractForm,
+ *  but it provides a valid string that can be converted back into a number.
+ */
 public string fullForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isFinite) {
@@ -640,26 +667,36 @@ unittest
     writefln(f.report);
 }
 
-/// Converts a string into a decimal number. This departs from the
-/// specification in that the coefficient string may contain underscores.
-/// A leading or trailing "." is allowed by the specification even though
-/// it is not valid as a D language real number.
-public T toNumber(T)(string inStr) if (isDecimal!T)
+/**
+ *  Converts a string into a decimal number. This departs from the
+ *  specification in that the coefficient string may contain underscores.
+ *  A leading or trailing "." is allowed by the specification even though
+ *  it is not valid as a D language real number.
+ */
+public T toNumber(T)(string inStr, bool round = true) if (isDecimal!T)
 {
 	T num;
-	bool sign = false;
+
+//writefln("inStr = %s", inStr);
 	// strip, copy, tolower
 	char[] str = strip(inStr).dup;
 	toLowerInPlace(str);
-	// get sign, if any
-	if (startsWith(str, "-")) {
+
+	// check for minus sign or plus sign
+	bool sign = false;
+	if (startsWith(str, "-"))
+	{
 		sign = true;
 		str = str[1..$];
-	} else if (startsWith(str, "+")) {
+	}
+	else if (startsWith(str, "+"))
+	{
 		str = str[1..$];
 	}
+
 	// check for NaN
-	if (startsWith(str, "nan")) {
+	if (startsWith(str, "nan"))
+	{
 		num = T.nan(0, sign);
 		// check for payload
 		if (str.length > 3) {
@@ -667,8 +704,10 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 		}
 		return num;
 	}
+
 	// check for sNaN
-	if (startsWith(str, "snan")) {
+	if (startsWith(str, "snan"))
+	{
 		num = T.snan(0, sign);
 		// check for payload
 		if (str.length > 4) {
@@ -676,96 +715,126 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 		}
 		return num;
 	}
+
 	// check for infinity
-	if (str == "inf" || str == "infinity") {
+	if (str == "inf" || str == "infinity")
+	{
 		num = T.infinity(sign);
 		return num;
 	}
+
 	// at this point, num must be finite
 	num = T.zero(sign);
+
 	// check for exponent
 	ptrdiff_t  pos = indexOf(str, 'e');
-	if (pos > 0) {
-		// if it's just a trailing 'e', return NaN
-		if (pos == str.length - 1) {
+	if (pos > 0) 	// if exponent string found...
+	{
+		// exponent string must be at least two chars
+		if (pos == str.length - 1)
+		{
 			return T.nan;
 		}
-		// split the string into coefficient and exponent
-		char[] xstr = str[pos + 1..$];
+
+		// split str into coefficient and exponent strings
+		char[] expStr = str[pos + 1..$];
 		str = str[0..pos];
-		// assume exponent is positive
-		bool xneg = false;
-		// check for minus sign
-		if (startsWith(xstr, "-")) {
-			xneg = true;
-			xstr = xstr[1..$];
+
+		// check exponent for minus sign or plus sign
+		bool expSign = false;
+		if (startsWith(expStr, "-"))
+		{
+			expSign = true;
+			expStr = expStr[1..$];
 		}
-		// check for plus sign
-		else if (startsWith(xstr, "+")) {
-			xstr = xstr[1..$];
+		else if (startsWith(expStr, "+"))
+		{
+			expStr = expStr[1..$];
 		}
+
 		// ensure it's not now empty
-		if (xstr.length < 1) {
+		if (expStr.length < 1)
+		{
 			return T.nan;
 		}
 		// ensure exponent is all digits
-		foreach (char c; xstr) {
+		foreach (char c; expStr)
+		{
 			if (!isDigit(c)) {
 				return T.nan;
 			}
 		}
 		// trim leading zeros
-		while (xstr[0] == '0' && xstr.length > 1) {
-			xstr = xstr[1..$];
+		while (expStr[0] == '0' && expStr.length > 1) {
+			expStr = expStr[1..$];
 		}
 		// make sure it will fit into an int
-		if (xstr.length > 10) {
+		if (expStr.length > 10) {
+//			writefln("expStr = %s", expStr);
 			return T.nan;
 		}
-		if (xstr.length == 10) {
+		if (expStr.length == 10) {
 			// try to convert it to a long (should work) and
 			// then see if the long value is too big (or small)
-			long lex = std.conv.to!long(xstr);
-			if ((xneg && (-lex < int.min)) || lex > int.max) {
+			long lex = std.conv.to!long(expStr);
+			if ((expSign && (-lex < int.min)) || lex > int.max) {
 				return T.nan;
 			}
 			num.exponent = cast(int) lex;
 		} else {
 			// everything should be copacetic at this point
-			num.exponent = std.conv.to!int(xstr);
+			num.exponent = std.conv.to!int(expStr);
 		}
-		if (xneg) {
+		if (expSign)
+		{
 			num.exponent = -num.exponent;
 		}
-	} else {
+	}
+	else	// no exponent
+	{
 		num.exponent = 0;
 	}
+//if (!__ctfe) writefln("num.exponent = %s", num.exponent);
+
 	// remove trailing decimal point
-	if (endsWith(str, ".")) {
+	if (endsWith(str, "."))
+	{
 		str = str[0..$ -1];
 		// check for empty string (input was ".")
 		if (str.length == 0) {
 			return T.nan;
 		}
 	}
+	// TODO: better done with a range?
 	// strip leading zeros
-	while (str[0] == '0' && str.length > 1) {
+	while (str[0] == '0' && str.length > 1)
+	{
 		str = str[1..$];
 	}
 	// make sure first char is a digit
 	// (or a decimal point, in which case check the second char)
-	if (!isDigit(str[0])) {
-		if (str[0] == '.' && !isDigit(str[1])) {
+	if (!isDigit(str[0]))
+	{
+		// check for single non-digit char
+		if (str.length == 1)
+		{
+			return T.nan;
+		}
+		// ensure first char is a decimal point and second char is a digit
+		if (str[0] == '.' && !isDigit(str[1]))
+		{
 		 return T.nan;
 		}
 	}
 	// strip underscores
-	if (indexOf(str, '_') >= 0) {
+	if (indexOf(str, '_') >= 0)
+	{
   		str = removechars(str.idup, "_").dup;
 	}
 	// remove internal decimal point
 	int point = cast(int)indexOf(str, '.');
-	if (point >= 0) {
+	if (point >= 0)
+	{
 		// excise the point and adjust the exponent
 		str = str[0..point] ~ str[point + 1..$];
 		int diff = cast(int)str.length - point;
@@ -781,10 +850,12 @@ public T toNumber(T)(string inStr) if (isDecimal!T)
 			return T.nan;
 		}
 	}
-	// convert coefficient string to xint
-//	bigint big = toBigInt(str.idup);
-	num.coefficient = xint(str.idup);
-	num.digits = numDigits(num.coefficient);
+	// convert coefficient string to bigint
+//if (!__ctfe) writefln("str = %s", str);
+	num.coefficient = bigint(str.idup);
+//if (!__ctfe) writefln("num.coefficient = %s", num.coefficient);
+	num.digits = decDigits(num.coefficient);
+//if (!__ctfe) writefln("num.digits = %s", num.digits);
 	return num;
 }
 
@@ -803,6 +874,7 @@ unittest
 		{ ".",			"NaN" },
 		{ ".E3",		"NaN" },
 		{ "+.",			"NaN" },
+		{ "1.7976931348623157079E+308", "1.7976931348623157079E+308" },
 	];
 	auto f = FunctionTest!(S,TD)("toNumber");
 	foreach (t; s) f.test(t, toNumber!TD(t.num));

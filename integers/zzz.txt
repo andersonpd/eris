@@ -1,0 +1,198 @@
+==========================
+digits module........begin
+==========================
+-- toString.........passed
+-- comparison.......passed
+-- numDigits........passed
+-- copy, trim.......passed
+-- reduce, extend...passed
+-- matchLength......passed
+-- complement.......passed
+-- bit manipulation.passed
+-- classification...passed
+-- addition.........passed
+-- subtraction......passed
+mulDigit...test missing
+-- multiplication...passed
+-- squaring.........passed
+-- exponentiation...passed
+-- division.........passed
+-- logical..........passed
+shiftRight...test missing
+-- shifts...........passed
+-- gcd, lcm.........passed
+-- random digits....passed
+==========================
+digits module..........end
+==========================
+==========================
+integer exceptions...begin
+==========================
+==========================
+integer exceptions.....end
+==========================
+==========================
+extended integers....begin
+==========================
+-- this(integral)...passed
+-- copy.............passed
+casts...test missing
+-- init, abs, sqr...passed
+-- to unsigned int..passed
+-- to signed int....passed
+-- opAssign.........passed
+-- opEquals.........passed
+-- opCmp............passed
+-- byte array.......passed
+-- this(string).....passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- addition.........passed
+-- subtraction......passed
+-- multiplication...passed
+-- division.........passed
+-- remainder........passed
+-- power............passed
+-- shr..............passed
+-- logical ops......passed
+-- bit ops..........passed
+-- digit ops........passed
+==========================
+extended integers......end
+==========================
+==========================
+fixed int module.....begin
+==========================
+min/max...passed
+divmod...test missing
+==========================
+fixed int module.......end
+==========================
+==========================
+uint128..............begin
+==========================
+-- this(uint[]).....passed
+-- this(ulong)......passed
+-- mixed............passed
+-- copying..........passed
+-- byte array.......passed
+-- digits...........passed
+-- bits.............passed
+-- min/max values...passed
+-- classification...passed
+-- this(string).....passed
+formatting...test missing
+-- toString.........passed
+isFixedInt...
+test missing
+-- to integral......passed
+opCast...test missing
+-- comparison.......passed
+-- opAssign.........passed
+-- opOpAssign.......passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- addition.........passed
+-- subtraction......passed
+-- multiplication...passed
+-- remainder........passed
+-- bitwise..........passed
+-- shifts...........passed
+-- abs..............passed
+-- square...........passed
+==========================
+uint128................end
+==========================
+==========================
+int128...............begin
+==========================
+-- this(uint[]).....passed
+-- this(long).......passed
+-- mixed............passed
+-- copying..........passed
+-- min/max values...passed
+-- classification...passed
+-- this(string).....passed
+formatting...test missing
+-- toString.........passed
+isFixedInt...
+test missing
+-- to integral......passed
+opCast...test missing
+-- comparison.......passed
+-- opAssign.........passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- addition.........passed
+-- subtraction......passed
+-- multiplication...passed
+-- division.........passed
+-- exponentiation...passed
+-- shifts...........passed
+-- abs..............passed
+-- square...........passed
+==========================
+int128.................end
+==========================
+==========================
+cint64...............begin
+==========================
+-- this(uint[]).....passed
+-- mixed............passed
+-- min/max values...passed
+-- this(string).....passed
+formatting...test missing
+-- toString.........passed
+isFixedInt...
+test missing
+-- to integral......passed
+opCast...test missing
+-- opAssign.........passed
+-- opBinary.........passed
+-- addition.........passed
+-- exponentiation...passed
+-- square...........passed
+==========================
+cint64.................end
+==========================
+==========================
+uint256..............begin
+==========================
+-- this(uint[]).....passed
+-- this(ulong)......passed
+-- mixed............passed
+-- copying..........passed
+-- byte array.......passed
+-- digits...........passed
+-- bits.............passed
+-- min/max values...passed
+-- classification...passed
+-- this(string).....passed
+formatting...test missing
+-- toString.........passed
+isFixedInt...
+test missing
+-- to integral......passed
+opCast...test missing
+-- comparison.......passed
+-- opAssign.........passed
+-- opOpAssign.......passed
+-- opUnary..........passed
+-- opBinary.........passed
+-- addition.........passed
+-- subtraction......passed
+-- multiplication...passed
+-- remainder........passed
+-- bitwise..........passed
+-- shifts...........passed
+-- abs..............passed
+-- square...........passed
+==========================
+uint256................end
+==========================
+==========================
+example integers.....begin
+==========================
+==========================
+example integers.......end
+==========================

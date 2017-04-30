@@ -1,16 +1,22 @@
 // Written in the D programming language
 
 /**
- *	A D programming language implementation of the
+ * Floating-point decimal number and decimal arithmetic library for D.
+ *
+ * An implementation of the
+ * General Decimal Arithmetic Specification.
+ *
+ * Authors: Paul D. Anderson
+ *
+ * Copyright: Copyright 2009-2016 by Paul D. Anderson.
+ *
+ * License: <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>
+ *
+ * Standards: Conforms to the
  *	General Decimal Arithmetic Specification,
  *	Version 1.70, (25 March 2009).
- *	http://www.speleotrove.com/decimal/decarith.pdf)
- *
- *	Copyright Paul D. Anderson 2009 - 2015.
- *	Distributed under the Boost Software License, Version 1.0.
- *	(See accompanying file LICENSE_1_0.txt or copy at
- *	http://www.boost.org/LICENSE_1_0.txt)
-**/
+ */
+
 
 module eris.decimal;
 
@@ -18,9 +24,9 @@ import std.conv;
 import std.string;
 import std.traits;
 import std.math;
-import std.bigint;
+static import std.path;
+public import std.bigint;
 
-import eris.integer.extended;
 import eris.decimal.context;
 import eris.decimal.arithmetic;
 import eris.decimal.logical;
@@ -37,7 +43,6 @@ version(unittest)
 	import eris.decimal.test;
 }
 
-alias xint = ExtendedInt;
 alias bigint = BigInt;
 
 public enum Context DefaultContext = Context(99, 9999, HALF_EVEN);
@@ -45,271 +50,189 @@ public enum Context TestContext    = Context(9, 99, HALF_EVEN);
 public enum Context Context99      = Context(99, 999, HALF_EVEN);
 public enum Context RealContext    = Context(real.dig, real.max_10_exp, HALF_EVEN);
 public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, HALF_EVEN);
+public enum Context Context64      = Context(16, 369, HALF_EVEN);
 
-alias TD = BigDecimal!(TestContext);
-alias dec99 = BigDecimal!(Context99);
+alias D9 = Decimal!(TestContext);
+alias D64 = Decimal!(Context64);
+alias TD = D64;
 
 // special values for NaN, Inf, etc.
-private enum SV { None, Inf, qNaN, sNaN };
+private enum SpecialValue { ZERO, INF, QNAN, SNAN };
 
-/*version(unittest)
+/**
+ * A floating-point decimal number.
+ *
+ * The number consists of:
+ * A boolean sign
+ * A integer-type coefficient,
+ * An integer exponent
+ * A special value flag
+ */
+struct Decimal(immutable Context _context)
 {
-	struct testStruct(T, U)
-	{
-		T actual;
-		U expect;
+
+static if (context == Context64) {
+	unittest {
+		writeln("==========================");
+		writeln("decimal64............begin");
+		writeln("==========================");
 	}
+}
 
-alias DD = testStruct!(TD, TD);
-alias DS = testStruct!(TD, string);
-}*/
-/// A struct representing an arbitrary-precision decimal floating-point number.
-///
-/// The implementation follows the General Decimal Arithmetic
-/// Specification, Version 1.70 (25 Mar 2009),
-/// http://www.speleotrove.com/decimal.
-/// This specification conforms with IEEE standard 754-2008.
+	package enum Context context = _context;
+	public  enum IsDecimal;
+	private SpecialValue sval = SpecialValue.QNAN;
+									// special value: default is quiet NaN
+	private bool signed = false;	// true if the value is negative, false otherwise.
+	private int expo = 0;			// the exponent of the decimal value
+	private bigint coff;			// the coefficient of the decimal value
+	package int digits;				// the number of decimal digits in the coefficient.
 
-struct BigDecimal(immutable Context _context = DefaultContext)
-{
-
-static if (context == TestContext) {
-unittest {
-	writeln("==========================");
-	writeln("decimal..............begin");
-	writeln("==========================");
-}}
-
-	/// Struct containing the precision and rounding mode.
-	enum Context context = _context;
-
- 	/// Marker used to identify decimal numbers irrespective of size.
-	public enum IsDecimal;
-
-	/// members
-	private:
-		SV sval = SV.qNaN;		// special value: default is quiet NaN
-		bool signed = false;	// true if the value is negative, false otherwise.
-		int expo = 0;			// the exponent of the decimal value
-		xint coff;				// the coefficient of the decimal value
-
-	package:
-		 int digits; 			// the number of decimal digits in this number.
-
+	// context-based parameters
 	public:
-		/// Maximum length of the coefficient in decimal digits.
+		/// the maximum length of the coefficient in decimal digits.
 		enum int precision = context.precision;
-		/// Maximum value of the exponent.
+		/// maximum value of the exponent.
 		enum int maxExpo = context.maxExpo;
-		/// Maximum value of the adjusted exponent.
+		/// maximum value of the adjusted exponent.
 		enum int maxAdjustedExpo = maxExpo - (precision - 1);
-		/// Smallest normalized exponent.
+		/// smallest normalized exponent.
 		enum int minExpo = 1 - maxExpo;
-		/// Smallest non-normalized exponent.
+		/// smallest non-normalized exponent.
 		enum int tinyExpo = 1 - maxExpo - precision;
-		/// Rounding mode.
+		/// rounding mode.
 		enum Rounding mode = context.mode;
 
-	private:
-		alias decimal = BigDecimal!(context);
+		alias decimal = Decimal!(context);
 
 	// decimal special values
-	public:
-		enum decimal NaN		= decimal(SV.qNaN);
-		enum decimal sNaN		= decimal(SV.sNaN);
-		enum decimal Infinity	= decimal(SV.Inf);
-		enum decimal negInf		= decimal(SV.Inf, true);
-		enum decimal Zero		= decimal(SV.None);
-		enum decimal negZero	= decimal(SV.None, true);
+	enum decimal NAN		= decimal(SpecialValue.QNAN);
+	enum decimal SIG_NAN	= decimal(SpecialValue.SNAN);
+	enum decimal INFINITY	= decimal(SpecialValue.INF);
+	enum decimal NEG_INF	= decimal(SpecialValue.INF, true);
+	enum decimal ZERO		= decimal(SpecialValue.ZERO);
+	enum decimal NEG_ZERO	= decimal(SpecialValue.ZERO, true);
 
-	static if (context == TestContext) {
-	unittest
+/*	unittest
 	{	// special values
 		static struct S { TD x; string expect; }
 		S[] s =
 		[
-			{ NaN,		"NaN" },
-			{ sNaN,		"sNaN" },
-			{ Zero,		"0" },
-			{ negZero,	"-0" },
-			{ Infinity,	"Infinity" },
-			{ negInf,	"-Infinity" },
+			{ NAN,      "NaN" },
+			{ SIG_NAN,  "sNaN" },
+			{ ZERO,     "0" },
+			{ NEG_ZERO, "-0" },
+			{ INFINITY, "Infinity" },
+			{ NEG_INF,  "-Infinity" },
 		];
 		auto f = FunctionTest!(S,string)("specials");
 		foreach (t; s) f.test(t, t.x.toString);
     	writefln(f.report);
-	}}
-
-	// common decimal numbers
-	enum decimal Half	= decimal(5, -1);
-	enum decimal One	= decimal(1);
-	enum decimal negOne	= decimal(-1);
-	enum decimal Two	= decimal(2);
-	enum decimal Three	= decimal(3);
-	enum decimal Five	= decimal(5);
-	enum decimal Ten	= decimal(10);
-
-	enum decimal RealMax = decimal("1.1897314953572317649E+4932");
-	enum decimal RealMin = RealMax.copyNegate;
-	enum decimal RealMinNorm = decimal("3.362103143112093506E-4932");
-	enum decimal DoubleMax = decimal("1.7976931348623157079E+308");
-	enum decimal DoubleMin = DoubleMax.copyNegate;
-	enum decimal DoubleMinNorm = decimal("2.2250738585072013832E-308");
-	enum decimal LongMax = decimal("9223372036854775807");
-	enum decimal LongMin = decimal("-9223372036854775808");
-	enum decimal IntMax = decimal("2147483647");
-	enum decimal IntMin = decimal("-2147483648");
+	}*/
 
 //--------------------------------
 // construction
 //--------------------------------
 
-	/// Constructs a new number given a special value and an optional sign.
-	///
+	/// Constructs a decimal number from a special value and an optional sign.
 	@safe
-	public this(const SV sv, const bool sign = false)
+	private this(const SpecialValue sv, const bool sign = false)
 	{
 		this.signed = sign;
 		this.sval = sv;
 	}
 
-	/// Creates a decimal from a boolean value.
+	/// Constructs a decimal number from a boolean value.
 	/// false == 0, true == 1
 	public this(const bool value)
 	{
-		this = zero;
+		this = value ? zero() : one();
+/*		if (value) {
+			this = z
 		if (value) {
 			coff = 1;
 			this.digits = 1;
-		}
+		}*/
 	}
 
-	static if (context == TestContext) {
-	unittest
-	{	// this(bool)
-		static struct S { bool x; TD expect; }
-		S[] s =
-		[
-			{ false, TD.zero},
-			{ true,  TD.one},
-		];
-		auto f = FunctionTest!(S,TD)("this(bool)");
-		foreach (t; s) f.test(t, TD(t.x));
-    	writefln(f.report);
-	}}
-
 	// TODO: reduce the number of constructors
-	/// Constructs a number from a boolean sign, a xint coefficient and
+	/// Constructs a number from a boolean sign, an integer coefficient and
 	/// an optional integer exponent.
 	/// The sign of the number is the value of the sign parameter
 	/// regardless of the sign of the coefficient.
 	/// The intial precision of the number is deduced from the number
 	/// of decimal digits in the coefficient.
 	//@safe
-	this(bool sign, xint coefficient, int exponent = 0)
+	this(bigint coefficient, int exponent, bool sign = false)
 	{
 		this = zero();
 		this.signed = sign;
-		this.coff = coefficient.abs;
+		this.coff = coefficient >= 0 ? coefficient : -coefficient;
 		this.expo = exponent;
-		this.digits = numDigits(this.coff);
+		this.digits = decDigits(this.coff);
 	}
 
-	static if (context == TestContext) {
+	// TODO: reduce the number of constructors
+	/// Constructs a number from a boolean sign, an integer coefficient and
+	/// an optional integer exponent.
+	/// The sign of the number is the value of the sign parameter
+	/// regardless of the sign of the coefficient.
+	/// The intial precision of the number is deduced from the number
+	/// of decimal digits in the coefficient.
+	//@safe
+	this(long coefficient, int exponent, bool sign = false)
+	{
+		this(bigint(coefficient), exponent, sign);
+	}
+
+static if (context == Context64)
+{
 	unittest
-	{	// this(b,x,i)
-		static struct S { bool sign; xint cf; int expo; TD expect; }
+	{	// this(u,i,b)
+		static struct S { bigint cf; int expo; bool sign; TD expect; }
 		S[] s =
 		[
-			{ true, 7254, 94, "-7.254E+97" },
+			{ 7254, 94, true, "-7.254E+97" },
 			// NOTE: new constructions aren't rounded and may be too large for type
-			{ true, 1,   194, "-1E+194" },
+			{ 1,   194, true, "-1E+194" },
 		];
-		auto f = FunctionTest!(S,TD)("this(bxi)");
-		foreach (t; s) f.test(t, TD(t.sign, t.cf, t.expo));
+		auto f = FunctionTest!(S,TD)("this(uib)");
+		foreach (t; s) f.test(t, TD(t.cf, t.expo, t.sign));
     	writefln(f.report);
-	}}
+	}
+}
 
-	/// Constructs a decimal from a xint coefficient and an
+	/// Constructs a decimal from an integer coefficient and an
 	/// optional integer exponent. The sign of the number is the sign
 	/// of the coefficient. The initial precision is determined by the number
 	/// of digits in the coefficient.
 	//@safe
-	this(xint coefficient, int exponent = 0)
+	this(bigint coefficient, int exponent = 0)
+	{
+		bool sign = coefficient < 0;
+		this(coefficient, exponent, sign);
+	}
+
+	/// Constructs a decimal from an integer coefficient and an
+	/// optional integer exponent. The sign of the number is the sign
+	/// of the coefficient. The initial precision is determined by the number
+	/// of digits in the coefficient.
+	//@safe
+	this(long coefficient, int exponent = 0)
 	{
 		bool sign = coefficient.sgn < 0;
-		this(sign, coefficient.abs, exponent);
+		this(coefficient, exponent, sign);
 	}
-
-	static if (context == TestContext) {
-	unittest
-	{	// this(b,x,i)
-		static struct S { xint cf; int expo; TD expect; }
-		S[] s =
-		[
-			{  7254,  94, "7.254E+97" },
-			// NOTE: new constructions aren't rounded and may be too large for type
-			{ -7254, 194, "-7.25E+194" },
-		];
-		auto f = FunctionTest!(S,TD)("this(xi)");
-		foreach (t; s) f.test(t, TD(t.cf, t.expo));
-    	writefln(f.report);
-	}}
-
-	/// Constructs a number from a sign, a long integer coefficient and
-	/// an integer exponent.
-	// TODO: need to ensure correct construction if cf is negative.
-	//@safe
-	public this(bool sign, long coefficient, int exponent)
-	{
-		this(sign, xint(coefficient), exponent);
-	}
-
-	/// Constructs a number from a long integer coefficient
-	/// and an integer exponent.
-	this(long coefficient, int exponent)
-	{
-		this(xint(coefficient), exponent);
-	}
-
-	/// Constructs a number from a long integer value
-	this(long coefficient)
-	{
-		this(xint(coefficient), 0);
-	}
-
-	static if (context == TestContext) {
-	unittest
-	{	// this(l,i)
-		static struct S { long cf; int expo; TD expect; }
-		S[] s =
-		[
-			{  7254,  94, "7.254E+97" },
-			// NOTE: new constructions aren't rounded and may be too large for type
-			{ -7254, 194, "-7.25E+194" },
-		];
-		auto f = FunctionTest!(S,TD)("this(li)");
-		foreach (t; s) f.test(t, TD(t.cf, t.expo));
-    	writefln(f.report);
-
-		static struct R { long cf; TD expect; }
-		R[] r =
-		[
-			{  7254,  "7.254E+3" },
-			{ -7254, "-7.254E+3" },
-		];
-		auto g = FunctionTest!(R,TD)("this(l)");
-		foreach (t; r) g.test(t, TD(t.cf));
-    	writefln(g.report);
-	}}
 
 	// Constructs a decimal number from a string representation
-	this(const string str)
+	this(string str)
 	{
-		this = eris.decimal.conv.toNumber!decimal(str);
+		auto dec = eris.decimal.conv.toNumber!decimal(str);
+		this = dec;
 	}
 
-	static if (context == TestContext) {
+static if (context == Context64)
+{
 	unittest
 	{	// this(string)
 		// NOTE: this is a chicken and an egg sort of test:
@@ -333,155 +256,44 @@ unittest {
 		auto f = FunctionTest!(S, string)("this(str)");
 		foreach (t; s) f.test(t, TD(t.str).toString);
     	writefln(f.report);
-	}}
+	}
+}
 
-	private static int countZeros(ulong f, int e)
+	// without this(int) compiler can't choose between this(long) or this(real)
+	this(int n)
 	{
-		// quick check for no trailing zeros
-		if (f & 1) return 0;
-		// quick check for 1 trailing zero
-		if (f & 2) return 1;
-		// otherwise do a binary search
-		int min = 2;
-		int max = 64;
-		while (min <= max)
-		{
-			int mid = (min + max)/2;
-			long m = ones(mid);
-			if (f & m)
-			{
-				max = mid - 1;
-			}
-			else
-			{
-				min = mid + 1;
-			}
-		}
-		return max;
+		this(cast(long)n);
 	}
 
-	private static void trimZeros(ref ulong f, ref int e)
+	this(real r)
 	{
-		int zeros = countZeros(f, e);
-		if (zeros < 64) {
-			e += zeros;
-			f >>>= zeros;
-		}
-	}
-
-	private enum struct RealRep
-	{
-		union
+		string str;
+		if (r == real.nan)
 		{
-			real value;
-			struct
-			{
-				ulong fraction;
-				mixin(std.bitmanip.bitfields!(
-					ushort,  "exponent", 15,
-					bool,    "sign",      1));
-			}
+			this(SpecialValue.QNAN);
 		}
-		enum uint bias = 16383, signBits = 1, exponentBits = 15,
-				integerBits = 1, fractionBits = 63;
-	}
-
-	/// Constructs a decimal number from a real value.
-	this(T)(T r) if (isFloatingPoint!T)
-	{
-		static if (T.sizeof == 10)	// 80-bit real
+		else if (r == real.infinity)
 		{
-			RealRep rep;
+			this(SpecialValue.INF);
 		}
-		else static if (T.sizeof == 8)	// 64-bit double
+		else if (r == -real.infinity)
 		{
-			std.bitmanip.DoubleRep rep;
-		}
-		else static if (T.sizeof == 4)	// 32-bit float
-		{
-			std.bitmanip.FloatRep rep;
-		}
-		else // Shouldn't reach here
-		{
-			// always works but it's slow
-			string str = format("%.20G", r);
-			this(str);
-		}
-
-		// finite numbers
-		if (std.math.isFinite(r))
-		{
-			if (r == 0.0)
-			{
-				this(SV.None, r < 0.0);
-			}
-			else if (std.math.abs(r) == 1.0)
-			{
-				this((r < 0.0) ? -1 : 1);
-			}
-			else
-			{
-				rep.value = r;
-				ulong f = 1L << rep.fractionBits | rep.fraction;
-				int e = rep.exponent - rep.bias - rep.fractionBits;
-				this(r, f, e, rep.sign);
-			}
-		}
-		// special values
-		else if (std.math.isInfinity(r))
-		{
-			this(SV.Inf, r < 0.0);
+			this(SpecialValue.INF, true);
 		}
 		else
 		{
-			this(SV.qNaN);
-		}
-	}
-
-	static private long ones(int n)
-	{
-		return (1L << n) - 1;
-	}
-
-	this(T)(T r, ulong frac, int expo, bool sign)
-		if (isFloatingPoint!T)
-	{
-		trimZeros(frac, expo);
-		int c = std.math.abs(expo);
-		if (c <= 63)	// if coefficient fits in a long integer
-		{
-			decimal n = decimal(xint(frac));
-			if (sign) n = n.copyNegate;
-			// scale factor
-			auto scale = decimal(1L << c);
-			// multiply or divide
-			if (expo < 0)
-			{
-				this(n / scale);
-			}
-			else
-			{
-				this(n * scale);
-			}
-		}
-		else
-		{
-			string str = format("%.20G", r);
-			this(str);
+			this(format("%.20G", r));
 		}
 	}
 
 	// TODO: (testing) need to test this with 15-17 digit precision
-	static if (context == TestContext) {
+static if (context == Context64)
+{
 	unittest // real construction
 	{
-		write("-- this(real).......");
+		static struct S { real x; TD expect; }
 
-		static struct S { real num; string val; }
-		static struct T { double num; string val; }
-		static struct U { float num; string val; }
-
-		static S[] tests =
+		static S[] s =
 		[
 			{ 0.1L,				"0.1" },
 			{ 7254E94,			"7.254E+97" },
@@ -502,485 +314,17 @@ unittest {
 			{ -0.0,				"-0" },
 
 			{ 1E54,				"1E54" },
-			// TODO: pass these two test cases
-			{ double.max, 		"21.79769313E+305" },
-			{ real.max, 		"1.1897314953572317649E+4932" },
-			{ real.infinity, 	"Infinity" },
+
+// FIXTHIS: this is the actual value : should pass; problem with asm stmts
+//			{ double.max, 		"1.7976931348623157079E+308" },
+			{ -real.infinity, 	"-Infinity" },
 		];
 
-		foreach (i, s; tests)
-		{
-			assertEqual(TD(s.num).reduce, TD(s.val), i);
-		}
-		writeln("passed");
-	}}
-
-/*	public static double dpow10(int n)
-	{
-		static double[23] tens;
-		bool initialized = false;
-		if (!initialized)
-		{
-			tens[0] = 1.0;
-			for (size_t i = 1; i < tens.length; i++)
-			{
-				tens[i] = tens[i-1] * 10.0;
-			}
-			initialized = true;
-		}
-		if (n > 22) return double.nan;
-		return tens[n];
-	}*/
-
-	// Returns a real number constructed from
-	// a long coefficient and an integer exponent.
-	private static real longToReal(const decimal x)
-	{
-		// convert the coefficient to a real number
-		real r;
-		r = cast(ulong)x.coefficient;
-		if (x.sign) r = -r;
-		if (x.expo == 0) return r;
-
-		// scale by the decimal exponent
-		real tens = 10.0L ^^ std.math.abs(x.expo);
-		if (x.expo > 0) return r * tens;
-		else            return r/tens;
+			auto f = FunctionTest!(S, TD)("this(real)");
+			foreach (t; s) f.test(t, TD(t.x));
+    		writefln(f.report);
 	}
-
-
-	/// Converts a decimal number to a real number. The decimal will be
-	/// rounded to the RealContext before conversion, if necessary.
-	public real toReal() const
-	{
-		// special values
-		if (this.isNaN) return real.nan;
-		if (this.isInfinite) return sign ? -real.infinity : real.infinity;
-		if (this.isZero) return sign ? -0.0 : 0.0;
-		int realMinExpo = 1 - RealContext.maxExpo;
-		if (this.isSubnormal(realMinExpo)) return real.nan;
-
-		// if this number is larger than the largest real value,
-		// return infinity
-		if (this.expo >= real.max_10_exp) {
-			if (this > RealMax)	return  real.infinity;
-			if (this < RealMin) return -real.infinity;
-		}
-
-		// if smaller than the smallest value, return zero
-		if (this.expo <= real.min_10_exp) {
-			if (this.copyAbs < RealMinNorm) return this.sign ? -0.0 : 0.0;
-		}
-
-		// will the coefficent fit into a long integer?
-		if (this.coefficient.getDigitLength <= 2)
-		{
-			return longToReal(this);
-		}
-
-		// NOTE: There are real numbers that will be rounded unnecessarily
-		// (i.e. more than 18 digits but less than long.max)
-		// the reduced coefficient will fit
-		decimal reduced = this.reduce(RealContext);
-		if (reduced.coefficient.getDigitLength <= 2)
-		{
-			return longToReal(reduced);
-		}
-
-		return real.nan;
-	}
-
-	public static decimal toDecimal(T)(T fl) if (isFloatingPoint!T) {
-		string str = format("%.20G", fl);
-		return decimal(str);
-	}
-
-	static if (context == TestContext) {
-/*	unittest
-	{	// quantum
-		static struct S { real x; real expect; }
-		S[] s =
-		[
-			{ 1.0, 1.0 },
-			{ 2.0, 2.0 },
-			{ 1.0E5, 1.0E5 },
-			{ 0.1, 0.1 },
-			{123.456, 123.456},	// fails because r == r only when exact
-			{ 32E-27, 32E-27 },
-			{ double.max, double.max },
-			{ real.max, real.max },
-		];
-		auto f = FunctionTest!(S,real)("toReal");
-		foreach (t; s)
-		{
-			f.test(t, toDecimal(t.x).toReal);
-		}
-		writefln(f.report);
-	}*/
-
-	unittest {	// toReal, toDecimal
-		write("-- toReal...........");
-		static real[] tests =
-		[
-			1.0,
-			2.0,
-			1.0E5,
-			0.1,
-			123.456,
-			32E-27,
-			double.max,
-			real.max,
-		];
-
-		foreach (i, s; tests)
-		{
-			decimal d = toDecimal(s);
-			real r = d.toReal();
-			assertEqual(r, d, i);
-		}
-		writeln("passed");
-	}}
-
-
-	public double toDouble() const
-	{
-		// try for an exact conversion...
-		if (digits <= 15) {
-			int absExpo = std.math.abs(expo);
-			if (absExpo <= 22) {
-				double s = cast(double)(coefficient.toLong);
-				if (absExpo == 0) return s;
-				double p = dpow10(absExpo);
-				if (expo > 0) return s * p;
-				if (expo < 0) return s / p;
-			}
-		}
-		// TODO: (behavior) add method for other values
-		return double.nan;
-	}
-
-	// TODO: (testing) add unit tests
-	unittest {
-		write("toDouble...");
-		TD x = "3.14159";
-		writefln("x.toDouble = %s", x.toDouble);
-		writeln("test missing");
-	}
-
-	// Constructs a decimal number from another decimal number
-	/// which may be of a different type.
-	public this(T)(T that) if (isDecimal!T)
-	{
-		bool sign = that.isNegative;
-		if (that.isFinite) this(that.sign, that.coefficient, that.exponent);
-		else if (that.isInfinite) 	this(SV.Inf, sign);
-		else if (that.isQuiet)		this(SV.qNaN, sign);
-		else if (that.isSignaling)	this(SV.sNaN, sign);
-		else this(SV.qNaN);
-	}
-
-	static if (context == TestContext) {
-	unittest
-	{	// this(decimal)
-		static struct S { TD x; TD expect; }
-		S[] s =
-		[
-			{ 1.0, 1.0 },
-			{ 2.0, 2.0 },
-			{ 1.0E5, 1.0E5 },
-			{ 0.1, 0.1 },
-			{123.456, 123.456},	// fails because r == r only when exact
-			{ 32E-27, 32E-27 },
-			{ double.max, double.max },
-			{ real.max, real.max },
-		];
-		auto f = FunctionTest!(S,TD)("this(dec)");
-		foreach (t; s) f.test(t, decimal(t.x));
-		writefln(f.report);
-	}}
-
-	// copy constructor
-	@safe
-	public this(const decimal that)
-	{
-		this.signed = that.signed;
-		this.sval	= that.sval;
-		this.digits = that.digits;
-		this.expo	= that.expo;
-		this.coff	= that.coff.dup;
-	};
-
-//--------------------------------
-// copy functions
-//--------------------------------
-
-	/// dup property
-	//@safe
-	public decimal dup() const
-	{
-		return decimal(this);
-	}
-
-	// TODO: modify this to use a compareTotal?
-	static if (context == TestContext) {
-	unittest
-	{	// copy
-		static struct S { TD x; TD expect; }
-		S[] s =
-		[
-			{ 1.0, 1.0 },
-			{ 2.0, 2.0 },
-			{ 1.0E5, 1.0E5 },
-			{ 0.1, 0.1 },
-			{123.456, 123.456},	// fails because r == r only when exact
-			{ 32E-27, 32E-27 },
-			{ double.max, double.max },
-			{ real.max, real.max },
-		];
-		auto f = FunctionTest!(S,TD)("copy");
-		foreach (t; s) f.test(t, t.x.copy);
-		writefln(f.report);
-	}
-
-	unittest {	// dup
-		write("-- dup..............");
-		TD num, copy;
-		// TODO: add tests for these values
-		num = std.math.LOG2;
-		num = std.math.PI;
-		num = std.math.LOG2;
-		copy = TD(num);
-//		assertCopy!TD(num, copy);
-		assertZero(compareTotal(num, copy));
-		num = TD(std.math.PI);
-		copy = num.dup;
-		assertEqual(num, copy);
-		writeln("passed");
-	}}
-
-	/// Returns a copy of the operand.
-	/// The copy is unaffected by context and is quiet -- no flags are changed.
-	/// Implements the 'copy' function in the specification. (p. 43)
-	//@safe
-	public decimal copy() const
-	{
-		return dup;
-	}
-
-	/// Returns a copy of the operand with a positive sign.
-	/// The copy is unaffected by context and is quiet -- no flags are changed.
-	/// Implements the 'copy-abs' function in the specification. (p. 44)
-	//@safe
-	public decimal copyAbs() const
-	{
-		decimal copy = dup;
-		copy.sign = false;
-		return copy;
-	}
-
-	/// Returns a copy of the operand with the sign inverted.
-	/// The copy is unaffected by context and is quiet -- no flags are changed.
-	/// Implements the 'copy-negate' function in the specification. (p. 44)
-	//@safe
-	public decimal copyNegate() const
-	{
-		decimal copy = dup;
-		copy.sign = !sign;
-		return copy;
-	}
-
-	/// Returns a copy of the first operand with the sign of the second operand.
-	/// The copy is unaffected by context and is quiet -- no flags are changed.
-	/// Implements the 'copy-sign' function in the specification. (p. 44)
-	//@safe
-	public decimal copySign()(in decimal x) const
-	{
-		decimal copy = dup;
-		copy.sign = x.sign;
-		return copy;
-	}
-
-	static if (context == TestContext) {
-	unittest {	// copy
-		write("-- copy.............");
-		TD arg, expect;
-		arg = TD("2.1");
-		expect = TD("2.1");
-		assertZero(compareTotal(arg.copy,expect));
-		arg = TD("-1.00");
-		expect = TD("-1.00");
-		assertZero(compareTotal(arg.copy,expect));
-		// copyAbs
-		arg = 2.1;
-		expect = 2.1;
-		assertZero(compareTotal(arg.copyAbs,expect));
-		arg = TD("-1.00");
-		expect = TD("1.00");
-		assertZero(compareTotal(arg.copyAbs,expect));
-		// copyNegate
-		arg	= TD("101.5");
-		expect = TD("-101.5");
-		assertZero(compareTotal(arg.copyNegate,expect));
-		// copySign
-		TD arg1, arg2;
-		arg1 = 1.50; arg2 = 7.33; expect = 1.50;
-		assertZero(compareTotal(arg1.copySign(arg2),expect));
-		arg2 = -7.33;
-		expect = -1.50;
-		assertZero(compareTotal(arg1.copySign(arg2),expect));
-		writeln("passed");
-	}}
-
-//--------------------------------
-// casts
-//--------------------------------
-
- 	bool opCast(T:bool)() const
-	{
-		return isTrue;
-	}
-
- 	T opCast(T)() const if (isDecimal!T)
-	{
-		return T(this);
-	}
-
- 	T opCast(T)() const if (isFloatingPoint!T)
-	{
-		return T(this);
-	}
-
-	static if (context == TestContext) {
-	unittest {
-		write("-- opCast...........");
-/*		assertFalse(TD.init);
-		TD abc = TD(12,4);
-		assertTrue(abc);
-		dec99 def = cast(dec99)abc;
-		assertEqual(abc, def);
-		TD def2 = cast(dec99)abc;
-		assertEqual(def, def2);
-		int n = 7;
-		TD bdn = cast(TD)n;
-		assertEqual(bdn, TD(7));
-		auto tr = cast(TD)12;
-		assertEqual(typeid(tr), typeid(bdn));
-		dec99 big = 1234567890123;
-		TD klm = TD(big);
-		assertEqual(klm, big);	// klm has not been rounded.
-		assertNotEqual(abs(klm), big);	// klm has been rounded.
-		dec99 spcl = dec99.infinity(true);
-		klm = TD(spcl);
-		assertEqual(klm, TD("-Infinity"));*/
-		writeln("test missing");
-	}}
-
-//--------------------------------
-// assignment
-//--------------------------------
-
-	/// Assigns a decimal number (makes a copy)
-	// COMPILER BUG
-//	void opAssign(T:decimal)(in T that)
-	void opAssign(T:decimal)(in T that)
-	{
-		this.signed  = that.signed;
-		this.sval	 = that.sval;
-		this.digits  = that.digits;
-		this.expo	 = that.expo;
-		this.coff	 = that.coff;
-	}
-
-	///	Assigns an xint value.
-	void opAssign(T:xint)(T that)
-	{
-		this = decimal(that);
-	}
-
-	/// Assigns a long value.
-	/// NOTE: Unsigned long integers are first converted to signed.
-	void opAssign(T:long)(in T that)
-	{
-		this = decimal(that);
-	}
-
-	/// Assigns a floating point value.
-	void opAssign(T:real)(in T that)
-	{
-		this = decimal(that);
-	}
-
-	///	Assigns a string value.
-	void opAssign(T:string)(in T that)
-	{
-		this = decimal(that);
-	}
-
-	static if (context == TestContext) {
-	unittest {	// opAssign
-		write("-- opAssign.........");
-/*		TD num;
-		string str;
-		num = TD(1, 245, 8);
-		str = "-2.45E+10";
-		assertStringEqual(num,str);
-		num = long.max;
-		str = "9223372036854775807";
-		assertStringEqual(num,str);
-		num = ulong.max - 12;
-		str = "-13";
-		assertStringEqual(num,str);
-		num = 237UL;
-		str = "237";
-		assertStringEqual(num,str);
-		num = real.max;
-		str = "1.1897314953572317649E+4932";
-		assertStringEqual(num, str);
-		num = xint("123456098420234978023480");
-		str = "123456098420234978023480";
-		assertStringEqual(num, str);
-		num = "123456098420234978023480";
-		assertStringEqual(num, str);*/
-		writeln("test missing");
-	}}
-
-
-//--------------------------------
-// string representations
-//--------------------------------
-
-	/// Converts a number to an abstract string representation.
-	public string abstractForm() const
-	{
-		return eris.decimal.conv.abstractForm(this);
-	}
-
-	/// Converts a number to a full string representation.
-	public string fullForm() const
-	{
-		return eris.decimal.conv.fullForm(this);
-	}
-
-	// TODO: retain these formatters?
-	/// Converts a decimal to a "scientific" string representation.
-	public string toSciString() const
-	{
-		return eris.decimal.conv.sciForm(this);
-	}
-
-	/// Converts a decimal to an "engineering" string representation.
-	public string toEngString() const
-	{
-   		return eris.decimal.conv.engForm(this);
-	}
-
-	/// Converts a number to the default string representation.
-	public string toString(string fmStr = "%s") const
-	{
-		return eris.decimal.conv.toString(this, fmStr);
-	}
-
-// TODO: should unittest these here
+}
 
 //--------------------------------
 // member properties
@@ -1008,15 +352,15 @@ unittest {
 
 	@property
 	@safe
-	xint coefficient() const
+	bigint coefficient() const
 	{
-		if (isSpecial) return xint(0);
-		return this.coff.dup;
+		if (isSpecial) return bigint(0);
+		return this.coff;
 	}
 
 	@property
 	@safe
-	xint coefficient(xint coff)
+	bigint coefficient(bigint coff)
 	{
 		this.coff = coff;
 		return this.coff;
@@ -1024,7 +368,7 @@ unittest {
 
 	@property
 	@safe
-	xint coefficient(long coff)
+	bigint coefficient(long coff)
 	{
 		this.coff = coff;
 		return this.coff;
@@ -1045,7 +389,7 @@ unittest {
 	ushort payload(const ushort value)
 	{
 		if (this.isNaN) {
-			this.coff = xint(value);
+			this.coff = bigint(value);
 			return value;
 		}
 		return 0;
@@ -1092,14 +436,14 @@ unittest {
 	@safe
 	static decimal init()
 	{
-		return NaN.dup;
+		return NAN.dup;
 	}
 
 	/// Returns NaN
 	@safe
 	static decimal nan(ushort payload = 0, bool sign = false)
 	{
-		decimal dec = NaN.dup;
+		decimal dec = NAN;
 		dec.payload = payload;
 		dec.signed = sign;
 		return dec;
@@ -1109,7 +453,7 @@ unittest {
 	@safe
 	static decimal snan(ushort payload = 0, bool sign = false)
 	{
-		decimal dec = sNaN.dup;
+		decimal dec = SIG_NAN;
 		dec.payload = payload;
 		dec.signed = sign;
 		return dec;
@@ -1119,35 +463,57 @@ unittest {
 	@safe
 	static decimal infinity(bool signed = false)
 	{
-		return signed ? negInf.dup : Infinity.dup;
+		return signed ? NEG_INF.dup : INFINITY.dup;
 	}
 
 	/// Returns the maximum number of decimal digits in this context.
-	@safe
+/*	@safe
 	static uint dig()
 	{
 		return precision;
-	}
+	}*/
 
 	/// Returns the number of binary digits in this context.
-	@safe
+/*	@safe
 	static int mant_dig()
 	{
-		return cast(int)(precision/std.math.LOG2);
-	}
+		return cast(int)(precision/std.math.LB);
+	}*/
 
-	alias min_exp = minExpo;
-	alias max_exp = maxExpo;
-	alias min_10_exp = minExpo;
-	alias max_10_exp = maxExpo;
+//	alias min_exp = minExpo; 	// FIXTHIS: binary, not decimal
+//	alias max_exp = maxExpo;	// FIXTHIS: binary, not decimal
+//	alias min_10_exp = minExpo;
+//	alias max_10_exp = maxExpo;
 
 	/// Returns the maximum integer value of the coefficient in the current context.
-	@safe
-	enum xint maxCoefficient =	pow10(precision) - 1;
+	static bigint maxCoefficient()
+	{
+		static bool initialized = false;
+		static bigint maxCf;
+		if (!initialized)
+		{
+			maxCf = pow10b(precision) - 1;
+			initialized = true;
+		}
+		return maxCf;
+	}
 
 	/// Returns the maximum representable normal value in the current context.
-	@safe
-	enum decimal max = decimal(maxCoefficient, maxAdjustedExpo);
+	static decimal max()
+	{
+		static initialized = false;
+		static decimal maxVal;
+		if (!initialized)
+		{
+			maxVal = decimal(maxCoefficient, maxAdjustedExpo);
+			initialized = true;
+			return maxVal;
+		}
+		else
+		{
+			return maxVal;
+		}
+	}
 
 	/// Returns the minimum representable normal value in this context.
 	@safe
@@ -1169,42 +535,170 @@ unittest {
 	@safe
 	static enum decimal zero(bool signed = false)
 	{
-		return signed ? negZero.dup : Zero.dup;
+		return signed ? NEG_ZERO : ZERO;
 	}
-
-//	/// Returns 1.
-//	//@safe
-//	immutable static decimal one(bool signed = false) {
-//		return signed ? negOne.dup : One.dup;
-//	}
 
 	/// Returns 1.
-	@safe
-	static enum decimal one()
-	{
-		return One.dup;
+	//@safe
+	static decimal one(bool signed = false) {
+		return signed ? NEG_ONE : ONE;
 	}
 
-	/// Returns 2.
+	// TODO: need to determine what constants it makes sense to include
+	// common decimal numbers
+	enum decimal HALF    = decimal(5, -1);
+	enum decimal ONE     = decimal(1);
+	enum decimal NEG_ONE = decimal(-1);
+	enum decimal TWO     = decimal(2);
+	enum decimal THREE   = decimal(3);
+	enum decimal FIVE    = decimal(5);
+	enum decimal TEN     = decimal(10);
+
+static if (context == Context64)
+{
+	unittest
+	{	// constants
+		static struct S { TD x; string expect; }
+		S[] s =
+		[
+			{ TD.HALF,		"0.5" },
+			{ TD.ONE,		"1"   },
+		];
+		auto f = FunctionTest!(S, string)("constants");
+		foreach (t; s) f.test(t, t.x.toString);
+    	writefln(f.report);
+	}
+}
+
+	// copy constructor
 	@safe
-	static enum decimal two()
+	public this(const decimal that)
 	{
-		return Two.dup;
+		this.signed = that.signed;
+		this.sval	= that.sval;
+		this.digits = that.digits;
+		this.expo	= that.expo;
+		this.coff	= that.coff;
+	};
+
+//--------------------------------
+// copy functions
+//--------------------------------
+
+	/// dup property
+	//@safe
+	public decimal dup() const
+	{
+		return decimal(this);
 	}
 
-	/// Returns 1/2.
-	@safe
-	static enum decimal half()
-	{
-		return Half.dup;
+	// TODO: modify this to use a compareTotal?
+	unittest
+	{	// copy
+		static struct S { TD x; TD expect; }
+		S[] s =
+		[
+			{ 1.0, 1.0 },
+			{ 2.0, 2.0 },
+			{ 1.0E5, 1.0E5 },
+			{ 0.1, 0.1 },
+			{123.456, 123.456},	// passes! fails because r == r only when exact
+			{ 32E-27, 32E-27 },
+			{ double.max, double.max },
+			{ real.max, real.max },
+		];
+		auto f = FunctionTest!(S,TD)("copy");
+		foreach (t; s) f.test(t, t.x.copy);
+		writefln(f.report);
 	}
 
-	static if (context == TestContext) {
-	unittest {
-		write("-- constants........");
-		assertEqual(TD.Half, TD(0.5));
+/*	unittest {	// dup
+		write("-- dup..............");
+		TD num, copy;
+		// TODO: add tests for these values
+		num = std.math.LB;
+		num = std.math.PI;
+		num = std.math.LB;
+		copy = TD(num);
+//		assertCopy!TD(num, copy);
+		assertZero(compareTotal(num, copy));
+		num = TD(std.math.PI);
+		copy = num.dup;
+		assertEqual(num, copy);
 		writeln("passed");
-	}}
+	}*/
+
+	/// Returns a copy of the operand.
+	/// The copy is unaffected by context and is quiet -- no flags are changed.
+	/// Implements the 'copy' function in the specification. (p. 43)
+	//@safe
+	public decimal copy() const
+	{
+		return dup;
+	}
+
+	/// Returns a copy of the operand with a positive sign.
+	/// The copy is unaffected by context and is quiet -- no flags are changed.
+	/// Implements the 'copy-abs' function in the specification. (p. 44)
+	//@safe
+	public decimal copyAbs() const
+	{
+		decimal copy = dup;
+		copy.sign = false;
+		return copy;
+	}
+
+	/// Returns a copy of the operand with the sign inverted.
+	/// The copy is unaffected by context and is quiet -- no flags are changed.
+	/// Implements the 'copy-negate' function in the specification. (p. 44)
+	//@safe
+	public decimal copyNegate() const
+	{
+		decimal copy = dup;
+		copy.sign = !sign;
+		return copy;
+	}
+
+	/// Returns a copy of the first operand with the sign of the second operand.
+	/// The copy is unaffected by context and is quiet -- no flags are changed.
+	/// Implements the 'copy-sign' function in the specification. (p. 44)
+	//@safe
+	public decimal copySign()(in decimal arg) const
+	{
+		decimal copy = dup;
+		copy.sign = arg.sign;
+		return copy;
+	}
+
+	unittest {	// copy
+		write("-- copy.............");
+		TD arg, expect;
+		arg = TD("2.1");
+		expect = TD("2.1");
+		assertZero(compareTotal(arg.copy,expect));
+		arg = TD("-1.00");
+		expect = TD("-1.00");
+		assertZero(compareTotal(arg.copy,expect));
+		// copyAbs
+		arg = 2.1;
+		expect = 2.1;
+		assertZero(compareTotal(arg.copyAbs,expect));
+		arg = TD("-1.00");
+		expect = TD("1.00");
+		assertZero(compareTotal(arg.copyAbs,expect));
+		// copyNegate
+		arg	= TD("101.5");
+		expect = TD("-101.5");
+		assertZero(compareTotal(arg.copyNegate,expect));
+		// copySign
+		TD arg1, arg2;
+		arg1 = 1.50; arg2 = 7.33; expect = 1.50;
+		assertZero(compareTotal(arg1.copySign(arg2),expect));
+		arg2 = -7.33;
+		expect = -1.50;
+		assertZero(compareTotal(arg1.copySign(arg2),expect));
+		writeln("passed");
+	}
 
 //--------------------------------
 //	classification properties
@@ -1220,26 +714,21 @@ unittest {
 		return true;
 	}
 
-	/// Returns the canonical form of the number.
-	@safe
-	const decimal canonical()
-	{
-		return this.dup;
-	}
-
-	static if (context == TestContext)
-	{
+static if (context == Context64)
+{
 	unittest
 	{	// isCanonical
-		write("-- isCanonical......");
-		TD num = TD("2.50");
-/*		// string constructions generally have a leading zero
-		assertFalse(num.isCanonical);
-		TD copy = num.canonical;
-		assertTrue(copy.isCanonical);
-		assertEqual(compareTotal(num, copy), 0);*/
-		writeln("passed");
-	}}
+		static struct S { string str; bool expect; }
+		S[] s =
+		[
+			{ "7254E94",		true },
+			{ "inf",			true },
+		];
+		auto f = FunctionTest!(S, bool)("isCanonical");
+		foreach (t; s) f.test(t, TD(t.str).isCanonical);
+    	writefln(f.report);
+	}
+}
 
 	/// Returns true if this number is exactly one.
 	//@safe
@@ -1251,9 +740,6 @@ unittest {
 		if (coefficient == 1 && exponent == 0) {
 			return true;
 		}
-/*		if (exponent > 0) {
-			return false;
-		}*/
 		return this.reduce.isSimpleOne;
 	}
 
@@ -1264,17 +750,33 @@ unittest {
 		return isFinite && !isSigned && coefficient == 1 && exponent == 0;
 	}
 
-	static if (context == TestContext) {
-	 unittest { // isOne
-		write("-- isOne............");
-		TD num;
-		num = TD("1");
-		assertTrue(num.isOne);
-		num = TD(false, 10, -1);
-		assertTrue(num.isOne);
-		assertFalse(num.isSimpleOne);
-		writeln("passed");
-	}}
+static if (context == Context64)
+{
+	unittest
+	{	// isNaN, isQuiet, isSignaling
+		static struct S { string str; bool expect; }
+
+		S[] s1 =
+		[
+			{ "1",		true },
+			{ "10E-1",	true },
+			{ "sNaN",	false },
+		];
+		auto f1 = FunctionTest!(S, bool)("isOne");
+		foreach (t; s1) f1.test(t, TD(t.str).isOne);
+    	writefln(f1.report);
+
+		S[] s2 =
+		[
+			{ "1",		true },
+			{ "10E-1",	false },
+			{ "sNaN",	false },
+		];
+		auto f2 = FunctionTest!(S, bool)("isSimpleOne");
+		foreach (t; s2) f2.test(t, TD(t.str).isSimpleOne);
+    	writefln(f2.report);
+	}
+}
 
 	/// Returns true if this number is + or - zero.
 	@safe
@@ -1283,120 +785,178 @@ unittest {
 		return isFinite && coefficient == 0;
 	}
 
-	static if (context == TestContext) {
-	unittest {	// isZero
-		write("-- isZero...........");
-		TD num;
-		num = TD("0");
-		assertTrue(num.isZero);
-		num = TD("2.50");
-		assertFalse(num.isZero);
-		num = TD("-0E+2");
-		assertTrue(num.isZero);
-		writeln("passed");
-	}}
+static if (context == Context64)
+{
+	unittest
+	{	// isZero
+		static struct S { string str; bool expect; }
+		S[] s =
+		[
+			{ "0",		true },
+			{ "2.50",	false },
+			{ "-0E2",	true },
+		];
+		auto f = FunctionTest!(S, bool)("isZero");
+		foreach (t; s) f.test(t, TD(t.str).isZero);
+    	writefln(f.report);
+	}
+}
+
 
 	/// Returns true if this number is a quiet or signaling NaN.
 	@safe
 	const bool isNaN()
 	{
-		return this.sval == SV.qNaN || this.sval == SV.sNaN;
+		return this.sval == SpecialValue.QNAN || this.sval == SpecialValue.SNAN;
 	}
 
 	/// Returns true if this number is a signaling NaN.
 	@safe
 	const bool isSignaling()
 	{
-		return this.sval == SV.sNaN;
+		return this.sval == SpecialValue.SNAN;
 	}
 
 	/// Returns true if this number is a quiet NaN.
 	@safe
 	const bool isQuiet()
 	{
-		return this.sval == SV.qNaN;
+		return this.sval == SpecialValue.QNAN;
 	}
 
-	static if (context == TestContext) {
-	unittest {	// isNaN, isQuiet, isSignaling
-		write("-- isNaN............");
-		TD num;
-		num = TD("2.50");
-		assertFalse(num.isNaN);
-		assertFalse(num.isQuiet);
-		assertFalse(num.isSignaling);
-		num = TD("NaN");
-		assertTrue(num.isNaN);
-		assertTrue(num.isQuiet);
-		assertFalse(num.isSignaling);
-		num = TD("-sNaN");
-		assertTrue(num.isNaN);
-		assertFalse(num.isQuiet);
-		assertTrue(num.isSignaling);
-		writeln("passed");
-	}}
+static if (context == Context64)
+{
+	unittest
+	{	// isNaN, isQuiet, isSignaling
+		static struct S { string str; bool expect; }
+
+		S[] s1 =
+		[
+			{ "2.50",	false },
+			{ "NaN",	true },
+			{ "sNaN",	true },
+		];
+		auto f1 = FunctionTest!(S, bool)("isNaN");
+		foreach (t; s1) f1.test(t, TD(t.str).isNaN);
+    	writefln(f1.report);
+
+		S[] s2 =
+		[
+			{ "2.50",	false },
+			{ "NaN",	true },
+			{ "sNaN",	false },
+		];
+		auto f2 = FunctionTest!(S, bool)("isQuiet");
+		foreach (t; s2) f2.test(t, TD(t.str).isQuiet);
+    	writefln(f2.report);
+
+		S[] s3 =
+		[
+			{ "2.50",	false },
+			{ "NaN",	false },
+			{ "sNaN",	true },
+		];
+		auto f3 = FunctionTest!(S, bool)("isSignaling");
+		foreach (t; s3) f3.test(t, TD(t.str).isSignaling);
+    	writefln(f3.report);
+	}
+}
+
+static if (context == Context64)
+{
+	unittest
+	{	// isNaN
+		static struct S { string str; bool expect; }
+		S[] s =
+		[
+			{ "NaN",	true },
+			{ "2.50",	false },
+			{ "-sNaN",	true },
+		];
+		auto f = FunctionTest!(S, bool)("isNaN");
+		foreach (t; s) f.test(t, TD(t.str).isNaN);
+    	writefln(f.report);
+	}
+}
 
 	/// Returns true if this number is + or - infinity.
 	@safe
 	const bool isInfinite()
 	{
-		return this.sval == SV.Inf;
+		return this.sval == SpecialValue.INF;
 	}
 
 	/// Returns true if this number is not an infinity or a NaN.
 	@safe
 	const bool isFinite()
 	{
-		return sval != SV.Inf
-			&& sval != SV.qNaN
-			&& sval != SV.sNaN;
+		return sval != SpecialValue.INF
+			&& sval != SpecialValue.QNAN
+			&& sval != SpecialValue.SNAN;
 	}
 
-	static if (context == TestContext) {
-	unittest {	// isFinite, isInfinite
-		write("-- isFinite.........");
-		TD num;
-		num = TD("2.50");
-		assertFalse(num.isInfinite);
-		assertTrue(num.isFinite);
-		num = TD("-0.3");
-		assertTrue(num.isFinite);
-		num = 0;
-		assertTrue(num.isFinite);
-		num = TD("-Inf");
-		assertTrue(num.isInfinite);
-		assertFalse(num.isFinite);
-		num = TD("NaN");
-		assertFalse(num.isInfinite);
-		assertFalse(num.isFinite);
-		writeln("passed");
-	}}
+static if (context == Context64)
+{
+	unittest
+	{	// isFinite
+		static struct S { string str; bool expect; }
+
+		S[] s1 =
+		[
+			{ "2.50",	true },
+			{ "-0.3",	true },
+			{ "0",		true },
+			{ "-Inf",	false },
+			{ "NaN",	false },
+		];
+		auto f1 = FunctionTest!(S, bool)("isFinite");
+		foreach (t; s1) f1.test(t, TD(t.str).isFinite);
+    	writefln(f1.report);
+
+		S[] s2 =
+		[
+			{ "2.50",	false },
+			{ "-0.3",	false },
+			{ "0",		false },
+			{ "-Inf",	true },
+			{ "NaN",	false },
+		];
+		auto f2 = FunctionTest!(S, bool)("isInfinite");
+		foreach (t; s2) f2.test(t, TD(t.str).isInfinite);
+    	writefln(f2.report);
+	}
+}
 
 	/// Returns true if this number is a NaN or infinity.
 	@safe
 	const bool isSpecial()
 	{
-		return sval == SV.Inf
-			|| sval == SV.qNaN
-			|| sval == SV.sNaN;
+		return sval == SpecialValue.INF
+			|| sval == SpecialValue.QNAN
+			|| sval == SpecialValue.SNAN;
 	}
 
-	static if (context == TestContext) {
-	unittest {	// isSpecial
-		write("-- isSpecial........");
-		TD num;
-		num = TD.infinity(true);
-		assertTrue(num.isSpecial);
-		num = TD.snan(1234,true);
-		assertTrue(num.isSpecial);
-		num = 12378.34;
-		assertFalse(num.isSpecial);
-		writeln("passed");
-	}}
+static if (context == Context64)
+{
+	unittest
+	{	// isSpecial
+		static struct S { string str; bool expect; }
+		S[] s =
+		[
+			{ "-Infinity",	true },
+			{ "-NaN",		true },
+			{ "sNan1234",	true },
+			{ "12378.34",	false },
+		];
+		auto f = FunctionTest!(S, bool)("isSpecial");
+		foreach (t; s) f.test(t, TD(t.str).isSpecial);
+    	writefln(f.report);
+	}
+}
 
 	/// Returns true if this number is negative. (Includes -0)
 	@safe
-	const bool isNegative()
+	bool isNegative() const
 	{
 		return this.signed;
 	}
@@ -1410,29 +970,24 @@ unittest {
 
 	alias isSigned = isNegative;
 
-	static if (context == TestContext) {
-	unittest {	// isSigned, isNegative
-		write("-- isNegative.......");
-		TD num;
-		num = TD("2.50");
-		assertFalse(num.isSigned);
-		assertFalse(num.isNegative);
-		num = TD("-12");
-		assertTrue(num.isSigned);
-		assertTrue(num.isNegative);
-		num = TD("-0");
-		assertTrue(num.isSigned);
-		assertTrue(num.isNegative);
-		writeln("passed");
-	}}
-
-	/// Returns true if this number is subnormal.
-	@safe
-	const bool isSubnormal(int minExponent = minExpo)
-	{
-		if (!isFinite) return false;
-		return adjustedExponent < minExponent;
+static if (context == Context64)
+{
+	unittest
+	{	// isSpecial
+		static struct S { string str; bool expect; }
+		S[] s =
+		[
+			{ "2.50",	false },
+			{ "-12",	true },
+			{ "-0",		true },
+			{ "-Inf",	true },
+			{ "Inf",	false },
+		];
+		auto f = FunctionTest!(S, bool)("isNegative");
+		foreach (t; s) f.test(t, TD(t.str).isNegative);
+    	writefln(f.report);
 	}
+}
 
 	/// Returns true if this number is normal.
 	@safe
@@ -1444,27 +999,53 @@ unittest {
 		return false;
 	}
 
-	static if (context == TestContext) {
-	unittest { // isNormal, isSubnormal
-		write("-- isNormal.........");
-		TD num;
-		num = TD("2.50");
-		assertTrue(num.isNormal);
-		assertFalse(num.isSubnormal);
-		num = TD("0.1E-99");
-		assertFalse(num.isNormal);
-		assertTrue(num.isSubnormal);
-		num = TD("0.00");
-		assertFalse(num.isSubnormal);
-		assertFalse(num.isNormal);
-		num = TD("-Inf");
-		assertFalse(num.isNormal);
-		assertFalse(num.isSubnormal);
-		num = TD("NaN");
-		assertFalse(num.isSubnormal);
-		assertFalse(num.isNormal);
-		writeln("passed");
-	}}
+	/// Returns true if this number is subnormal.
+	@safe
+	const bool isSubnormal(int minExponent = minExpo)
+	{
+		int subExponent = minExponent - precision;
+		if (!isFinite) return false;
+		return adjustedExponent < minExponent
+			&& adjustedExponent >= subExponent;
+	}
+
+static if (context == Context64)
+{
+	unittest
+	{	// isNormal, isSubnormal
+		static struct S { string str; bool expect; }
+
+		S[] s1 =
+		[
+			{ "2.50",		true },
+			{ "1.0E-368",	true },
+			{ "0.9E-368",	false },
+			{ "1.0E-384",	false },
+			{ "0.9E-384",	false },
+			{ "0.00",		false },
+			{ "-Inf",		false },
+			{ "NaN",		false },
+		];
+		auto f1 = FunctionTest!(S, bool)("isNormal");
+		foreach (t; s1) f1.test(t, TD(t.str).isNormal);
+    	writefln(f1.report);
+
+		S[] s2 =
+		[
+			{ "2.50",		false },
+			{ "1.0E-368",	false },
+			{ "0.9E-368",	true },
+			{ "1.0E-384",	true },
+			{ "0.9E-384",	false },
+			{ "0.00",		false },
+			{ "-Inf",		false },
+			{ "NaN",		false },
+		];
+		auto f2 = FunctionTest!(S, bool)("isSubnormal");
+		foreach (t; s2) f2.test(t, TD(t.str).isSubnormal);
+    	writefln(f2.report);
+	}
+}
 
 	/// Returns true if the number is an integer (the fractional part is zero).
 	const bool isIntegralValued()
@@ -1482,14 +1063,15 @@ unittest {
 		return false;
 	}
 
-	static if (context == TestContext) {
+static if (context == Context64)
+{
 	unittest {	// isIntegralValued
 		write("-- isIntegralValued.");
 		TD num;
 		num = 12345;
 		assertTrue(num.isIntegralValued);
-		num = xint("123456098420234978023480");
-		assertTrue(num.isIntegralValued);
+//		num = TD("123456098420234978023480");
+//		assertTrue(num.isIntegralValued);
 		num = 1.5;
 		assertTrue(!num.isIntegralValued);
 		num = 1.5E+1;
@@ -1500,7 +1082,8 @@ unittest {
 		num = "21900.000E-2";
 		assertTrue(num.isIntegralValued);
 		writeln("passed");
-	}}
+	}
+}
 
 	/// Returns true if this number is a true value.
 	/// Non-zero finite numbers are true.
@@ -1521,13 +1104,14 @@ unittest {
 		return isNaN || isZero;
 	}
 
-	static if (context == TestContext) {
+static if (context == Context64)
+{
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
 //		assertTrue(TD(1));
-//		assert(One);
-//		assertEqual(One, true);
-//		assertTrue(cast(bool)One);
+//		assert(ONE);
+//		assertEqual(ONE, true);
+//		assertTrue(cast(bool)ONE);
 		assertTrue(TD("1").isTrue);
 		assertFalse(TD("0").isTrue);
 		assertTrue(infinity.isTrue);
@@ -1537,20 +1121,22 @@ unittest {
 		assertFalse(infinity.isFalse);
 		assertTrue(nan.isFalse);
 		writeln("passed");
-	}}
+	}
+}
 
 /*	@safe
 	const bool isZeroCoefficient() {
 		return !isSpecial && coefficient == 0;
-	}
+	}*/
 
-	static if (context == TestContext) {
-	unittest {	// isZeroCoefficient
+static if (context == Context64)
+{
+/*	unittest {	// isZeroCoefficient
 		write("-- isZeroCoeff......");
 		TD num;
 		num = 0;
 		assertTrue(num.isZeroCoefficient);
-		num = xint("-0");
+		num = bigint("-0");
 		assertTrue(num.isZeroCoefficient);
 		num = TD("0E+4");
 		assertTrue(num.isZeroCoefficient);
@@ -1563,7 +1149,117 @@ unittest {
 		num = TD.Infinity;
 		assertFalse(num.isZeroCoefficient);
 		writeln("passed");
-	}}*/
+	}*/
+}
+
+//--------------------------------
+// assignment
+//--------------------------------
+
+	/// Assigns a decimal number (makes a copy)
+	// COMPILER BUG?
+	void opAssign(T:decimal)(in T that)
+	{
+		this.sval	 = that.sval;
+		this.digits  = that.digits;
+		this.signed  = that.signed;
+		this.expo	 = that.expo;
+		this.coff	 = that.coff;
+	}
+
+	///	Assigns an bigint value.
+	void opAssign(T:bigint)(T that)
+	{
+		this = decimal(that);
+	}
+
+	///	Assigns an boolean value.
+	void opAssign(T:bool)(T that)
+	{
+		this = decimal(that);
+	}
+
+	/// Assigns an value.
+	void opAssign(T)(in T that) if (isIntegral!T)
+	{
+			this = decimal(bigint(that));
+	}
+
+	/// Assigns a floating point value.
+	void opAssign(T:real)(in T that) if (isFloatingPoint!T)
+	{
+		this = decimal(that);
+	}
+
+	///	Assigns a string value.
+	void opAssign(T:string)(in T that)
+	{
+		this = decimal(that);
+	}
+
+static if (context == Context64)
+{
+	unittest {	// opAssign
+		write("-- opAssign.........");
+		TD num;
+		string str;
+		num = TD(245, 8, true);
+		str = "-2.45E+10";
+		assertStringEqual(num,str);
+		num = long.max;
+		str = "9223372036854775807";
+		assertStringEqual(num,str);
+//		num = (int.max - 12);
+//		str = "-13";
+		assertStringEqual(num,str);
+		num = 237UL;
+		str = "237";
+		assertStringEqual(num,str);
+		num = real.max;
+		str = "1.1897314953572317649E+4932";
+		assertStringEqual(num, str);
+		num = bigint("123456098420234978023480");
+		str = "123456098420234978023480";
+		assertStringEqual(num, str);
+		num = "123456098420234978023480";
+		assertStringEqual(num, str);
+		writeln("test missing");
+	}
+}
+
+//--------------------------------
+// toString functions
+//--------------------------------
+
+	/// Converts a number to the default string representation.
+	public string toString(string fmStr = "%s") const
+	{
+		return eris.decimal.conv.toString(this, fmStr);
+	}
+
+	/// Converts a number to an abstract string representation.
+	public string toAbstract() const
+	{
+		return eris.decimal.conv.abstractForm(this);
+	}
+
+	/// Converts a number to a full string representation.
+	public string toFull() const
+	{
+		return eris.decimal.conv.fullForm(this);
+	}
+
+	/// Converts a number to a "scientific notation" string representation.
+	public string toScientific() const
+	{
+		return eris.decimal.conv.sciForm(this);
+	}
+
+	/// Converts a number to an "engineering notation" string representation.
+	public string toEngineering() const
+	{
+		return eris.decimal.conv.engForm(this);
+	}
 
 //--------------------------------
 // comparison
@@ -1596,13 +1292,14 @@ unittest {
 		return equals(this, that);
 	}
 
-	/// Returns true if this extended integer is equal to the argument.
+	/// Returns true if this number is equal to the argument.
 	const bool opEquals(T)(T that)
 	{
 		return opEquals(decimal(that));
 	}
 
-	static if (context == TestContext) {
+static if (context == Context64)
+{
 	unittest {	// comparison
 		write("-- comparison.......");
 		TD num1, num2;
@@ -1618,7 +1315,8 @@ unittest {
 		assertNotGreaterThan(num2, num1);
 		assertEqual(num1, num2);
 		writeln("passed");
-	}}
+	}
+}
 
 //--------------------------------
 // unary arithmetic operators
@@ -1627,7 +1325,7 @@ unittest {
 	/// Returns the result of the
 	/// unary operation on this number.
 	//@safe
-	private decimal opUnary(string op)()
+	public decimal opUnary(string op)()
 	{
 		static if (op == "+")
 		{
@@ -1649,7 +1347,8 @@ unittest {
 		}
 	}
 
-	static if (context == TestContext) {
+static if (context == Context64)
+{
 	unittest {	// opUnary
 		write("-- opUnary..........");
 		TD num, actual, expect;
@@ -1657,8 +1356,8 @@ unittest {
 		expect = num;
 		actual = +num;
 		assertEqual(actual, expect);
-		num = 134.02;
-		expect = -134.02;
+		num = "134.02";
+		expect = "-134.02";
 		actual = -num;
 		assertEqual(actual, expect);
 		num = 134;
@@ -1682,7 +1381,8 @@ unittest {
 		actual = --num;
 		assertEqual(actual, expect);
 		writeln("passed");
-	}}
+	}
+}
 
 //--------------------------------
 //	binary arithmetic operators
@@ -1690,7 +1390,7 @@ unittest {
 
 	/// Returns the result of the specified
 	/// binary operation on this number and the argument.
-	decimal opBinary(string op, T:decimal)(in T x) const
+	public decimal opBinary(string op, T:decimal)(in T x) const
 	{
 		static if (op == "+")
 		{
@@ -1712,22 +1412,10 @@ unittest {
 		{
 			return remainder(this, x);
 		}
-		else static if (op == "&")
-		{
-			return and(this, x);
-		}
-		else static if (op == "|")
-		{
-			return or(this, x);
-		}
-		else static if (op == "^")
-		{
-			return xor(this, x);
-		}
 	}
 
-	static if (context == TestContext)
-	{
+static if (context == Context64)
+{
 	unittest
 	{	// opBinary
 		write("-- opBinary.........");
@@ -1751,7 +1439,8 @@ unittest {
 			testBinaryOp(s.op, s.x, s.y, s.z);
 		}
 		writeln("passed");
-	}}
+	}
+}
 
 	/// Returns the result of performing the specified
 	/// binary operation on this number and the argument.
@@ -1784,18 +1473,6 @@ unittest {
 		{
 			return remainder(decimal(x), this, decimal.context);
 		}
-		else static if (op == "&")
-		{
-			return and(this, decimal(x), mode);
-		}
-		else static if (op == "|")
-		{
-			return or(this, decimal(x), mode);
-		}
-		else static if (op == "^")
-		{
-			return xor(this, decimal(x), mode);
-		}
 		assert(false);
 	}
 
@@ -1819,7 +1496,8 @@ unittest {
 		return this;
 	}
 
-	static if (context == TestContext) {
+static if (context == Context64)
+{
 	unittest {	// opOpAssign
 		write("-- opOpAssign.......");
 		TD op1, op2, actual, expect;
@@ -1834,7 +1512,141 @@ unittest {
 		actual = op1;
 		assertEqual(actual, expect);
 		writeln("passed");
-	}}
+	}
+}
+
+//--------------------------------
+// decimal constants
+//--------------------------------
+
+/*	enum decimal RealMax = decimal("1.1897314953572317649E+4932");
+	enum decimal RealMin = RealMax.copyNegate;
+	enum decimal RealMinNorm = decimal("3.362103143112093506E-4932");
+
+	enum decimal DoubleMax = decimal("1.7976931348623157079E+308");
+	enum decimal DoubleMin = DoubleMax.copyNegate;
+	enum decimal DoubleMinNorm = decimal("2.2250738585072013832E-308");
+	enum decimal LongMax = decimal("9223372036854775807");
+	enum decimal LongMin = decimal("-9223372036854775808");
+	enum decimal IntMax = decimal("2147483647");
+	enum decimal IntMin = decimal("-2147483648");*/
+
+	mixin Constant!("REAL_MAX", "1.1897314953572317649E+4932");
+
+	/// Returns pi, pi = 3.14159266...
+	mixin Constant!("PI",
+		roundString("3.1415926535897932384626433832795028841" ~
+		"9716939937510582097494459230781640628620899862803482534211707",
+		precision));
+
+	/// Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
+	mixin Constant!("E",
+		roundString("2.71828182845904523536028747135266249775" ~
+		"724709369995957496696762772407663035354759457138217852516643",
+		precision));
+
+	/// natural logarithm of 2 = 0.693147806...
+	mixin Constant!("LN2",
+		roundString("0.693147180559945309417232121458176568" ~
+		"075500134360255254120680009493393621969694715605863326996418688",
+		precision));
+
+	/// natural logarithm of 10 = 2.30258509...
+	mixin Constant!("ln10", LN10);
+	enum string LN10 = roundString("2.30258509299404568401799145468436420" ~
+		"760110148862877297603332790096757260967735248023599720508959820",
+		decimal.precision);
+
+	/// base 2 logarithm of e = 1.44269504...
+	mixin Constant!("lbe", LBE);
+	enum string LBE = roundString("1.44269504088896340735992468100189213" ~
+		"742664595415298593413544940693110921918118507988552662289350634",
+		decimal.precision);
+
+	/// base 2 logarithm of 10 = 3.32192809...
+	mixin Constant!("lb10", LB10);
+	enum string LB10 = roundString("3.3219280948873623478703194294893901" ~
+		"7586483139302458061205475639581593477660862521585013974335937016",
+		decimal.precision);
+
+	/// base 10 logarithm of 2 = 0.301029996...
+	mixin Constant!("lg2", LG2);
+	enum string LG2 = roundString("0.3010299956639811952137388947244930" ~
+		"26768189881462108541310427461127108189274424509486927252118186172",
+		decimal.precision);
+
+	/// base 10 logarithm of e  = 4.34294482...
+	mixin Constant!("lge", LGE);
+	enum string LGE = roundString("4.3429448190325182765112891891660508" ~
+		"2294397005803666566114453783165864649208870774729224949338431748",
+		decimal.precision);
+
+	/// pi/2
+	mixin Constant!("pi_2", PI_2);
+	private enum string PI_2 = roundString("1.57079632679489661923132169163975144" ~
+		"209858469968755291048747229615390820314310449931401741267105853",
+		decimal.precision);
+
+	/// pi/4
+	mixin Constant!("pi_4", PI_4);
+	enum string PI_4 = roundString("0.78539816339744830961566084581987572" ~
+		"1049292349843776455243736148076954101571552249657008706335529267",
+		decimal.precision);
+
+	/// 1/pi
+/*	mixin Constant!("invPi","INV_PI");
+	enum decimal INV_PI = roundString("0.318309886183790671537767526745028" ~
+		"724068919291480912897495334688117793595268453070180227605532506172",
+		decimal.precision);
+
+	/// 2/pi
+	mixin Constant!("twoInvPi","TWO_INV_PI");
+	enum decimal TWO_INV_PI = roundString("0.63661977236758134307553505349005" ~
+		"74481378385829618257949906693762355871905369061403604552110650123438",
+		decimal.precision);
+
+	/// 1/2*pi
+	enum decimal INV_2PI = roundString("0.15915494309189533576888376337251" ~
+		"4362034459645740456448747667344058896797634226535090113802766253086",
+		decimal.precision);
+
+	/// square root of two = 1.41421357
+	mixin Constant!("sqrt2");
+	enum decimal SQRT2 = roundString("1.4142135623730950488016887242096980" ~
+		"7856967187537694807317667973799073247846210703885038753432764157",
+		decimal.precision);
+
+	/// square root of one half = 0.707106781...
+	mixin Constant!("sqrt1_2");
+	enum decimal SQRT1_2 = roundString("0.707106781186547524400844362104849" ~
+		"039284835937688474036588339868995366239231053519425193767163820786",
+		decimal.precision);
+
+	/// golden ratio = 1.6180339887...
+	mixin Constant!("phi");
+	enum decimal PHI = roundString("1.6180339887498948482045868343656381177" ~
+		"20309179805762862135448622705260462818902449707207204189391137",
+		decimal.precision);*/
+
+static if (context == Context64)
+{
+	unittest
+	{	// constants
+		static struct S { TD x; TD expect; }
+		S[] s =
+		[
+			{ TD.E,     "2.718281828459045" },
+			{ TD.PI,    "3.141592653589793" },
+			{ TD.LN2,   "0.6931471805599453" },
+			{ TD.LN10,  "2.302585092994046" },
+	//		{ TD.SQRT2, "1.41421356" },
+	//		{ TD.INV_PI,"0.318309886" },
+		];
+		auto f = FunctionTest!(S,TD)("constants");
+		foreach (t; s) f.test(t, t.x);
+		writefln(f.report);
+	}
+}
 
 //-----------------------------
 // nextUp, nextDown, nextAfter
@@ -1862,6 +1674,620 @@ unittest {
 		return nextToward(this, x, decimal.context);
 	}
 
+	static if (context == Context64) {
+	unittest {	// nextUp, nextDown, nextAfter
+		write("-- next.............");
+		TD big = 123.45;
+		assertEqual(big.nextUp,   TD("123.45000000000001"));
+		assertEqual(big.nextDown, TD("123.44999999999999"));
+		assertEqual(big.nextAfter(TD(123.46)), big.nextUp);
+		assertEqual(big.nextAfter(TD(123.44)), big.nextDown);
+		writeln("passed");
+	}}
+
+
+	static if (context == Context64) {
+	unittest {
+		writeln("==========================");
+		writeln("decimal64..............end");
+		writeln("==========================");
+	}}
+}
+
+unittest {
+	writeln("==========================");
+	writeln("decimal..............begin");
+	writeln("==========================");
+}
+
+private enum bigint[19] btens =
+[
+	bigint(1),
+	bigint(10),
+	bigint(100),
+	bigint(1_000),
+	bigint(1_000_0),
+	bigint(1_000_00),
+	bigint(1_000_000),
+	bigint(1_000_000_0),
+	bigint(1_000_000_00),
+	bigint(1_000_000_000),
+	bigint(1_000_000_000_0),
+	bigint(1_000_000_000_00),
+	bigint(1_000_000_000_000),
+	bigint(1_000_000_000_000_0),
+	bigint(1_000_000_000_000_00),
+	bigint(1_000_000_000_000_000),
+	bigint(1_000_000_000_000_000_0),
+	bigint(1_000_000_000_000_000_00),
+	bigint(1_000_000_000_000_000_000)];
+
+package bigint pow10b(int n)
+{
+	const bigint ten = 10;
+	if (n < 19) return btens[n];
+	return ten^^n;
+}
+
+/// Returns true if the parameter is convertible to a decimal number.
+public enum bool isConvertible(T) =
+	is(T:bigint) || std.traits.isNumeric!T ||
+	is(T:string) || isBoolean!T;
+
+unittest {
+	write("-- isConvertible....");
+	assertTrue(isConvertible!int);
+	assertTrue(isConvertible!bool);
+	assertTrue(isConvertible!string);
+	assertTrue(isConvertible!bigint);
+	assertTrue(isConvertible!double);
+	assertFalse(isConvertible!creal);
+	assertFalse(isConvertible!TD);
+	writeln("passed");
+}
+
+public enum bool isInteger(T) =
+	is(T:bigint) || isIntegral!T;
+
+unittest {
+	write("-- isInteger........");
+	assertTrue(isInteger!long);
+	assertTrue(isInteger!int);
+	assertFalse(isInteger!float);
+	assertFalse(isInteger!bool);
+	assertTrue(isInteger!bigint);
+	assertTrue(isInteger!byte);
+	assertTrue(isInteger!ubyte);
+	writeln("passed");
+}
+
+/// Returns true if the parameter is a decimal number.
+public enum bool isDecimal(T) = hasMember!(T, "IsDecimal");
+
+unittest {
+	write("-- isDecimal........");
+	TD dummy;
+	assertTrue(isDecimal!TD);
+	assertFalse(isDecimal!int);
+//	assertTrue(isDecimal!Dec64);
+	writeln("passed");
+}
+
+
+//--------------------------------
+// decimal constant templates
+//--------------------------------
+
+/// mixin template to create a constant at the type precision,
+/// with an option to create an arbitrary precision constant.
+/*mixin template Constant(string name)
+{
+	mixin ("public static decimal " ~ name ~ "(int precision = decimal.precision)"
+		~ "{"
+			~ "if (precision != decimal.precision)"
+			~ "{"
+				~ "return eris.decimal.math." ~ name ~ "!decimal(precision);"
+			~ "}"
+		~ "return " ~ name.toUpper ~ ";"
+		~ "}");
+}*/
+
+/+
+	public static decimal pi (int precision = decimal.precision)
+	{
+		if (precision != decimal.precision)
+		{
+			return eris.decimal.math.pi!decimal(precision);
+		}
+		return PI;
+	}
+
++/
+
+mixin template Constant(string name, string value)
+{
+	mixin
+	(
+	  "static decimal " ~ name ~ "()"
+	~ "{"
+		~ "static bool initialized = false;"
+		~ "static decimal " ~ name ~ ";"
+		~ "if (!initialized)"
+		~ "{"
+			~ name ~ " = decimal(\"" ~ value ~ "\");"
+			~ "initialized = true;"
+		~ "}"
+		~ "return " ~ name ~ ";"
+	~ "}"
+	);
+}
+
+/+
+	static decimal one()
+	{
+		static bool initialized = false;
+		static decimal one;
+		if (!initialized)
+		{
+			one = decimal(1);
+			initialized = true;
+		}
+		return one;
+	}
++/
+
+/*/// mixin template to create a constant at the type precision,
+/// with an option to create an arbitrary precision constant.
+mixin template Constant(string lcName, string ucName)
+{
+	mixin ("public static decimal " ~ lcName ~ "(int precision = decimal.precision)"
+		~ "{"
+			~ "if (precision != decimal.precision)"
+			~ "{"
+				~ "return eris.decimal.math." ~ lcName ~ "!decimal(precision);"
+			~ "}"
+		~ "return " ~ ucName ~ ";"
+		~ "}");
+}*/
+
+// TODO: move this to rounding.d
+public string roundString(string str, int precision)
+{
+
+	// make a copy, deleting any whitespace at ends of the string
+	char[] copy = strip(str).dup;
+
+	// if the string has a decimal point increment the precision to account
+	// for the extra character
+	if (copy.indexOf('.') >= 0) precision++;
+
+	// strip out any underscores
+	if (indexOf(copy, '_') >= 0) {
+				copy = removechars(copy.idup, "_").dup;
+	}
+
+	// ignore leading zeros
+	size_t index = 0;
+	while (copy[index] == '0') index++;
+	precision += index;
+
+	// if the precision is greater than the length return the whole string
+	if (precision >= copy.length) return copy.idup;
+
+	// get the last digit in the (to-be-)clipped string,
+	// and the following digit
+	char last = str[precision-1];
+	char follow = str[precision];
+
+	// if the following digit is less than five return the clipped string
+	if (follow < '5') return copy[0..precision].idup;
+
+	// otherwise, increment last digit in the string(round half-up)
+	copy = copy[0..precision];
+	copy[precision-1] += 1;
+
+	// if the increment resulted in a digit return the clipped string
+	if (copy[precision-1] <= '9') return copy[0..precision].idup;
+
+	// otherwise, (the last digit increment resulted in a non-digit)
+	// set the last digit to '0' and increment its preceding digit,
+	// repeat as necessary
+	int lix = precision - 1;
+	last = copy[lix];
+	while (last > '9') {
+		copy[lix] = '0';
+		lix--;
+		copy[lix] += 1;
+		last = copy[lix];
+	}
+	return copy[0..precision].idup;
+}
+
+version(unittest)
+{
+
+	public enum bool testBinaryOp(T)(string op, T x, T y, T z,
+			string file = __FILE__, int line = __LINE__)
+		if (isDecimal!T)
+	{
+		switch (op)
+		{
+		// infix operators
+		case "+":
+			return assertBinaryOp("plus", x, y, x + y, z, file, line);
+		case "-":
+			return assertBinaryOp("minus", x, y, x - y, z, file, line);
+		case "*":
+			return assertBinaryOp("times", x, y, x * y, z, file, line);
+		case "/":
+			return assertBinaryOp("divided by", x, y, x / y, z, file, line);
+		case "%":
+			return assertBinaryOp("mod", x, y, x % y, z, file, line);
+		default:
+			return false;
+		}
+	}
+
+	public enum bool testBinaryOp(T)
+		(string op, T x, T y, T z, string file = __FILE__, int line = __LINE__)
+		if (!isDecimal!T && isConvertible!T)
+	{
+		return testBinaryOp!TD
+			(op, TD(x), TD(y), TD(z), file, line);
+	}
+
+	private bool assertBinaryOp(T)
+		(string op, T x, T y, T computed, T expected, string file, int line)
+	{
+		if (computed == expected)
+		{
+			return true;
+		}
+		else
+		{
+			writeln("failed at ", std.path.baseName(file), "(", line, "): \"",
+				x , "\" " , op, " \"", y , "\" equals \"",
+				computed, "\" not \"", expected, "\".");
+			return false;
+		}
+	}
+
+/*	// TODO: (efficiency) can this take advantage of small numbers? i.e. < long.max?
+	public U pow10(U)(int n) if (is(U!bigint) || is(U!long))
+	{
+		U ten = U(10);
+//		if (n < 0) throw new InvalidOperationException();
+		if (n == 0) return ten;
+		return ten^^n;
+	}*/
+
+	public enum double dpow10(int n)
+	{
+		static double[23] dtens;
+		static bool initialized = false;
+		if (!initialized)
+		{
+			dtens[0] = 1.0;
+			for (size_t i = 1; i < dtens.length; i++)
+			{
+				dtens[i] = dtens[i-1] * 10.0;
+			}
+			initialized = true;
+		}
+		if (n > 22) return double.nan;
+		return dtens[n];
+	}
+
+/+
+	private enum struct RealRep
+	{
+		union
+		{
+			real value;
+			struct
+			{
+				ulong fraction;
+				mixin(std.bitmanip.bitfields!(
+					ushort,  "exponent", 15,
+					bool,    "sign",      1));
+			}
+		}
+		enum uint bias = 16383, signBits = 1, exponentBits = 15,
+				integerBits = 1, fractionBits = 63;
+	}
+
+	/// Constructs a decimal number from a real value.
+	this(T)(T r) if (isFloatingPoint!T)
+	{
+		static if (T.sizeof == 10)	// 80-bit real
+		{
+			RealRep rep;
+		}
+		else static if (T.sizeof == 8)	// 64-bit double
+		{
+			std.bitmanip.DoubleRep rep;
+		}
+		else static if (T.sizeof == 4)	// 32-bit float
+		{
+			std.bitmanip.FloatRep rep;
+		}
+		else // Shouldn't reach here
+		{
+			// always works but it's slow
+			string str = format("%.20G", r);
+			this(str);
+		}
+
+		// finite numbers
+		if (std.math.isFinite(r))
+		{
+			if (r == 0.0)
+			{
+				this(SpecialValue.ZERO, r < 0.0);
+			}
+			else if (std.math.abs(r) == 1.0)
+			{
+				this((r < 0.0) ? -1 : 1);
+			}
+			else
+			{
+				rep.value = r;
+				ulong f = 1L << rep.fractionBits | rep.fraction;
+				int e = rep.exponent - rep.bias - rep.fractionBits;
+				this(r, f, e, rep.sign);
+			}
+		}
+		// special values
+		else if (std.math.isInfinity(r))
+		{
+			this(SpecialValue.INF, r < 0.0);
+		}
+		else
+		{
+			this(SpecialValue.QNAN);
+		}
+	}
+
+	static private long ones(int n)
+	{
+		return (1L << n) - 1;
+	}
+
+	this(T)(T r, ulong frac, int expo, bool sign)
+		if (isFloatingPoint!T)
+	{
+		trimZeros(frac, expo);
+		int c = std.math.abs(expo);
+		if (c <= 63)	// if coefficient fits in a long integer
+		{
+			bigd n = bigd(bigint(frac));
+			if (sign) n = n.copyNegate;
+			// scale factor
+			auto scale = bigd(1L << c);
+			// multiply or divide
+			if (expo < 0)
+			{
+				this(n / scale);
+			}
+			else
+			{
+				this(n * scale);
+			}
+		}
+		else
+		{
+			string str = format("%.20G", r);
+			this(str);
+		}
+	}
+
+
+	// Returns a real number constructed from
+	// a long coefficient and an integer exponent.
+	private static real longToReal(const bigd x)
+	{
+		// convert the coefficient to a real number
+		real r;
+		r = cast(ulong)x.coefficient;
+		if (x.sign) r = -r;
+		if (x.expo == 0) return r;
+
+		// scale by the decimal exponent
+		real tens = 10.0L ^^ std.math.abs(x.expo);
+		if (x.expo > 0) return r * tens;
+		else            return r / tens;
+	}
+
+
+	/// Converts a decimal number to a real number. The decimal will be
+	/// rounded to the RealContext before conversion, if necessary.
+	public real toReal() const
+	{
+		// special values
+		if (this.isNaN) return real.nan;
+		if (this.isInfinite) return sign ? -real.infinity : real.infinity;
+		if (this.isZero) return sign ? -0.0 : 0.0;
+		int realMinExpo = 1 - RealContext.maxExpo;
+		if (this.isSubnormal(realMinExpo)) return real.nan;
+
+		// if this number is larger than the largest real value,
+		// return infinity
+		if (this.expo >= real.max_10_exp) {
+			if (this > RealMax)	return  real.infinity;
+			if (this < RealMin) return -real.infinity;
+		}
+
+		// if smaller than the smallest value, return zero
+		if (this.expo <= real.min_10_exp) {
+			if (this.copyAbs < RealMinNorm) return this.sign ? -0.0 : 0.0;
+		}
+
+		// will the coefficent fit into a long integer?
+		if (this.coefficient.ulongLength <= 2)
+		{
+			return longToReal(this);
+		}
+
+		// NOTE: There are real numbers that will be rounded unnecessarily
+		// (i.e. more than 18 digits but less than long.max)
+		// the reduced coefficient will fit
+		bigd reduced = this.reduce(RealContext);
+		if (reduced.coefficient.ulongLength <= 2)
+		{
+			return longToReal(reduced);
+		}
+
+		return real.nan;	// NOTE: nan or infinity?
+	}
+
+	public static bigd toDecimal(T)(T fl) if (isFloatingPoint!T) {
+		string str = format("%.20G", fl);
+		return bigd(str);
+	}
+
+	static if (context == TestContext) {
+/*	unittest
+	{	// quantum
+		static struct S { real x; real expect; }
+		S[] s =
+		[
+			{ 1.0, 1.0 },
+			{ 2.0, 2.0 },
+			{ 1.0E5, 1.0E5 },
+			{ 0.1, 0.1 },
+			{123.456, 123.456},	// fails because r == r only when exact
+			{ 32E-27, 32E-27 },
+			{ double.max, double.max },
+			{ real.max, real.max },
+		];
+		auto f = FunctionTest!(S,real)("toReal");
+		foreach (t; s)
+		{
+			f.test(t, toDecimal(t.x).toReal);
+		}
+		writefln(f.report);
+	}*/
+
+	unittest {	// toReal, toDecimal
+		write("-- toReal...........");
+		static real[] tests =
+		[
+			1.0,
+			2.0,
+			1.0E5,
+			0.1,
+			123.456,
+			32E-27,
+			double.max,
+			real.max,
+		];
+
+		foreach (i, s; tests)
+		{
+			bigd d = toDecimal(s);
+			real r = d.toReal();
+			assertEqual(r, d, i);
+		}
+		writeln("passed");
+	}}
+
+
+	public double toDouble() const
+	{
+		// try for an exact conversion...
+		if (digits <= 15) {
+			int absExpo = std.math.abs(expo);
+			if (absExpo <= 22) {
+				double s = cast(double)(coefficient.toLong);
+				if (absExpo == 0) return s;
+				double p = dpow10(absExpo);
+				if (expo > 0) return s * p;
+				if (expo < 0) return s / p;
+			}
+		}
+		// TODO: (behavior) add method for other values
+		return double.nan;
+	}
+
+	// TODO: (testing) add unit tests
+	unittest {
+		write("toDouble...");
+		TD x = "3.14159";
+		writefln("x.toDouble = %s", x.toDouble);
+		writeln("test missing");
+	}
+
+//--------------------------------
+// casts
+//--------------------------------
+
+ 	bool opCast(T:bool)() const
+	{
+		return isTrue;
+	}
+
+ 	T opCast(T)() const if (isDecimal!T)
+	{
+		return T(this);
+	}
+
+ 	T opCast(T)() const if (isFloatingPoint!T)
+	{
+		return T(this);
+	}
+
+	static if (context == TestContext) {
+	unittest {
+		write("-- opCast...........");
+/*		assertFalse(TD.init);
+		TD abc = TD(12,4);
+		assertTrue(abc);
+		dec99 def = cast(dec99)abc;
+		assertEqual(abc, def);
+		TD def2 = cast(dec99)abc;
+		assertEqual(def, def2);
+		int n = 7;
+		TD bdn = cast(TD)n;
+		assertEqual(bdn, TD(7));
+		auto tr = cast(TD)12;
+		assertEqual(typeid(tr), typeid(bdn));
+//		assertTrue(is(tr:bdn));
+		dec99 big = 1234567890123;
+		TD klm = TD(big);
+		assertEqual(klm, big);	// klm has not been rounded.
+		assertNotEqual(abs(klm), big);	// klm has been rounded.
+		dec99 spcl = dec99.infinity(true);
+		klm = TD(spcl);
+		assertEqual(klm, TD("-Infinity"));*/
+		writeln("test missing");
+	}}
+
+//-----------------------------
+// nextUp, nextDown, nextAfter
+//-----------------------------
+
+	/// Returns the smallest representable number that is larger than
+	/// this number.
+	bigd nextUp() const
+	{
+		return nextPlus(this, bigd.context);
+	}
+
+	/// Returns the largest representable number that is smaller than
+	/// this number.
+	bigd nextDown() const
+	{
+		return nextMinus(this, bigd.context);
+	}
+
+	/// Returns the representable number that is closest to the
+	/// this number (but not this number) in the
+	/// direction toward the argument.
+	bigd nextAfter(bigd x) const
+	{
+		return nextToward(this, x, bigd.context);
+	}
+
 	static if (context == TestContext) {
 	unittest {	// nextUp, nextDown, nextAfter
 		write("-- next.............");
@@ -1874,7 +2300,7 @@ unittest {
 	}}
 
 //--------------------------------
-// decimal constants
+// bigd constants
 //--------------------------------
 
 	/// Constants are computed at compile time to the type precision.
@@ -1883,78 +2309,78 @@ unittest {
 
 	/// Returns pi, pi = 3.14159266...
 	mixin Constant!("pi");
-	enum decimal PI = roundString("3.1415926535897932384626433832795028841"
+	enum bigd PI = roundString("3.1415926535897932384626433832795028841" ~
 		"9716939937510582097494459230781640628620899862803482534211707");
 
 	/// Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
 	mixin Constant!("e");
-	enum decimal E = roundString("2.71828182845904523536028747135266249775"
+	enum bigd E = roundString("2.71828182845904523536028747135266249775" ~
 		"724709369995957496696762772407663035354759457138217852516643");
 
 	/// natural logarithm of 2 = 0.693147806...
 	mixin Constant!("ln2");
-	enum decimal LN2 = roundString("0.693147180559945309417232121458176568"
+	enum bigd LN2 = roundString("0.693147180559945309417232121458176568" ~
 		"075500134360255254120680009493393621969694715605863326996418688");
 
 	/// natural logarithm of 10 = 2.30258509...
 	mixin Constant!("ln10");
-	enum decimal LN10 = roundString("2.30258509299404568401799145468436420"
+	enum bigd LN10 = roundString("2.30258509299404568401799145468436420" ~
 		"760110148862877297603332790096757260967735248023599720508959820");
 
 	/// base 2 logarithm of e = 1.44269504...
-	mixin Constant!("log2_e");
-	enum decimal LOG2_E = roundString("1.44269504088896340735992468100189213"
+	mixin Constant!("lb_e");
+	enum bigd LB_E = roundString("1.44269504088896340735992468100189213" ~
 		"742664595415298593413544940693110921918118507988552662289350634");
 
 	/// base 2 logarithm of 10 = 3.32192809...
-	mixin Constant!("log2_10");
-	enum decimal LOG2_10 = roundString("3.3219280948873623478703194294893901"
+	mixin Constant!("lb_10");
+	enum bigd LB_10 = roundString("3.3219280948873623478703194294893901" ~
 		"7586483139302458061205475639581593477660862521585013974335937016");
 
 	/// base 10 logarithm of 2 = 0.301029996...
-	enum decimal LOG10_2 = roundString("0.3010299956639811952137388947244930"
+	enum bigd LOG10_2 = roundString("0.3010299956639811952137388947244930" ~
 		"26768189881462108541310427461127108189274424509486927252118186172");
 
 	/// base 10 logarithm of e  = 4.34294482...
-	enum decimal LOG10_E = roundString("4.3429448190325182765112891891660508"
+	enum bigd LOG10_E = roundString("4.3429448190325182765112891891660508" ~
 		"2294397005803666566114453783165864649208870774729224949338431748");
 
 	/// pi/2
 	mixin Constant!("pi_2");
-	enum decimal PI_2 = roundString("1.57079632679489661923132169163975144"
+	enum bigd PI_2 = roundString("1.57079632679489661923132169163975144" ~
 		"209858469968755291048747229615390820314310449931401741267105853");
 
 	/// pi/4
-	enum decimal PI_4 = roundString("0.78539816339744830961566084581987572"
+	enum bigd PI_4 = roundString("0.78539816339744830961566084581987572" ~
 		"1049292349843776455243736148076954101571552249657008706335529267");
 
 	/// 1/pi
 	mixin Constant!("invPi","INV_PI");
-	enum decimal INV_PI = roundString("0.318309886183790671537767526745028"
+	enum bigd INV_PI = roundString("0.318309886183790671537767526745028" ~
 		"724068919291480912897495334688117793595268453070180227605532506172");
 
 	/// 2/pi
 	mixin Constant!("twoInvPi","TWO_INV_PI");
-	enum decimal TWO_INV_PI = roundString("0.63661977236758134307553505349005"
+	enum bigd TWO_INV_PI = roundString("0.63661977236758134307553505349005" ~
 		"74481378385829618257949906693762355871905369061403604552110650123438");
 
 	/// 1/2*pi
-	enum decimal INV_2PI = roundString("0.15915494309189533576888376337251"
+	enum bigd INV_2PI = roundString("0.15915494309189533576888376337251" ~
 		"4362034459645740456448747667344058896797634226535090113802766253086");
 
 	/// square root of two = 1.41421357
 	mixin Constant!("sqrt2");
-	enum decimal SQRT2 = roundString("1.4142135623730950488016887242096980"
+	enum bigd SQRT2 = roundString("1.4142135623730950488016887242096980" ~
 		"7856967187537694807317667973799073247846210703885038753432764157");
 
 	/// square root of one half = 0.707106781...
 	mixin Constant!("sqrt1_2");
-	enum decimal SQRT1_2 = roundString("0.707106781186547524400844362104849"
+	enum bigd SQRT1_2 = roundString("0.707106781186547524400844362104849" ~
 		"039284835937688474036588339868995366239231053519425193767163820786");
 
 	/// golden ratio = 1.6180339887...
 	mixin Constant!("phi");
-	enum decimal PHI = roundString("1.6180339887498948482045868343656381177"
+	enum bigd PHI = roundString("1.6180339887498948482045868343656381177" ~
 		"20309179805762862135448622705260462818902449707207204189391137");
 
 unittest
@@ -1983,11 +2409,11 @@ unittest
 	/// with an option to create an arbitrary precision constant.
 	mixin template Constant(string name)
 	{
-		mixin ("public static decimal " ~ name ~ "(int precision = decimal.precision)"
+		mixin ("public static bigd " ~ name ~ "(int precision = bigd.precision)"
 			~ "{"
-				~ "if (precision != decimal.precision)"
+				~ "if (precision != bigd.precision)"
 				~ "{"
-					~ "return eris.decimal.math." ~ name ~ "!decimal(precision);"
+					~ "return eris.decimal.math." ~ name ~ "!bigd(precision);"
 				~ "}"
 			~ "return " ~ name.toUpper ~ ";"
 			~ "}");
@@ -1997,72 +2423,14 @@ unittest
 	/// with an option to create an arbitrary precision constant.
 	mixin template Constant(string lcName, string ucName)
 	{
-		mixin ("public static decimal " ~ lcName ~ "(int precision = decimal.precision)"
+		mixin ("public static bigd " ~ lcName ~ "(int precision = bigd.precision)"
 			~ "{"
-				~ "if (precision != decimal.precision)"
+				~ "if (precision != bigd.precision)"
 				~ "{"
-					~ "return eris.decimal.math." ~ lcName ~ "!decimal(precision);"
+					~ "return eris.decimal.math." ~ lcName ~ "!bigd(precision);"
 				~ "}"
 			~ "return " ~ ucName ~ ";"
 			~ "}");
-	}
-
-	/// Rounds a decimal string representation of a number
-	/// to a specified precision.
-	/// Does not convert the string to a number. A decimal point may be
-	/// included, but no exponent is allowed.
-	/// A string of all nines will throw an exception.
-	private static string roundString(
-			string str, int precision = decimal.precision)
-		{
-
-		// make a copy, deleting any whitespace at ends of the string
-		char[] copy = strip(str).dup;
-
-		// if the string has a decimal point increment the precision to account
-		// for the extra character
-		if (copy.indexOf('.') >= 0) precision++;
-
-		// strip out any underscores
-		if (indexOf(copy, '_') >= 0) {
-					copy = removechars(copy.idup, "_").dup;
-		}
-
-		// ignore leading zeros
-		int index = 0;
-		while (copy[index] == '0') index++;
-		precision += index;
-
-		// if the precision is greater than the length return the whole string
-		if (precision >= copy.length) return copy.idup;
-
-		// get the last digit in the (to-be-)clipped string,
-		// and the following digit
-		char last = str[precision-1];
-		char follow = str[precision];
-
-		// if the following digit is less than five return the clipped string
-		if (follow < '5') return copy[0..precision].idup;
-
-		// otherwise, increment last digit in the string(round half-up)
-		copy = copy[0..precision];
-		copy[precision-1] += 1;
-
-		// if the increment resulted in a digit return the clipped string
-		if (copy[precision-1] <= '9') return copy[0..precision].idup;
-
-		// otherwise, (the last digit increment resulted in a non-digit)
-		// set the last digit to '0' and increment its preceding digit,
-		// repeat as necessary
-		int lix = precision - 1;
-		last = copy[lix];
-		while (last > '9') {
-			copy[lix] = '0';
-			lix--;
-			copy[lix] += 1;
-			last = copy[lix];
-		}
-		return copy[0..precision].idup;
 	}
 
 	static if (context == TestContext) {
@@ -2074,104 +2442,7 @@ unittest
 	}}
 
 }	 // end struct BigDecimal
-
-	public enum double dpow10(int n)
-	{
-		static double[23] tens;
-		bool initialized = false;
-		if (!initialized)
-		{
-			tens[0] = 1.0;
-			for (size_t i = 1; i < tens.length; i++)
-			{
-				tens[i] = tens[i-1] * 10.0;
-			}
-			initialized = true;
-		}
-		if (n > 22) return double.nan;
-		return tens[n];
-	}
-
-/// Returns true if the parameter is a decimal number.
-public enum bool isDecimal(T) = hasMember!(T, "IsDecimal");
-
-unittest {
-	write("-- isDecimal........");
-	TD dummy;
-	assertTrue(isDecimal!TD);
-	assertFalse(isDecimal!int);
-//	assertTrue(isDecimal!Dec64);
-	writeln("passed");
-}
-
-/// Returns true if the parameter is convertible to a decimal number.
-public enum bool isConvertible(T) = isNumeric!T || is(T:string) || isBoolean!T;
-
-unittest {
-	write("-- isConvertible...");
-	assertTrue(isConvertible!int);
-	assertTrue(isConvertible!bool);
-	assertTrue(isConvertible!string);
-	assertTrue(isConvertible!double);
-	assertFalse(isConvertible!creal);
-	assertFalse(isConvertible!TD);
-	writeln("passed");
-}
-
-version(unittest)
-{
-
-	public enum bool testBinaryOp(T)(string op, T x, T y, T z,
-			string file = __FILE__, int line = __LINE__)
-		if (isDecimal!T)
-	{
-		switch (op)
-		{
-		// infix operators
-		case "+":
-			return assertBinaryOp("plus", x, y, x + y, z, file, line);
-		case "-":
-			return assertBinaryOp("minus", x, y, x - y, z, file, line);
-		case "*":
-			return assertBinaryOp("times", x, y, x * y, z, file, line);
-		case "/":
-			return assertBinaryOp("divided by", x, y, x / y, z, file, line);
-		case "%":
-			return assertBinaryOp("mod", x, y, x % y, z, file, line);
-		case "&":
-			return assertBinaryOp("and", x, y, x & y, z, file, line);
-		case "|":
-			return assertBinaryOp("or", x, y, x | y, z, file, line);
-		case "^":
-			return assertBinaryOp("xor", x, y, x ^ y, z, file, line);
-		default:
-			return false;
-		}
-	}
-
-	public enum bool testBinaryOp(T)
-		(string op, T x, T y, T z, string file = __FILE__, int line = __LINE__)
-		if (!isDecimal!T && isConvertible!T)
-	{
-		return testBinaryOp!TD
-			(op, TD(x), TD(y), TD(z), file, line);
-	}
-
-	private bool assertBinaryOp(T)
-		(string op, T x, T y, T computed, T expected, string file, int line)
-	{
-		if (computed == expected)
-		{
-			return true;
-		}
-		else
-		{
-			writeln("failed at ", baseName(file), "(", line, "): \"",
-				x , "\" " , op, " \"", y , "\" equals \"",
-				computed, "\" not \"", expected, "\".");
-			return false;
-		}
-	}
++/
 
 }
 

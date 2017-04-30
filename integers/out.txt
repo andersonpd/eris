@@ -1,0 +1,6 @@
+integer: ["integer"]
+Building integer configuration "application", build type debug.
+Compiling...
+Linking...
+Can't run '\bin\link.exe', check PATH
+FAIL .dub\build\application-debug-windows-x86-dmd-7C56DD5E55735A728DDE7705DA03F939 integer executable
