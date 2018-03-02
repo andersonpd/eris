@@ -3,13 +3,13 @@ import std.math;
 import std.stdio;
 import std.string;
 import std.traits;
+//import std.BigInt;
 
 import eris.decimal;
 import eris.decimal.conv;
-import eris.decimal.rounding;
 import eris.decimal.logical;
 import eris.decimal.arithmetic;
-import eris.test.assertion;
+import eris.decimal.asserts;
 import eris.decimal.test;
 
 version(unittest)
@@ -21,56 +21,13 @@ version(unittest)
 }
 else
 {
-/*
-	struct FloatRep
-	{
-    	union
-    	{
-        	float value;
-        	mixin(bitfields!(
-                  	uint,  "fraction", 23,
-                  	ubyte, "exponent",  8,
-                  	bool,  "sign",      1));
-    	}
-    	enum uint bias = 127, fractionBits = 23, exponentBits = 8, signBits = 1;
-	}
-
-	struct DoubleRep
-	{
-    	union
-    	{
-        	double value;
-        	mixin(bitfields!(
-                  	ulong,   "fraction", 52,
-                  	ushort,  "exponent", 11,
-                  	bool,    "sign",      1));
-    	}
-    	enum uint bias = 1023, signBits = 1, fractionBits = 52, exponentBits = 11;
-	}
-*/
-
-	private enum struct RealRep
-	{
-		union
-		{
-			real value;
-			struct
-			{
-				ulong fraction;
-				mixin(std.bitmanip.bitfields!(
-					ushort,  "exponent", 15,
-					bool,    "sign",      1));
-			}
-		}
-		enum uint bias = 16383, signBits = 1, exponentBits = 15,
-				integerBits = 1, fractionBits = 63;
-	}
-
-	void main()
+void main()
 {
 
+	alias dec64 = Decimal!Bid64Context;
+
 	/// Constructs a decimal number from a real value.
-	D64 convert(T)(T r) if (isFloatingPoint!T)
+	dec64 convert(T)(T r) if (isFloatingPoint!T)
 	{
 		if (!__ctfe) writefln("r = %s", r);
 
@@ -90,7 +47,7 @@ else
 		{
 			// always works but it's slow
 			string str = format("%.20G", r);
-			D64(str);
+			dec64(str);
 		}
 
 		// finite numbers
@@ -98,11 +55,11 @@ else
 		{
 			if (r == 0.0)
 			{
-				return D64.zero(r < 0.0);
+				return dec64.zero(r < 0.0);
 			}
 			else if (std.math.fabs(r) == 1.0)
 			{
-				return D64.one(r < 0.0);
+				return dec64.one(r < 0.0);
 			}
 			const T maxInt = std.math.scalbn(1.0, rep.fractionBits + 1);
 			real i;
@@ -111,27 +68,27 @@ else
 			{
 //				writeln("integer");
 				rep.value = r;
-				bigint f = bigint(1) << rep.fractionBits | rep.fraction;
+				BigInt f = BigInt(1) << rep.fractionBits | rep.fraction;
 				int e = rep.exponent - rep.bias;
-				bigint val = f >> (rep.fractionBits - e);
-				D64 dec = D64(val, 0, rep.sign);
+				BigInt val = f >> (rep.fractionBits - e);
+				dec64 dec = dec64(val, 0, rep.sign);
 				return dec; //.reduce;
 			}
 			else
 			{
 				writeln("string");
 				string str = format("%.20G", r);
-				return D64(str);
+				return dec64(str);
 			}
 		}
 		// special values
 		else if (std.math.isInfinity(r))
 		{
-			return D64.infinity(r < 0.0);
+			return dec64.infinity(r < 0.0);
 		}
 		else
 		{
-			return D64.nan;
+			return dec64.nan;
 		}
 	}
 
@@ -145,10 +102,10 @@ else
 	writeln(convert!float(16777216));
 	writeln(convert!double(16777216));
 	writeln(convert!double(1234.0E12));
-	D64 dec;
-	D64 dec1;
-	D64 dec2;
-	D64 dec3;
+	dec64 dec;
+	dec64 dec1;
+	dec64 dec2;
+	dec64 dec3;
 
 	separator;
 
@@ -156,20 +113,20 @@ else
 	header("construction");
 
 	// this(decimal)
-	dec = D64(127435,-34,true);
+	dec = dec64(127435,-34,true);
 	writefln("dec = %s", dec);
-	writefln("D64(dec) = %s", D64(dec));
+	writefln("dec64(dec) = %s", dec64(dec));
 
 	// this(coefficient)
-	writefln("D64(198) = %s", D64(198));
-	writefln("D64(-623) = %s", D64(-623));
+	writefln("dec64(198) = %s", dec64(198));
+	writefln("dec64(-623) = %s", dec64(-623));
 	// this(coefficient, expo)
-	writefln("D64(3,5) = %s", D64(3,5));
+	writefln("dec64(3,5) = %s", dec64(3,5));
 	// this(coefficient, expo, sign)
-	writefln("D64(12,-3,true) = %s", D64(12,-3,true));
+	writefln("dec64(12,-3,true) = %s", dec64(12,-3,true));
 	// this(real)
-	writefln("D64(12.3E6) = %s", D64(12.3E6));
-	dec = D64(12.3E6);
+	writefln("dec64(12.3E6) = %s", dec64(12.3E6));
+	dec = dec64(12.3E6);
 	writefln("dec = %s", dec);
 	writefln("dec.toAbstract = %s", dec.toAbstract);
 	writefln("dec.toFull = %s", dec.toFull);
@@ -177,56 +134,58 @@ else
 	writefln("dec.toEngineering = %s", dec.toEngineering);
 
 	// this(string)
-	writefln("D64(\"1.23E6\") = %s", D64("1.23E6"));
-	dec = D64("12.3E6");
+	writefln("dec64(\"123_456_789\") = %s", dec64("123_456_789"));
+//	dec = dec64("12.3E6");
+	writefln("dec64(\"1.23E6\") = %s", dec64("1.23E6"));
+	dec = dec64("12.3E6");
 	writefln("dec = %s", dec);
 	writefln("dec.toAbstract = %s", dec.toAbstract);
 	writefln("dec.toScientific = %s", dec.toScientific);
 	writefln("dec.toEngineering = %s", dec.toEngineering);
 	// this(bool)
-	writefln("D64(true) = %s", D64(true));
-	writefln("D64(false) = %s", D64(false));
+	writefln("dec64(true) = %s", dec64(true));
+	writefln("dec64(false) = %s", dec64(false));
 
 	header("member properties");
-	dec = D64(1259, 12, true);
+	dec = dec64(1259, 12, true);
 	writefln("dec = %s", dec);
-	writefln("dec.coefficient = %s", dec.coefficient);
-	writefln("dec.coefficient(2360) = %s", dec.coefficient(2360));
+	writefln("dec.coff = %s", dec.coff);
+	writefln("dec.coff(2360) = %s", dec.coff(2360));
 	writefln("dec = %s", dec);
-	writefln("dec.exponent = %s", dec.exponent);
-	writefln("dec.exponent(-98) = %s", dec.exponent(-98));
+	writefln("dec.expo = %s", dec.expo);
+	writefln("dec.expo(-98) = %s", dec.expo(-98));
 	writefln("dec = %s", dec);
 	writefln("dec.sign = %s", dec.sign);
 	writefln("dec.sign(false) = %s", dec.sign(false));
 	writefln("dec = %s", dec);
 	writefln("dec.adjustedExponent = %s", dec.adjustedExponent);
-	writefln("dec.getDigits = %s", dec.getDigits);
+//	writefln("dec.digits = %s", dec.digits);
 
 	header("floating point properties");
 	// also tests this(special value, sign)
-	writefln("D64.init = %s", D64.init);
-	writefln("D64.infinity = %s", D64.infinity);
-	writefln("D64.nan = %s", D64.nan);
-	writefln("D64.snan = %s", D64.snan);
-	writefln("D64.precision = %s", D64.precision);
-	writefln("D64.epsilon = %s", D64.epsilon);
-	writefln("D64.maxExpo = %s", D64.maxExpo);
-	writefln("D64.minExpo = %s", D64.minExpo);
-	writefln("D64.max = %s", D64.max);
-	writefln("D64.min = %s", D64.min);
-	writefln("D64.min_normal = %s", D64.min_normal);
-    writefln("D64.radix = %s", D64.radix);
+	writefln("dec64.init = %s", dec64.init);
+	writefln("dec64.infinity = %s", dec64.infinity);
+	writefln("dec64.nan = %s", dec64.nan);
+	writefln("dec64.snan = %s", dec64.snan);
+	writefln("dec64.precision = %s", dec64.precision);
+	writefln("dec64.epsilon = %s", dec64.epsilon);
+	writefln("dec64.maxExpo = %s", dec64.maxExpo);
+	writefln("dec64.minExpo = %s", dec64.minExpo);
+	writefln("dec64.max = %s", dec64.max);
+	writefln("dec64.min = %s", dec64.min);
+	writefln("dec64.min_normal = %s", dec64.min_normal);
+    writefln("dec64.radix = %s", dec64.radix);
 
 	header("constants");
-	writefln("D64.ONE = %s", D64.ONE);
-	writefln("D64.TWO = %s", D64.TWO);
-	writefln("D64.TEN = %s", D64.TEN);
-	writefln("D64.HALF = %s", D64.HALF);
-	writefln("D64.PI = %s", D64.PI);
-    writefln("D64.E = %s", D64.E);
-	writefln("D64.LN2 = %s", D64.LN2);
+	writefln("dec64.ONE = %s", dec64.ONE);
+	writefln("dec64.TWO = %s", dec64.TWO);
+	writefln("dec64.TEN = %s", dec64.TEN);
+	writefln("dec64.HALF = %s", dec64.HALF);
+	writefln("dec64.PI = %s", dec64.PI);
+    writefln("dec64.E = %s", dec64.E);
+	writefln("dec64.LN2 = %s", dec64.LN2);
 	comment("note extra precision");
-	writefln("D64.REAL_MAX = %s", D64.REAL_MAX);
+	writefln("dec64.REAL_MAX = %s", dec64.REAL_MAX);
 
 	header("copy");
 	dec1 = "3098.3235";
@@ -240,8 +199,8 @@ else
 
 	header("assignment");
 	writefln("dec = %s", dec);
-	dec = D64(3069,25,false);
-	code("dec = D64(3069,25,false)");
+	dec = dec64(3069,25,false);
+	code("dec = dec64(3069,25,false)");
 	writefln("dec = %s", dec);
 	dec = -567L;
 	code("dec = -567L");
@@ -317,34 +276,31 @@ else
 
 	title("rounding.d");
 	header("decimal digits");
-	bigint big = "0xFA2988_18830DD_658889AB_EFDCA45B_20933ABC_54AECCD0";
+	BigInt big = "0xFA2988_18830DD_658889AB_EFDCA45B_20933ABC_54AECCD0";
 	writefln("big = %X", big);
-	auto len = big.ulongLength;
-	writefln("big.ulongLength = %X", big.ulongLength);
-	writefln("ulongDigit(big, 3) = %X", ulongDigit(big, 3));
-	writefln("ulongDigit(big, 2) = %X", ulongDigit(big, 2));
-	writefln("ulongDigit(big, 1) = %X", ulongDigit(big, 1));
-	writefln("ulongDigit(big, 0) = %X", ulongDigit(big, 0));
-	writeln;
-	writefln("big.uintLength = %X", big.uintLength);
-	writefln("uintDigit(big, 3) = %X", uintDigit(big, 3));
-	writefln("uintDigit(big, 2) = %X", uintDigit(big, 2));
-	writefln("uintDigit(big, 1) = %X", uintDigit(big, 1));
-	writefln("uintDigit(big, 0) = %X", uintDigit(big, 0));
-	writeln;
 	writefln("big = %s", big);
-	writefln("truncDigits(big) = %s", truncDigits(big));
 	writefln("firstDigit(big) = %s", firstDigit(big));
 	writefln("lastDigit(big) = %s", lastDigit(big));
 	writeln;
-/*	writefln("ulongDigit2(big, 3) = %X", ulongDigit2(big, 3));
-	writefln("ulongDigit2(big, 2) = %X", ulongDigit2(big, 2));
-	writefln("ulongDigit2(big, 1) = %X", ulongDigit2(big, 1));
-	writefln("ulongDigit2(big, 0) = %X", ulongDigit2(big, 0));*/
+	//@system because opOpAssign is @system
+	auto b = BigInt("0xABCD_5678_FFFF_FFFF_1234");
+	auto e = BigInt("0x100000000");
 
+//	b += 12345;
+	writefln("%X",b); // BigInt("1_000_012_345")
+	auto c = b >> 64;
+	c <<= 64;
+	writefln("%X",c); // BigInt("1_000_012_345")
+	writefln("%X",e); // BigInt("1_000_012_345")
+    auto d = b % e;
+	writefln("%X",d); // BigInt("1_000_012_345")
+	b -= c;
+//	writefln("%X",b); // BigInt("1_000_012_345")
+//	writefln("getBigDigit = %X", big.getBigDigit(2));
 
 
 	separator;
+
 }
 }
 

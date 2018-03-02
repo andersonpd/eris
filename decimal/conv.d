@@ -20,18 +20,17 @@
 module eris.decimal.conv;
 
 import std.array: insertInPlace, replicate;
-//static import std.array;
 import std.ascii: isDigit;
+import std.bitmanip : bitfields;
 import std.string;
 import std.format;
 import std.stdio;
+import std.traits;
 static import std.uni;
 static import std.conv;
 static import std.math;
 
 import eris.decimal;
-import eris.decimal.context;
-import eris.decimal.rounding;
 
 unittest {
 	writeln("==========================");
@@ -50,8 +49,8 @@ public enum DEFAULT_PRECISION = 6;
 //   to!string conversions
 //--------------------------------
 
-/// to!string(bigint).
-public T to(T:string)(in bigint x) {
+/// to!string(BigInt).
+public T to(T:string)(in BigInt x) {
 	string outbuff = "";
 	void sink(const(char)[] s) {
 		outbuff ~= s;
@@ -68,7 +67,6 @@ private T to(T:string)(in long n) {
 /**
  * Returns a string representing the value of the number, formatted as
  * specified by the format string.
- * Params: num, fmtstr.
  */
 public string toString(T)(in T num, string fmStr = "%s") if (isDecimal!T)
 {
@@ -137,10 +135,7 @@ unittest
 		// zero flag ignored if precision is specified
 		{ "12.345",		 "%012.4G",	"     12.3450" },
 		// zero flag, upper/lower case  ignored if infinity or nan
-		// FIXTHIS: returns Orphan format specifier error message
-		// not just for G either
-		// I think it's a bug in std.format
-//		{ "Inf",		 "%012.4G",	"    Infinity" },
+		{ "Inf",		 "%012.4G",	"    Infinity" },
 		{ "NaN",		 "%012.4g",	"         NaN" },
 		// if hash, print trailing zeros.
 		{ "1234567.89",	 "%.0G",	"1234568" },
@@ -173,40 +168,40 @@ public string sciForm(T)(in T num) if (isDecimal!T)
 		return specialForm(num);
 	}
 
-	char[] coff = to!string(num.coefficient).dup;
-	int  expo = num.exponent;
+	char[] cof = to!string(num.coff).dup;
+	int  expo = num.expo;
 	bool signed = num.isSigned;
 
-	int adjx = expo + cast(int)coff.length - 1;
+	int adjx = expo + cast(int)cof.length - 1;
 	// if the exponent is small use decimal notation
 	if (expo <= 0 && adjx >= -6) {
 		// if the exponent is not zero, insert a decimal point
 		if (expo != 0) {
 			int point = std.math.abs(expo);
 			// if the coefficient is too small, pad with zeroes
-			if (point > coff.length) {
-				coff = rightJustify(coff, point, '0');
+			if (point > cof.length) {
+				cof = rightJustify(cof, point, '0');
 			}
 			// if no chars precede the decimal point, prefix a zero
-			if (point == coff.length) {
-				coff = "0." ~ coff;
+			if (point == cof.length) {
+				cof = "0." ~ cof;
 			}
 			// otherwise insert the decimal point into the string
 			else {
-				insertInPlace(coff, coff.length - point, ".");
+				insertInPlace(cof, cof.length - point, ".");
 			}
 		}
-		return signed ? ("-" ~ coff).dup : coff.dup;
+		return signed ? ("-" ~ cof).dup : cof.dup;
 	}
 	// if the exponent is large enough use exponential notation
-	if (coff.length > 1) {
-		insertInPlace(coff, 1, ".");
+	if (cof.length > 1) {
+		insertInPlace(cof, 1, ".");
 	}
 	string expStr = to!string(adjx);
 	if (adjx >= 0) {
 		expStr = "+" ~ expStr;
 	}
-	string str = (coff ~ "E" ~ expStr).dup;
+	string str = (cof ~ "E" ~ expStr).dup;
 	return signed ? "-" ~ str : str;
 };  // end sciForm
 
@@ -238,30 +233,30 @@ public string engForm(T)(in T num) if (isDecimal!T)
 		return specialForm(num);
 	}
 
-	char[] coff = to!string(num.coefficient).dup;
-	int  expo = num.exponent;
+	char[] cof = to!string(num.coff).dup;
+	int  expo = num.expo;
 	bool signed = num.isSigned;
 
-	int adjx = expo + cast(int)coff.length - 1;
+	int adjx = expo + cast(int)cof.length - 1;
 	// if exponent is small, don't use exponential notation
 	if (expo <= 0 && adjx >= -6) {
 		// if exponent is not zero, insert a decimal point
 		if (expo != 0) {
 			int point = std.math.abs(expo);
 			// if coefficient is too small, pad with zeroes
-			if (point > coff.length) {
-				coff = rightJustify(coff, point, '0');
+			if (point > cof.length) {
+				cof = rightJustify(cof, point, '0');
 			}
 			// if no chars precede the decimal point, prefix a zero
-			if (point == coff.length) {
-				coff = "0." ~ coff;
+			if (point == cof.length) {
+				cof = "0." ~ cof;
 			}
 			// otherwise insert a decimal point
 			else {
-				insertInPlace(coff, coff.length - point, ".");
+				insertInPlace(cof, cof.length - point, ".");
 			}
 		}
-		return signed ? ("-" ~ coff).idup : coff.idup;
+		return signed ? ("-" ~ cof).idup : cof.idup;
 	}
 	// use exponential notation
 	if (num.isZero) {
@@ -277,18 +272,18 @@ public string engForm(T)(in T num) if (isDecimal!T)
 	if (num.isZero) {
 		dot = 1;
 		int count = 3 - std.math.abs(mod);
-		coff.length = 0;
+		cof.length = 0;
 		for (size_t i = 0; i < count; i++) {
-			coff ~= '0';
+			cof ~= '0';
 		}
 	}
-	while (dot > coff.length) {
-		coff ~= '0';
+	while (dot > cof.length) {
+		cof ~= '0';
 	}
-	if (coff.length > dot) {
-		insertInPlace(coff, dot, ".");
+	if (cof.length > dot) {
+		insertInPlace(cof, dot, ".");
 	}
-	string str = coff.idup;
+	string str = cof.idup;
 	if (adjx != 0) {
 		string expStr = to!string(adjx);
 		if (adjx > 0) {
@@ -341,9 +336,9 @@ private string specialForm(T)(in T num, bool shortForm = false) if (isDecimal!T)
 	else if (num.isNaN)
 	{
 		str ~= num.isSignaling ? "sNaN" : "NaN";
-		if (num.payload)
+		if (num.coff)
 		{
-			str ~= to!string(num.payload);
+			str ~= to!string(num.coff);
 		}
 	}
 	return str;
@@ -373,8 +368,7 @@ unittest
  *
  *  Returns e.g. "125E-5" as "0.001250" with no exponent.
  *  Numbers with large or small exponents will return long strings.
- *  Numbers with very large or very small exponents
- *  will return very long strings.
+ *  Numbers with very large or very small exponents will return very long strings.
  */
 private string decimalForm(T)(in T number,
 	int precision = DEFAULT_PRECISION) if (isDecimal!T)
@@ -385,28 +379,28 @@ private string decimalForm(T)(in T number,
 	}
 	T num = number.dup;
 	// check if rounding is needed:
-	int diff = num.exponent + precision;
+	int diff = num.expo + precision;
 	if (diff < 0) {
-		int numPrecision = num.digits + num.exponent + precision;
-		num = roundToPrecision(num, numPrecision, T.maxExpo, T.mode);
+		int numPrecision = num.digits + num.expo + precision;
+		num = roundToPrecision(num, numPrecision);
 	}
 
 	// convert the coefficient to a string
-	char[] str = to!string(num.coefficient).dup;
-	int expo = num.exponent;
+	char[] str = to!string(num.coff).dup;
+	int exp = num.expo;
 	bool sign = num.isSigned;
-	if (expo >= 0) {
-		if (expo > 0) {
+	if (exp >= 0) {
+		if (exp > 0) {
 			// add zeros up to the decimal point
-			str ~= replicate("0", expo);
+			str ~= replicate("0", exp);
 		}
 		if (precision) {
 			// add zeros trailing the decimal point
 			str ~= "." ~ replicate("0", precision);
 		}
 	}
-	else { // (expo < 0)
-		int point = -expo;
+	else { // (exp < 0)
+		int point = -exp;
 		// if coefficient is too small, pad with zeros on the left
 		if (point > str.length) {
 			str = rightJustify(str, point, '0');
@@ -461,12 +455,12 @@ private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
 	}
 	T num = number.dup;
 	num = roundToPrecision(num, precision + 1);
-	char[] coff = to!string(num.coefficient).dup;
-	int expo = num.exponent;
+	char[] cof = to!string(num.coff).dup;
+	int exp = num.expo;
 	bool sign = num.isSigned;
-	int adjx = expo + cast(int)coff.length - 1;
-	if (coff.length > 1) {
-		insertInPlace(coff, 1, ".");
+	int adjx = exp + cast(int)cof.length - 1;
+	if (cof.length > 1) {
+		insertInPlace(cof, 1, ".");
 	}
 	string expStr = to!string(std.math.abs(adjx));
 	if (padExpo && expStr.length < 2) {
@@ -474,7 +468,7 @@ private string exponentForm(T)(in T number, int precision = DEFAULT_PRECISION,
 	}
 	expStr = adjx < 0 ? "-" ~ expStr : "+" ~ expStr;
 	string expoChar = lowerCase ? "e" : "E";
-	string str = (coff ~ expoChar ~ expStr).idup;
+	string str = (cof ~ expoChar ~ expStr).idup;
 	return sign ? "-" ~ str : str;
 }  // end exponentForm
 
@@ -520,9 +514,10 @@ private string formatDecimal(T)(in T num,
 	{
 	case 'F':
 		return decimalForm(num, precision);
+//	return exponentForm(num, precision, lowerCase, true);
 	case 'G':
-		int expo = num.exponent;
-		if (expo > -5 && expo < precision) {
+		int exp = num.expo;
+		if (exp > -5 && exp < precision) {
 			return decimalForm(num, precision);
 		}
 		break;
@@ -582,20 +577,20 @@ public string abstractForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isFinite) {
 		return format("[%d,%s,%d]", num.sign ? 1 : 0,
-		              to!string(num.coefficient), num.exponent);
+		              to!string(num.coff), num.expo);
 	}
 	if (num.isInfinite) {
 		return format("[%d,%s]", num.sign ? 1 : 0, "inf");
 	}
 	if (num.isQuiet) {
-		if (num.payload) {
-			return format("[%d,%s%d]", num.sign ? 1 : 0, "qNaN", num.payload);
+		if (num.coff) {
+			return format("[%d,%s%d]", num.sign ? 1 : 0, "qNaN", num.coff);
 		}
 		return format("[%d,%s]", num.sign ? 1 : 0, "qNaN");
 	}
 	if (num.isSignaling) {
-		if (num.payload) {
-			return format("[%d,%s%d]", num.sign ? 1 : 0, "sNaN", num.payload);
+		if (num.coff) {
+			return format("[%d,%s%d]", num.sign ? 1 : 0, "sNaN", num.coff);
 		}
 		return format("[%d,%s]", num.sign ? 1 : 0, "sNaN");
 	}
@@ -624,8 +619,8 @@ public string fullForm(T)(in T num) if (isDecimal!T)
 {
 	if (num.isFinite) {
 		return format("%s%sE%s%02d", num.sign ? "-" : "+",
-		              to!string(num.coefficient),
-		              num.exponent < 0 ? "-" : "+", std.math.abs(num.exponent));
+		              to!string(num.coff),
+		              num.expo < 0 ? "-" : "+", std.math.abs(num.expo));
 	}
 	if (num.isInfinite)
 	{
@@ -633,14 +628,14 @@ public string fullForm(T)(in T num) if (isDecimal!T)
 	}
 	if (num.isQuiet)
 	{
-		if (num.payload) {
-			return format("%s%s%d", num.sign ? "-" : "+", "NaN", num.payload);
+		if (num.coff) {
+			return format("%s%s%d", num.sign ? "-" : "+", "NaN", num.coff);
 		}
 		return format("%s%s", num.sign ? "-" : "+", "NaN");
 	}
 	if (num.isSignaling) {
-		if (num.payload) {
-			return format("%s%s%d", num.sign ? "-" : "+", "sNaN", num.payload);
+		if (num.coff) {
+			return format("%s%s%d", num.sign ? "-" : "+", "sNaN", num.coff);
 		}
 		return format("%s%s", num.sign ? "-" : "+", "sNaN");
 	}
@@ -673,11 +668,10 @@ unittest
  *  A leading or trailing "." is allowed by the specification even though
  *  it is not valid as a D language real number.
  */
-public T toNumber(T)(string inStr, bool round = true) if (isDecimal!T)
+public T fromString(T)(string inStr, bool round = true) if (isDecimal!T)
 {
 	T num;
 
-//writefln("inStr = %s", inStr);
 	// strip, copy, tolower
 	char[] str = strip(inStr).dup;
 	toLowerInPlace(str);
@@ -780,19 +774,19 @@ public T toNumber(T)(string inStr, bool round = true) if (isDecimal!T)
 			if ((expSign && (-lex < int.min)) || lex > int.max) {
 				return T.nan;
 			}
-			num.exponent = cast(int) lex;
+			num.expo = cast(int) lex;
 		} else {
 			// everything should be copacetic at this point
-			num.exponent = std.conv.to!int(expStr);
+			num.expo = std.conv.to!int(expStr);
 		}
 		if (expSign)
 		{
-			num.exponent = -num.exponent;
+			num.expo = -num.expo;
 		}
 	}
 	else	// no exponent
 	{
-		num.exponent = 0;
+		num.expo = 0;
 	}
 //if (!__ctfe) writefln("num.exponent = %s", num.exponent);
 
@@ -826,23 +820,27 @@ public T toNumber(T)(string inStr, bool round = true) if (isDecimal!T)
 		 return T.nan;
 		}
 	}
-	// strip underscores
-	if (indexOf(str, '_') >= 0)
-	{
-  		str = removechars(str.idup, "_").dup;
-	}
+	// strip out any underscores
+	str = str.replace("_", "");
+
 	// remove internal decimal point
-	int point = cast(int)indexOf(str, '.');
+	int point = indexOf(str, '.');
 	if (point >= 0)
 	{
 		// excise the point and adjust the exponent
 		str = str[0..point] ~ str[point + 1..$];
 		int diff = cast(int)str.length - point;
-		num.exponent = num.exponent - diff;
+		num.expo = num.expo - diff;
 	}
+	// TODO: how can this happen? is it possible? assert?
 	// ensure string is not empty
 	if (str.length < 1) {
 		return T.nan;
+	}
+	// strip leading zeros again
+	while (str[0] == '0' && str.length > 1)
+	{
+		str = str[1..$];
 	}
 	// ensure chars are all digits
 	foreach (char c; str) {
@@ -850,17 +848,15 @@ public T toNumber(T)(string inStr, bool round = true) if (isDecimal!T)
 			return T.nan;
 		}
 	}
-	// convert coefficient string to bigint
-//if (!__ctfe) writefln("str = %s", str);
-	num.coefficient = bigint(str.idup);
-//if (!__ctfe) writefln("num.coefficient = %s", num.coefficient);
-	num.digits = decDigits(num.coefficient);
-//if (!__ctfe) writefln("num.digits = %s", num.digits);
+	// convert coefficient string to BigInt
+	num.coff = BigInt(str.idup);
+	// by convention, a zero coefficient has zero digits
+	num.digits = (num.coff) ? str.length : 0;
 	return num;
 }
 
 unittest
-{	// toNumber
+{	// fromString
 	static struct S { string num; TD str; }
 	S[] s =
 	[
@@ -876,13 +872,14 @@ unittest
 		{ "+.",			"NaN" },
 		{ "1.7976931348623157079E+308", "1.7976931348623157079E+308" },
 	];
-	auto f = FunctionTest!(S,TD)("toNumber");
-	foreach (t; s) f.test(t, toNumber!TD(t.num));
+	auto f = FunctionTest!(S,TD)("fromString");
+	foreach (t; s) f.test(t, fromString!TD(t.num));
     writefln(f.report);
 }
 
 private T setPayload(T)(in T num, char[] str, int len) if (isDecimal!T)
 {
+//if (!__ctfe) writefln("str = %s", str);
 	T copy = num.copy;
 	// if finite number or infinity, return
 	if (!num.isNaN) return copy;
@@ -891,6 +888,8 @@ private T setPayload(T)(in T num, char[] str, int len) if (isDecimal!T)
 	// otherwise, get payload string
 	str = str[len..$];
 	// trim leading zeros
+//if (!__ctfe) writefln("str = %s", str);
+//	BigInt payload = BigInt(str);
 	while (str[0] == '0' && str.length > 1) {
 		str = str[1..$];
 	}
@@ -903,12 +902,18 @@ private T setPayload(T)(in T num, char[] str, int len) if (isDecimal!T)
 		}
 	}
 	// convert string to number
-	uint payload = std.conv.to!uint(str);
+//	uint payload = std.conv.to!uint(str);
+	BigInt payload = std.conv.to!uint(str);
+//if (!__ctfe) writefln("payload = %d", payload);
+//	BigInt payload2 = BigInt(payload);
+//if (!__ctfe) writefln("payload2 = %s", payload2);
 	// check for overflow
 	if (payload > ushort.max) {
 		return copy;
 	}
-	copy.payload = cast(ushort)payload;
+//if (!__ctfe) writefln("copy.coff = %s", copy.coff);
+	copy.coff = payload;
+//if (!__ctfe) writefln("copy.coff = %s", copy.coff);
 	return copy;
 }
 
@@ -926,6 +931,447 @@ unittest
 	auto f = FunctionTest!(S,string)("setPayload");
 	foreach (t; s) f.test(t, TD(t.num).toString);
     writefln(f.report);
+}
+
+// Binary Integer Decimal (BID) representation
+
+struct Bid32Rep
+{
+    union
+    {
+        uint bid;
+		// NaN
+        mixin(bitfields!(
+            uint,  "padNan", 25,
+            ubyte, "testNan", 6,
+            bool,  "signNan", 1));
+        // infinity
+		mixin(bitfields!(
+            uint,  "padInf", 26,
+            ubyte, "testInf", 5,
+            bool,  "signInf", 1));
+        // explicit representation
+		mixin(bitfields!(
+            uint,  "coffEx", 23,
+            ushort,"expoEx",  8,
+            bool,  "signEx",  1));
+		// implicit representation
+        mixin(bitfields!(
+            uint,  "coffIm", 21,
+            ushort,"expoIm",  8,
+			ubyte, "testIm",  2,
+            bool,  "signIm",  1));
+    }
+    enum uint bias = 101, fractionBits = 23, exponentBits = 8, signBits = 1;
+}
+
+struct Bid64Rep
+{
+    union
+    {
+        ulong bid;
+		// NaN
+        mixin(bitfields!(
+            ulong, "padNan", 57,
+            ubyte, "testNan", 6,
+            bool,  "signNan", 1));
+        // infinity
+		mixin(bitfields!(
+            ulong, "padInf", 58,
+            ubyte, "testInf", 5,
+            bool,  "signInf", 1));
+        // explicit representation
+		mixin(bitfields!(
+            ulong, "coffEx", 53,
+            ushort,"expoEx", 10,
+            bool,  "signEx",  1));
+		// implicit representation
+        mixin(bitfields!(
+            ulong, "coffIm", 51,
+            ushort,"expoIm", 10,
+			ubyte, "testIm",  2,
+            bool,  "signIm",  1));
+    }
+    enum uint bias = 398, fractionBits = 53, exponentBits = 10, signBits = 1;
+}
+
+/// binary integer decimal form
+public U toBid(T, U = ulong)(const T num)
+	if (isDecimal!T && (is(U == ulong) || is(U == uint)))
+{
+
+	U sig;	// value of a signaling NaN
+	U nan;	// value of a quiet NaN
+	U inf;	// value of infinity
+	U maxExpl;	// maximum explicit coefficient
+	U maxImpl;	// maximum implicit coefficient
+	U impBits;	// set if implicit
+	U impMask;	// implicit coefficient mask
+	U signBit;	// set if signed
+
+	uint bits;	// number of bits in the coefficient
+	uint bias;	// the exponent bias
+
+	T rnum;		// a rounded copy of the argument
+
+    static if (is(U == ulong))
+    {
+		sig  = 0x7E00000000000000;
+		nan  = 0x7C00000000000000;
+		inf  = 0x7800000000000000;
+		maxExpl = 0x1FFFFFFFFFFFFF;  // = 9007199254740991
+		maxImpl = 9999999999999999;  // = 0x2386F26FC0FFFF
+		impBits = 0x6000000000000000;
+		impMask = 0x7FFFFFFFFFFFFF;
+		signBit = 0x8000000000000000;
+		bits = 53;
+        bias = 398;
+	}
+    else if (is(U == uint))
+    {
+		sig  = 0x7E000000;
+		nan  = 0x7C000000;
+		inf  = 0x78000000;
+		maxExpl = 0x7FFFFF;  // = 8388607
+		maxImpl = 9999999;  // = 0x98967F
+		impBits = 0x60000000;
+		impMask = 0x7FFFFF;
+		signBit = 0x80000000;
+		bits = 23;
+        bias = 101;
+	}
+
+	// NaNs : sign bit is ignored
+	if (num.isNaN)
+	{
+		return num.isQuiet ? nan : sig;
+	}
+
+	// infinities
+	if (num.isInfinite)
+	{
+		return num.sign ? inf | signBit : inf;
+	}
+
+    static if (is(U == ulong))
+    {
+		rnum = roundToPrecision(num, Bid64Context);
+	}
+    else if (is(U == uint))
+    {
+		rnum = roundToPrecision(num, Bid32Context);
+	}
+
+	// check for overflow
+	if (rnum.isInfinite)
+	{
+		return rnum.sign ? inf | signBit : inf;
+	}
+
+	U bid = 0;
+	U coff = cast(U)rnum.coff.toLong;
+	U expo = rnum.expo + bias;
+
+	// explicit representation
+	if (coff <= maxExpl)
+	{
+		bid |= coff;
+		bid |= expo << bits;
+	}
+	// implicit representation
+	else
+	{
+		bid = impBits; 	// set the implicit bits
+		coff &= impMask;	// remove the three leading bits
+		bid |= coff;		// coefficient is always < long.max
+		bid |= expo << (bits - 2);
+	}
+	if (num.isSigned)
+	{
+		bid |= signBit;	// set sign bit
+	}
+	return bid;
+}
+
+unittest
+{	// toBid
+	static struct S { TD num; ulong bid; }
+	S[] s =
+	[
+		{ "NaN",		0x7C00000000000000 },
+		{ "-NaN",		0x7C00000000000000 },
+		{ "0.0",		0x31A0000000000000 },
+		{ "0.0E1",		0x31C0000000000000 },	// NOTE: 0E3 caused a linking error
+		{ "0.0E2",		0x31E0000000000000 },	// NOTE: 0E3 caused a linking error
+		{ "0.0E3",		0x3200000000000000 },	// NOTE: 0E3 caused a linking error
+		{ "sNaN",		0x7E00000000000000 },
+		{ "-sNaN",		0x7E00000000000000 },
+		{ "Inf",		0x7800000000000000 },
+		{ "-Inf",		0xF800000000000000 },
+		{ "0",			0x31C0000000000000 },
+		{ "1",			0x31C0000000000001 },
+		{ "2",			0x31C0000000000002 },
+		{ ".1",			0x31A0000000000001 },
+		{ "-1",			0xB1C0000000000001 },
+		{ "2.0E3",		0x3200000000000014 },
+		{ "2E3",		0x3220000000000002 },
+		{ "20E2",		0x3200000000000014 },
+		{ TD.PI, 		0x2FEB29430A256D21 },
+		{ 9007199254740991, 		0x31DFFFFFFFFFFFFF },
+		{ 9007199254740992, 		0x6C70000000000000 },
+	];
+	auto f = FunctionTest!(S, ulong, "%016X")("toBid");
+	foreach (t; s) f.test(t, toBid!(TD,ulong)(t.num));
+    writefln(f.report);
+}
+
+unittest
+{	// toBid
+	static struct S { TD num; uint bid; }
+	S[] s =
+	[
+		{ "NaN",		0x7C000000 },
+		{ "-NaN",		0x7C000000 },
+		{ "0",			0x32800000 },
+		{ "0.0",		0x32000000 },
+		{ "0E1",		0x33000000 },	// NOTE: 0E3 caused a linking error
+		{ "0E2",		0x33800000 },	// NOTE: 0E3 caused a linking error
+		{ "0.0E3",		0x33800000 },	// NOTE: 0E3 caused a linking error
+		{ "sNaN",		0x7E000000 },
+		{ "-sNaN",		0x7E000000 },
+		{ "Inf",		0x78000000 },
+		{ "-Inf",		0xF8000000 },
+		{ "0",			0x32800000 },
+		{ "1",			0x32800001 },
+		{ "2",			0x32800002 },
+		{ ".1",			0x32000001 },
+		{ "-1",			0xB2800001 },
+		{ "2.0E3",		0x33800014 },
+		{ "2E3",		0x34000002 },
+		{ "20E2",		0x33800014 },
+		{ "3.14159265", 0x2FAFEFD9 },
+		{ "3.141593",   0x2FAFEFD9 },
+		{ 8388607, 		0x32FFFFFF },
+		{ 8388608, 		0x6CA00000 },
+	];
+	auto f = FunctionTest!(S, uint, "%08X")("toBid");
+	foreach (t; s) f.test(t, toBid!(TD,uint)(t.num));
+    writefln(f.report);
+}
+
+
+public T fromBid(T, U = ulong)(U bid)
+	if (isDecimal!T && (is(U == ulong) || is(U == uint)))
+{
+	int bits;
+	bool sign;
+
+    static if (is(U == ulong))
+    {
+		Bid64Rep rep;
+		rep.bid = bid;
+		bits = rep.fractionBits;
+	}
+	else
+	{
+		Bid32Rep rep;
+		rep.bid = bid;
+		bits = rep.fractionBits;
+	}
+
+	// NaN
+	if (rep.testNan == 0x3E) return T.nan;
+	if (rep.testNan == 0x3F) return T.snan;
+
+	// infinity
+	sign = rep.signInf;
+	if (rep.testInf == 0x1E)
+	{
+		return sign ? -T.infinity : T.infinity;
+    }
+
+	T num = 0;	// initialize to zero -- not NaN
+    // explicit coefficient
+	if (rep.testIm < 3)
+	{
+		num.coff = rep.coffEx;
+		num.expo = cast(int)rep.expoEx - rep.bias;
+		num.sign = sign;
+	}
+	else
+	{
+		// implicit coefficient
+		immutable one = cast(U)4 << (bits - 2);
+        num.coff = one | rep.coffIm;
+		num.expo = rep.expoIm - rep.bias;
+		num.sign = sign;
+	}
+	return sign ? -num : num;
+}
+
+unittest
+{	// fromBid
+	static struct S {ulong bid; TD expect; }
+	S[] s =
+	[
+		{ 0x7C00000000000000,  TD.nan  },
+		{ 0xFE00000000000000,  TD.snan },	// sign is ignored
+		{ 0x7800000000000000,  TD.infinity  },
+		{ 0xF800000000000000,  -TD.infinity  },
+		{ 0x31C0000000000000,  0 },
+		{ 0x3220000000000002,  "2E3"  },
+		{ 0x31DFFFFFFFFFFFFF,  9007199254740991 },	// largest explicit
+		{ 0x6C70000000000000,  9007199254740992 },   // smallest implicit
+		{ 0x2FEB29430A256D21,  TD.PI    },
+	];
+	auto f = FunctionTest!(S, TD, "%s")("fromBid(UL)");
+	foreach (t; s) f.test(t, fromBid!(TD,ulong)(t.bid));
+    writefln(f.report);
+}
+
+unittest
+{	// fromBid
+	static struct S {uint bid; TD expect; }
+	S[] s =
+	[
+		{ 0x7C000000,  TD.nan  },
+		{ 0xFE000000,  TD.snan },	// sign is ignored
+		{ 0x78000000,  TD.infinity  },
+		{ 0xF8000000, -TD.infinity  },
+		{ 0x32800000,  0 },
+		{ 0x34000002,  "2E3"  },
+//		{ 0x34000002,  2000  },
+		{ 0x32FFFFFF,  8388607 },	// largest explicit
+		{ 0x6CA00000,  8388608 },   // smallest implicit
+	];
+	auto f = FunctionTest!(S, TD, "%s")("fromBid(U)");
+	foreach (t; s) f.test(t, fromBid!(TD,uint)(t.bid));
+    writefln(f.report);
+}
+
+/*public T fromDouble(T)(double dbl) if (isDecimal!T)
+{
+	return fromBinary!(T,double)(dbl);
+}*/
+
+/*public T fromFloat(T)(float flt) if (isDecimal!T)
+{
+	return fromBinary!(T,float)(flt);
+}
+
+public T fromReal(T)(real bin)	if (isDecimal!T)
+{
+	return fromBinary!(T,real)(bin);
+}*/
+
+unittest
+{
+	real r = 123.456E2;
+	TD num;
+	num = TD(2.0L);
+	num = TD(r);
+	num = TD(231.89E+112);
+}
+
+struct RealRep
+{
+	union
+	{
+		real value;
+		ulong[2] word;
+	}
+	ulong fraction;
+	ushort exponent;
+	enum uint bias = 16383, signBits = 1, fractionBits = 64, exponentBits = 15;
+
+	this(real bin) {
+		value = bin;
+		fraction = word[0];
+		exponent = cast(ushort)word[1];	// TODO: remove sign bit?
+	}
+}
+
+public T fromBinary(T,U)(U bin)
+	if (isDecimal!T && isFloatingPoint!U)
+{
+	if (std.math.isNaN(bin)) return T.nan;
+
+	bool sign = bin < 0;
+	if (sign) bin = -bin;
+	if (!std.math.isFinite(bin))
+	{
+		if (sign)
+		{
+			return -T.infinity;
+   		}
+		else
+		{
+			return T.infinity;
+		}
+	}
+	if (bin == 0.0) return T(0,0,sign);
+
+	T num;
+	int expo;
+	BigInt one;
+
+    static if (is(U == real))
+    {
+		RealRep rep = RealRep(bin);
+		num = BigInt(rep.fraction);
+   		expo = rep.exponent - rep.bias - rep.fractionBits + 1;
+	}
+    else if (is(U == float))
+    {
+		std.bitmanip.FloatRep rep;
+		rep.value = bin;
+		one = BigInt(1) << rep.fractionBits;
+		num = one | rep.fraction;
+   		expo = rep.exponent - rep.bias - rep.fractionBits;
+	}
+    else	// double
+    {
+		std.bitmanip.DoubleRep rep;
+		rep.value = bin;
+		one = BigInt(1) << rep.fractionBits;
+		num = one | rep.fraction;
+   		expo = rep.exponent - rep.bias - rep.fractionBits;
+	}
+
+//   	int expo = rep.exponent - rep.bias - rep.fractionBits;
+
+	bool divide = expo < 0;
+	if (divide) {
+		expo = -expo;
+	}
+	// NOTE: at some point the toString/fromString method must be more
+	// efficient than an enormous shifted BigInt. 1 << 16384 ??
+	// say expo > 255?
+	if (expo > 127)
+	{
+		string str = std.format.format!"%.18G"(bin);
+//		return num = fromString!T(str);
+		return fromString!T(str);
+	}
+	auto mult = BigInt(1) << expo;
+	num = divide ? num/mult : num*mult;
+
+    static if (is(U == real))
+    {
+//if (!__ctfe) writefln("num = %s", num);
+		num = reduce(num, RealContext);
+//if (!__ctfe) writefln("num = %s", num);
+//if (!__ctfe) writefln("real.dig = %s", real.dig);
+	}
+	else if (is(U == double))
+    {
+		num = reduce(num, DoubleContext);
+	}
+	else
+	{
+		num = reduce(num, FloatContext);
+	}
+	return sign ? -num : num;
 }
 
 unittest {

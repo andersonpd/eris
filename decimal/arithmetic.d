@@ -18,10 +18,10 @@
  */
 
 /*
- *  Note: Most of these arithmetic operations accept values for precision and
+ *  Note: Most arithmetic operations accept values for precision and
  *  rounding modes, but these parameters are not generally available to
  *  the ordinary user. They are included to allow algorithm designers to
- *  carry out internal operations at a precision higher than the type
+ *  carry out internal operations at a precision different from the type
  *  precision.
  */
 
@@ -47,12 +47,9 @@
 
 module eris.decimal.arithmetic;
 
+import eris.decimal;
 import std.string;
 import std.algorithm;
-import std.stdio;	// for unit testing
-import eris.decimal;
-import eris.decimal.context;
-import eris.decimal.rounding;
 
 unittest {
 	writeln("==========================");
@@ -63,8 +60,6 @@ unittest {
 version(unittest)
 {
 	import std.stdio;
-	import eris.test.assertion;
-	import eris.decimal;
 	import eris.decimal.test;
 }
 
@@ -141,7 +136,7 @@ public int ilogb(T)(in T x) if (isDecimal!T)
 		contextFlags.set(DIVISION_BY_ZERO);
 		return int.init;
 	}
-	return x.digits + x.exponent - 1;
+	return x.digits + x.expo - 1;
 }
 
 unittest
@@ -184,8 +179,8 @@ public T logb(T)(in T x) if (isDecimal!T)
 		contextFlags.set(DIVISION_BY_ZERO);
 		return T.infinity(true);
 	}
-	int expo = x.digits + x.exponent - 1;
-	return T(expo);
+	int exp = x.digits + x.expo - 1;
+	return T(exp);
 }
 
 unittest
@@ -228,7 +223,7 @@ public T scaleb(T)(in T x, in T y) if (isDecimal!T)
 
 	if (x.isInfinite) return scaled;
 
-	if (y.isInfinite || y.exponent != 0)
+	if (y.isInfinite || y.expo != 0)
 	{
 		return invalidOperand(y);
 	}
@@ -238,14 +233,14 @@ public T scaleb(T)(in T x, in T y) if (isDecimal!T)
 		return invalidOperand(y);
 	}
 
-	int scale = /*cast(int)*/y.coefficient.toInt;
+	int scale = /*cast(int)*/y.coff.toInt;
 
 	if (y.isSigned)
 	{
 		scale = -scale;
 	}
 	// TODO: (behavior) check for overflow/underflow (GDA "scaleb").
-	scaled.exponent = scaled.exponent + scale;
+	scaled.expo = scaled.expo + scale;
 	return scaled;
 }
 
@@ -266,6 +261,7 @@ unittest
 // unary functions
 //--------------------------------
 
+/+
 /**
  *
  *  Returns the operand reduced to its simplest form.
@@ -296,13 +292,13 @@ public T reduce(T)(in T x,
 	if (!reduced.isFinite) return reduced;
 
 	int digits = reduced.digits;
-	auto temp = reduced.coefficient;
+	auto temp = reduced.coff;
 	int zeros = trimZeros(temp, digits);
 	if (zeros)
 	{
-		reduced.coefficient = temp;
+		reduced.coff = temp;
 		reduced.digits = digits - zeros;
-		reduced.exponent = reduced.exponent + zeros;
+		reduced.expo = reduced.expo + zeros;
 	}
 
 	return reduced;
@@ -332,6 +328,7 @@ unittest
 	foreach (t; s) f.test(t, reduce(t.x));
     writefln(f.report);
 }
++/
 
 /**
  *  Returns the absolute value of the argument.
@@ -403,7 +400,7 @@ unittest
  *  Returns -1, 0, or 1
  *  if the argument is negative, zero, or positive, respectively.
  */
-public int sgn(T:bigint)(T x) {
+public int sgn(T:BigInt)(T x) {
 	if (x < 0) return -1;
 	if (x > 0) return 1;
 	return 0;
@@ -504,7 +501,7 @@ public T nextPlus(T)(in T x,
 			return x;
 		}
 	}
-	int adjustedExpo = x.exponent + x.digits - context.precision;
+	int adjustedExpo = x.expo + x.digits - context.precision;
 	if (adjustedExpo < T.tinyExpo) {
 			return T(0, T.tinyExpo, true);
 	}
@@ -568,8 +565,8 @@ public T nextMinus(T)(in T x,
 			return x;
 		}
 	}
-	int adjustedExpo = x.exponent + x.digits - context.precision;
-	if (x.coefficient == 1) adjustedExpo--;
+	int adjustedExpo = x.expo + x.digits - context.precision;
+	if (x.coff == 1) adjustedExpo--;
 	if (adjustedExpo < T.tinyExpo) {
 		return T(0, T.tinyExpo);
 	}
@@ -611,7 +608,7 @@ unittest
 public T nextToward(T)(in T x, in T y,
 		Context context = T.context) if (isDecimal!T)
 {
-   	T nan;
+//   	T nan;
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 
 	// compare them but don't round yet
@@ -659,68 +656,68 @@ unittest
  *  Flags: INVALID_OPERATION
  *
  */
-public int compare(T)(in T x, in T y,
+public int compare(T)(in T left, in T right,
 		Context context = T.context) if (isDecimal!T)
 {
 	// any operation with a signaling NaN is invalid.
-	// if both are signaling, return as if x > y.
-	if (x.isSignaling || y.isSignaling) {
+	// if both are signaling, return as if left > right.
+	if (left.isSignaling || right.isSignaling) {
 		contextFlags.set(INVALID_OPERATION);
-		return x.isSignaling ? 1 : -1;
+		return left.isSignaling ? 1 : -1;
 	}
 
-	// if both are NaN, return as if x > y.
-	if (x.isNaN || y.isNaN) {
-		return x.isNaN ? 1 : -1;
+	// if both are NaN, return as if left > right.
+	if (left.isNaN || right.isNaN) {
+		return left.isNaN ? 1 : -1;
 	}
 
 	// if either is zero...
-	if (x.isZero) {
-		if (y.isZero) return 0;
-		return y.isNegative ? 1 : -1;
+	if (left.isZero) {
+		if (right.isZero) return 0;
+		return right.isNegative ? 1 : -1;
 	}
-	if (y.isZero) {
-		return x.isNegative ? -1 : 1;
+	if (right.isZero) {
+		return left.isNegative ? -1 : 1;
 	}
 
 	// if signs differ, just compare the signs
-	if (x.sign != y.sign) {
+	if (left.sign != right.sign) {
 		// check for zeros: +0 and -0 are equal
-		if (x.isZero && y.isZero) return 0;
-		return x.sign ? -1 : 1;
+		if (left.isZero && right.isZero) return 0;
+		return left.sign ? -1 : 1;
 	}
 
 	// if either is infinite...
-	if (x.isInfinite || y.isInfinite) {
-		if (x.isInfinite && y.isInfinite) return 0;
-		return x.isInfinite ? 1 : -1;
+	if (left.isInfinite || right.isInfinite) {
+		if (left.isInfinite && right.isInfinite) return 0;
+		return left.isInfinite ? 1 : -1;
 	}
 
-	T xx = x.dup;
-	T yy = y.dup;
+	T lf = left.dup;
+	T rt = right.dup;
 
 	// TODO: (testing) test compare at precision limits.
 	// restrict operands to current precision
-	if (xx.digits > context.precision) {
-		xx = roundToPrecision(xx, context);
+	if (lf.digits > context.precision) {
+		lf = roundToPrecision(lf, context);
 	}
-	if (yy.digits > context.precision) {
-		yy = roundToPrecision(yy, context);
+	if (rt.digits > context.precision) {
+		rt = roundToPrecision(rt, context);
 	}
 
 	// TODO: this will return inf == inf after rounding
 	// Check again for infinities
-	if (xx.isInfinite || yy.isInfinite) {
-		if (xx.isInfinite && yy.isInfinite) return 0;
-		return xx.isInfinite ? 1 : -1;
+	if (lf.isInfinite || rt.isInfinite) {
+		if (lf.isInfinite && rt.isInfinite) return 0;
+		return lf.isInfinite ? 1 : -1;
 	}
 
 	// compare the magnitudes of the numbers
-	xx = xx.reduce;
-	yy = yy.reduce;
-	int diff = (xx.exponent + xx.digits) - (yy.exponent + yy.digits);
+	lf = lf.reduce;
+	rt = rt.reduce;
+	int diff = (lf.expo + lf.digits) - (rt.expo + rt.digits);
 	if (diff != 0) {
-		if (!xx.sign) {
+		if (!lf.sign) {
 			if (diff > 0) return 1;
 			if (diff < 0) return -1;
 		}
@@ -730,13 +727,11 @@ public int compare(T)(in T x, in T y,
 		}
 	}
 	// align the operands
-	alignOps(xx, yy);
-	// They have the same exponent after alignment.
-	// The only difference is in the coefficients.
-	if (xx.coefficient == yy.coefficient) return 0;
-	return (xx.coefficient > yy.coefficient) ? 1 : -1;
-//    int comp = xcompare(xx.coefficient, yy.coefficient);
-//	return xx.sign ? -comp : comp;
+	alignOps(lf, rt);	// both operands now have the same exponent
+
+	// The only remaining difference is in the coefficients.
+	if (lf.coff == rt.coff) return 0;
+	return (lf.coff > rt.coff) ? 1 : -1;
 }
 
 unittest
@@ -808,7 +803,7 @@ public bool equals(T)(in T x, in T y,
 	}
 
 	// if they have the same representation, they are equal
-	if (x.exponent == y.exponent && x.coefficient == y.coefficient) {
+	if (x.expo == y.expo && x.coff == y.coff) {
 		return true;
 	}
 
@@ -818,10 +813,10 @@ public bool equals(T)(in T x, in T y,
 	ry = roundToPrecision(y, context);
 
 	// if they are not of the same magnitude they are not equal
-	if (rx.exponent + rx.digits != ry.exponent + ry.digits) return false;
+	if (rx.expo + rx.digits != ry.expo + ry.digits) return false;
 	// align the operands
 	alignOps(rx, ry);
-	return rx.coefficient == ry.coefficient;
+	return rx.coff == ry.coff;
 }
 
 unittest
@@ -930,99 +925,93 @@ unittest
  *  Implements the 'compare-total' function in the specification. (p. 42-43)
  *  Flags: NONE.
  */
-public int compareTotal(T)(in T x, in T y) if (isDecimal!T)
+public int compareTotal(T)(in T left, in T right) if (isDecimal!T)
 {
-	if (x.isFinite && y.isFinite
-		&& x.sign == y.sign
-		&& x.exponent == y.exponent
-		&& x.coefficient == y.coefficient)
+	if (left.isFinite && right.isFinite
+		&& left.sign == right.sign
+		&& left.expo == right.expo
+		&& left.coff == right.coff)
 	return 0;
 
 	int ret1 =	1;
 	int ret2 = -1;
 
 	// if signs differ...
-	if (x.sign != y.sign) {
-		return x.sign ? ret2 : ret1;
+	if (left.sign != right.sign) {
+		return left.sign ? ret2 : ret1;
 	}
 
 	// if both numbers are signed swap the return values
-	if (x.sign) {
+	if (left.sign) {
 		ret1 = -1;
 		ret2 =	1;
 	}
 
 	// if either is zero...
-	if (x.isZero || y.isZero) {
+	if (left.isZero || right.isZero) {
 		// if both are zero compare exponents
-		if (x.isZero && y.isZero) {
-			auto result = x.exponent - y.exponent;
+		if (left.isZero && right.isZero) {
+			auto result = left.expo - right.expo;
 			if (result == 0) return 0;
 			return (result > 0) ? ret1 : ret2;
 		}
-		return x.isZero ? ret1 : ret2;
+		return left.isZero ? ret1 : ret2;
 	}
 
 	// if either is infinite...
-	if (x.isInfinite || y.isInfinite) {
-		if (x.isInfinite && y.isInfinite) {
+	if (left.isInfinite || right.isInfinite) {
+		if (left.isInfinite && right.isInfinite) {
 			return 0;
 		}
-		return x.isInfinite ? ret1 : ret2;
+		return left.isInfinite ? ret1 : ret2;
 	}
 
 	// if either is quiet...
-	if (x.isQuiet || y.isQuiet) {
+	if (left.isQuiet || right.isQuiet) {
 		// if both are quiet compare payloads.
-		if (x.isQuiet && y.isQuiet) {
-			auto result = x.payload - y.payload;
+		if (left.isQuiet && right.isQuiet) {
+			auto result = left.coff - right.coff;
 			if (result == 0) return 0;
 			return (result > 0) ? ret1 : ret2;
 		}
-		return x.isQuiet ? ret1 : ret2;
+		return left.isQuiet ? ret1 : ret2;
 	}
 
 	// if either is signaling...
-	if (x.isSignaling || y.isSignaling) {
+	if (left.isSignaling || right.isSignaling) {
 		// if both are signaling compare payloads.
-		if (x.isSignaling && y.isSignaling) {
-			auto result = x.payload - y.payload;
+		if (left.isSignaling && right.isSignaling) {
+			auto result = left.coff - right.coff;
 			if (result == 0) return 0;
 			return (result > 0) ? ret1 : ret2;
 		}
-		return x.isSignaling ? ret1 : ret2;
+		return left.isSignaling ? ret1 : ret2;
 	}
 
 	// if both exponents are equal, any difference is in the coefficient
-	if (x.exponent == y.exponent) {
-		auto result = x.coefficient - y.coefficient;
-		if (result == 0) return 0;
-		return (result > 0) ? ret1 : ret2;
+	if (left.expo == right.expo) {
+		auto result = left.coff - right.coff;
+		if (left.coff == right.coff) return 0;
+		return (left.coff > right.coff) ? ret1 : ret2;
 	}
 
 	// if the (finite) numbers have different magnitudes...
-	int diff = (x.exponent + x.digits) - (y.exponent + y.digits);
+	int diff = (left.expo + left.digits) - (right.expo + right.digits);
 	if (diff > 0) return ret1;
 	if (diff < 0) return ret2;
 
 	// we know the numbers have the same magnitude
 	// and that the exponents are not equal -- align the operands
- 	T xx = x.dup;
-	T yy = y.dup;
-	alignOps(xx, yy);
-
-	// They have the same exponent after alignment.
-	// The only difference is in the coefficients.
-//    int comp = xcompare(xx.coefficient, yy.coefficient);
-//	if (xx.coefficient == yy.coefficient) return 0;
-//	return (xx.coefficient > yy.coefficient) ? 1 : -1;
+ 	T lf = left.dup;
+	T rt = right.dup;
+	alignOps(lf, rt);	// the operands now have the same exponent.
 
 	// if equal after alignment, compare the original exponents
-	if (xx.coefficient == yy.coefficient) {
-		return (x.exponent > y.exponent) ? ret1 : ret2;
+	if (lf.coff == rt.coff) {
+		return (left.expo > right.expo) ? ret1 : ret2;
 	}
 	// otherwise return the numerically larger
-	return (xx.coefficient > yy.coefficient) ? ret2 : ret1;
+	return (lf.coff > rt.coff) ? ret2 : ret1;
 }
 
 unittest
@@ -1070,7 +1059,7 @@ public bool sameQuantum(T)(in T x, in T y) if (isDecimal!T)
 	if (x.isInfinite || y.isInfinite) {
 		return x.isInfinite && y.isInfinite;
 	}
-	return x.exponent == y.exponent;
+	return x.expo == y.expo;
 }
 
 unittest
@@ -1095,17 +1084,17 @@ unittest
  *
  *  If they are not numerically equal, the larger is returned.
  *  If they are numerically equal:
- *  1) If the signs differ, the one with the positive sign is returned.
- *  2) If they are positive, the one with the larger exponent is returned.
- *  3) If they are negative, the one with the smaller exponent is returned.
- *  4) Otherwise, they are indistinguishable; the first is returned.
+ *  1. If the signs differ, the one with the positive sign is returned.
+ *  2. If they are positive, the one with the larger exponent is returned.
+ *  3. If they are negative, the one with the smaller exponent is returned.
+ *  4. Otherwise, they are indistinguishable; the first is returned.
  *  The returned number will be rounded to the current context.
  *  Implements the 'max' function in the specification. (p. 32)
  *  Flags: INVALID_OPERATION, ROUNDED.
  *
  */
-public T max(T)(in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+public T max(T)(in T x, in T y,	Context context = T.context)
+	if (isDecimal!T)
 {
 	// if both are NaNs or either is an sNan, return NaN.
 	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
@@ -1136,16 +1125,16 @@ public T max(T)(in T x, in T y,
 			if (comp < 0) result = y;
 		}
 		// if they have the same exponent they are identical, return either
-		else if (x.exponent == y.exponent) {
+		else if (x.expo == y.expo) {
 			// no assignment -- use default value
 		}
 		// if they are non-negative, return the one with larger exponent.
 		else if (x.sign == 0) {
-			if (x.exponent < y.exponent) result = y;
+			if (x.expo < y.expo) result = y;
 		}
 		else {
 			// they are negative; return the one with smaller exponent.
-			if (x.exponent > y.exponent) result = y;
+			if (x.expo > y.expo) result = y;
 		}
 	}
 	// result must be rounded
@@ -1202,10 +1191,10 @@ unittest
 /// Otherwise, Any (finite or infinite) number is smaller than a NaN.
 /// If they are not numerically equal, the smaller is returned.
 /// If they are numerically equal:
-/// 1) If the signs differ, the one with the negative sign is returned.
-/// 2) If they are negative, the one with the larger exponent is returned.
-/// 3) If they are positive, the one with the smaller exponent is returned.
-/// 4) Otherwise, they are indistinguishable; the first is returned.
+/// 1. If the signs differ, the one with the negative sign is returned.
+/// 2. If they are negative, the one with the larger exponent is returned.
+/// 3. If they are positive, the one with the smaller exponent is returned.
+/// 4. Otherwise, they are indistinguishable; the first is returned.
 /// Implements the 'min' function in the specification. (p. 32-33)
 /// Flags: INVALID_OPERATION, ROUNDED.
 public T min(T)(in T x, in T y,
@@ -1238,16 +1227,16 @@ public T min(T)(in T x, in T y,
 			min = comp > 0 ? y : x;
 		}
 		// if they have the same exponent they are identical, return either
-		else if (x.exponent == y.exponent) {
+		else if (x.expo == y.expo) {
 			min = x;
 		}
 		// if they are non-negative, return the one with smaller exponent.
 		else if (x.sign == 0) {
-			min = x.exponent > y.exponent ? y : x;
+			min = x.expo > y.expo ? y : x;
 		}
 		// else they are negative; return the one with larger exponent.
 		else {
-			min = x.exponent > y.exponent ? y : x;
+			min = x.expo > y.expo ? y : x;
 		}
 	}
 	// min must be rounded
@@ -1308,7 +1297,7 @@ unittest
 /// the same exponent as the argument.
 /// Flags: NONE.
 public T quantum(T)(in T x)  {
-	return T(1, x.exponent);
+	return T(1, x.expo);
 }
 
 unittest
@@ -1339,10 +1328,10 @@ public T shift(T, U=T)(in T x, in T y,
 {
 	// check for NaN
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
-	if (y.exponent != 0) return invalidOperand(y);
-	if (y.coefficient > context.precision ||
-		y.coefficient < -context.precision) return invalidOperand(y);
-	int n = y.coefficient.toInt;
+	if (y.expo != 0) return invalidOperand(y);
+	if (y.coff > context.precision ||
+		y.coff < -context.precision) return invalidOperand(y);
+	int n = y.coff.toInt;
 	if (y.sign) n = -n;
 	return shift(x, n, context);
 }
@@ -1354,18 +1343,18 @@ public T shift(T, U=T)(in T x, in T y,
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T, U:int)(in T x, U n,
+public T shift(T, U:int)(in T arg, U n,
 		Context context = T.context) if (isDecimal!T)
 {
 
 	// check for NaN
-	if (x.isNaN) return invalidOperand(x);
+	if (arg.isNaN) return invalidOperand(arg);
 
 	// shift by zero returns the argument
-	if (n == 0) return x.dup;
+	if (n == 0) return arg.dup;
 
 	// shift of an infinite number returns the argument
-	if (x.isInfinite) return x.dup;
+	if (arg.isInfinite) return arg.dup;
 
 	int precision = context.precision;
 
@@ -1375,26 +1364,26 @@ public T shift(T, U:int)(in T x, U n,
 		return invalidOperation!T;
 	}
 
-	auto xx = x.dup;
+	auto copy = arg.dup;
 
 	if (n > 0)
 	{
 		// shift left
-		xx.coefficient = xx.coefficient * pow10b(n);
-		xx.digits = decDigits(xx.coefficient);
-		if (xx.digits > context.precision)
+		copy.coff = copy.coff * pow10b(n);
+		copy.digits = countDigits(copy.coff);
+		if (copy.digits > context.precision)
 		{
-			xx.coefficient = xx.coefficient % pow10b(precision);
-			xx.digits = precision;
+			copy.coff = copy.coff % pow10b(precision);
+			copy.digits = precision;
 		}
 	}
 	else
 	{
 		// shift right
-		xx.coefficient = xx.coefficient / pow10b(-n);
-		xx.digits = decDigits(xx.coefficient);
+		copy.coff = copy.coff / pow10b(-n);
+		copy.digits = countDigits(copy.coff);
 	}
-	return xx;
+	return copy;
 }
 
 unittest
@@ -1431,10 +1420,10 @@ public T rotate(T, U=T)(in T x, in U y,
 {
 	if (x.isNaN) return invalidOperand(x);
 	if (y.isNaN) return invalidOperand(y);
-	if (y.exponent != 0) return invalidOperand(y);
-	if (y.coefficient > context.precision ||
-		y.coefficient < -context.precision) return invalidOperand(y);
-	int n = y.coefficient.toInt;
+	if (y.expo != 0) return invalidOperand(y);
+	if (y.coff > context.precision ||
+		y.coff < -context.precision) return invalidOperand(y);
+	int n = y.coff.toInt;
 	if (y.sign) n = -n;
 	return rotate(x, n, context);
 }
@@ -1446,18 +1435,18 @@ public T rotate(T, U=T)(in T x, in U y,
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T, U:int)(in T x, U n,
+public T rotate(T, U:int)(in T arg, U n,
 		Context context = T.context) if (isDecimal!T)
 {
 
 	// check for NaN
-	if (x.isNaN) return invalidOperand(x);
+	if (arg.isNaN) return invalidOperand(arg);
 
 	// shift by zero returns the argument
-	if (n == 0) return x.dup;
+	if (n == 0) return arg.dup;
 
 	// shift of an infinite number returns the argument
-	if (x.isInfinite) return x.dup;
+	if (arg.isInfinite) return arg.dup;
 
 	int precision = context.precision;
 
@@ -1466,37 +1455,37 @@ public T rotate(T, U:int)(in T x, U n,
 		return invalidOperation!T;
 	}
 
-	auto xx = x.copy;
+	auto copy = arg.dup;
 
 	// TODO: test this
 	// if coefficient is longer than the precision truncate leading digits
-	if (xx.digits > precision)
+	if (copy.digits > precision)
 	{
-		xx.coefficient = xx.coefficient % pow10b(precision);
+		copy.coff = copy.coff % pow10b(precision);
 	}
 
 	if (n > 0) {
 		// rotate left
-		xx.coefficient = xx.coefficient * pow10b(n);
-		xx.digits = decDigits(xx.coefficient);
-		if (xx.digits > context.precision) {
-			bigint divisor = pow10b(precision);
-			bigint mod = xx.coefficient % divisor;
-			bigint div = xx.coefficient / divisor;
-			xx.coefficient = div + mod;
-			xx.digits = decDigits(xx.coefficient);
+		copy.coff = copy.coff * pow10b(n);
+		copy.digits = countDigits(copy.coff);
+		if (copy.digits > context.precision) {
+			BigInt divisor = pow10b(precision);
+			BigInt mod, div;
+			divMod(copy.coff, divisor, div, mod);
+			copy.coff = div + mod;
+			copy.digits = countDigits(copy.coff);
 		}
 	}
 	else {
 		// rotate right
 		n = -n;
-		bigint divisor = pow10b(n);
-		bigint mod = xx.coefficient % divisor;
-		bigint div = xx.coefficient / divisor;
-		xx.coefficient = mod * pow10b(precision - n) + div;
-		xx.digits = decDigits(xx.coefficient);
+		BigInt divisor = pow10b(n);
+		BigInt mod, div;
+		divMod(copy.coff, divisor, div, mod);
+		copy.coff = mod * pow10b(precision - n) + div;
+		copy.digits = countDigits(copy.coff);
 	}
-	return xx;
+	return copy;
 }
 
 unittest
@@ -1538,67 +1527,67 @@ unittest
 /// The result may be rounded and context flags may be set.
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T add(T)(in T x, in T y,
+public T add(T)(in T left, in T right,
 		Context context = T.context, bool setFlags = true) if (isDecimal!T)
 {
-	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
+	if (left.isNaN || right.isNaN) return invalidOperand(left, right);
 
 	// if both operands are infinite...
-	if (x.isInfinite && y.isInfinite) {
+	if (left.isInfinite && right.isInfinite) {
 		// if the signs differ return NaN and set invalid operation flag
-		if (x.sign != y.sign) {
+		if (left.sign != right.sign) {
 			return invalidOperation!T;
 		}
 		// both infinite with same sign, return the first
-		return x.dup;
+		return left.dup;
 	}
 	// if only the first is infinite, return it
-	if (x.isInfinite) {
-		return x.dup;
+	if (left.isInfinite) {
+		return left.dup;
 	}
 	// if only the second is infinite, return it
-	if (y.isInfinite) {
-		return y.dup;
+	if (right.isInfinite) {
+		return right.dup;
 	}
 
 	T sum = T.zero;
 	// add(0, 0)
-	if (x.isZero && y.isZero) {
-		sum = x;
+	if (left.isZero && right.isZero) {
+		sum = left;
 		// the exponent is the smaller of the two exponents
-		sum.exponent = std.algorithm.min(x.exponent, y.exponent);
+		sum.expo = std.algorithm.min(left.expo, right.expo);
 		// the sign is the logical AND of the two signs
-		sum.sign = x.sign && y.sign;
+		sum.sign = left.sign && right.sign;
 		return sum;
 	}
 	// add(0,f)
-	if (x.isZero) return y.dup;
+	if (left.isZero) return right.dup;
 	// add(f,0)
-	if (y.isZero) return x.dup;
+	if (right.isZero) return left.dup;
 
 	// sum is finite and not zero.
-	auto xx = x.dup;
-	auto yy = y.dup;
+	auto lf = left.dup;
+	auto rt = right.dup;
 	// align the operands
-	alignOps(xx, yy);
+	alignOps(lf, rt);
 	// if the operands have the same sign add the aligned coefficients
-	if (xx.sign == yy.sign) {
-		sum.coefficient = xx.coefficient + yy.coefficient;
-		sum.sign = xx.sign;
+	if (lf.sign == rt.sign) {
+		sum.coff = lf.coff + rt.coff;
+		sum.sign = lf.sign;
 	}
 	// otherwise subtract the lesser from the greater
 	else {
-		if (xx.coefficient >= yy.coefficient) {
-			sum.coefficient = xx.coefficient - yy.coefficient;
-			sum.sign = xx.sign;
+		if (lf.coff >= rt.coff) {
+			sum.coff = lf.coff - rt.coff;
+			sum.sign = lf.sign;
 		}
 		else {
-			sum.coefficient = yy.coefficient - xx.coefficient;
-			sum.sign = yy.sign;
+			sum.coff = rt.coff - lf.coff;
+			sum.sign = rt.sign;
 		}
 	}
-	sum.digits = decDigits(sum.coefficient);
-	sum.exponent = xx.exponent;
+	sum.digits = countDigits(sum.coff);
+	sum.expo = lf.expo;
 	// round the result
 	return roundToPrecision(sum, context, setFlags);
 }
@@ -1608,11 +1597,11 @@ public T add(T)(in T x, in T y,
 /// The result may be rounded and context flags may be set.
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T add(T, U)(in T x, in U y,
+public T add(T, U)(in T left, in U right,
 		Context context = T.context, bool setFlags = true)
 		if (isDecimal!T && isConvertible!U)
 {
-	return add(x, T(y), context, setFlags);
+	return add(left, T(right), context, setFlags);
 }
 
 unittest
@@ -1634,11 +1623,12 @@ unittest
 /// Subtracts the second operand from the first operand.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'subtract' function in the specification. (p. 26)
-public T sub(T, U:T) (in T x, in U y,
-		Context context = T.context, bool setFlags = true) if (isDecimal!T)
+public D sub(D, U:D) (in D left, in U right,
+		Context context = D.context, bool setFlags = true)
+	if (isDecimal!D)
 {
-	return add(x, y.copyNegate, context, setFlags);
-}	 // end sub(x, y)
+	return add(left, right.copyNegate, context, setFlags);
+}	 // end sub(left, right)
 
 
 /// Subtracts the second operand from the first operand.
@@ -1691,17 +1681,17 @@ public T mul(T)(in T x, in T y, Context context = T.context)
 	if (x.isZero || y.isZero) {
 		T z = T.zero;
 		// TODO: (behavior) is the exponent really the sum of the operand exponents? (how about just use the larger?
-		z.exponent = std.algorithm.min(T.maxExpo, x.exponent + y.exponent);
+		z.expo = std.algorithm.min(T.maxExpo, x.expo + y.expo);
 		z.sign = x.sign ^ y.sign;
 		return (z);
 	}
 
 	// at this point the product is a finite, non-zero number
 	T product = T.zero.dup;
-	product.coefficient = x.coefficient * y.coefficient;
-	product.exponent = std.algorithm.min(T.maxExpo, x.exponent + y.exponent);
+	product.coff = x.coff * y.coff;
+	product.expo = std.algorithm.min(T.maxExpo, x.expo + y.expo);
 	product.sign = x.sign ^ y.sign;
-	product.digits = decDigits(product.coefficient);
+	product.digits = countDigits(product.coff);
 
 	return roundToPrecision(product, context);
 }
@@ -1730,17 +1720,17 @@ public T mul(T, U : long)(in T x, in U n, Context context = T.context)
 	// mul(0,f) or (f,0)
 	if (x.isZero || n == 0) {
 		T z = T.zero;
-		z.exponent = x.exponent;
+		z.expo = x.expo;
 		z.sign = x.sign ^ (n < 0);
 		return (z);
 	}
 
 	// at this point the product is a finite, non-zero number
 	T product = T.zero;
-	product.coefficient = x.coefficient * n;
-	product.exponent = x.exponent;
+	product.coff = x.coff * n;
+	product.expo = x.expo;
 	product.sign = x.sign ^ (n < 0);
-	product.digits = decDigits(product.coefficient);
+	product.digits = countDigits(product.coff);
 	return roundToPrecision(product, context);
 }	// end mul(x, n)
 
@@ -1769,31 +1759,31 @@ unittest
     writefln(f.report);
 }
 
-/// Squares the argument and returns the xx.
+/// Squares the argument and returns the result.
 /// The result may be rounded and context flags may be set.
-public T sqr(T)(in T x, Context context = T.context) if (isDecimal!T)
+public T sqr(T)(in T arg, Context context = T.context) if (isDecimal!T)
 {
 	// if operand is invalid, return NaN
-	if (x.isNaN) {
-		return invalidOperand(x);
+	if (arg.isNaN) {
+		return invalidOperand(arg);
 	}
 	// if operand is infinite, return infinity
-	if (x.isInfinite) {
+	if (arg.isInfinite) {
 		return T.infinity;
 	}
 	// if operand is zero, return zero
-	if (x.isZero) {
+	if (arg.isZero) {
 		return T.zero;
 	}
 
 	// product is non-zero
-	T copy = x.copy;
-	copy.coefficient = copy.coefficient * copy.coefficient;
+	T copy = arg.copy;
+	copy.coff = copy.coff * copy.coff;
 // TODO : why does this fail ("not an lvalue")
-//	copy.exponent *= 2; //copy.exponent * 2;
-	copy.exponent = 2 * copy.exponent;
+//	copy.expo *= 2; //copy.expo * 2;
+	copy.expo = 2 * copy.expo;
 	copy.sign = false;
-	copy.digits = decDigits(copy.coefficient);
+	copy.digits = countDigits(copy.coff);
 	return roundToPrecision(copy, context);
 }
 
@@ -1843,7 +1833,7 @@ unittest
 /*		{ "888565290", "1557.96930", "-86087.7578", "1.38435736E+12" },
 		{ 888565290, 1557.96930, -86087.7578, 1.38435736E+12 },*/
 		{ "888565290", "1557.96930", "-86087.7578", "1384357356777.839" },
-		{ 888565290, 1557.96930, -86087.7578, 1384357356777.839 },
+		{ 888565290, 1557.96930, -86087.7578, "1384357356777.839" },
 	];
 	auto f = FunctionTest!(S,TD)("fma");
 	foreach (t; s) f.test(t, fma(t.x, t.y, t.z));
@@ -1862,32 +1852,33 @@ public T div(T)(in T x, in T y,
 	if (y.isZero) return divisionByZero(x, y);
 
 	// copy the arguments
-	auto dividend = x.dup;
-	auto divisor  = y.dup;
-	auto quotient = T.zero;
+	auto dvnd = x.dup;
+	auto dvsr = y.dup;
+	auto quo = T.zero;
 
-	int diff = dividend.exponent - divisor.exponent;
+	int diff = dvnd.expo - dvsr.expo;
 	if (diff > 0) {
-		dividend.coefficient = shiftLeft(dividend.coefficient, diff);
-		dividend.exponent = dividend.exponent - diff;
-		dividend.digits = dividend.digits + diff;
+		dvnd.coff = shiftLeft(dvnd.coff, diff);
+		dvnd.expo = dvnd.expo - diff;
+		dvnd.digits = dvnd.digits + diff;
 	}
-	int shift = 4 + context.precision + cast(int)divisor.digits - cast(int)dividend.digits;
+	int shift = 4 + context.precision + cast(int)dvsr.digits - cast(int)dvnd.digits;
 	if (shift > 0) {
-		dividend.coefficient = shiftLeft(dividend.coefficient, shift);
-		dividend.exponent = dividend.exponent - shift;
-		dividend.digits = dividend.digits + shift;
+		dvnd.coff = shiftLeft(dvnd.coff, shift);
+		dvnd.expo = dvnd.expo - shift;
+		dvnd.digits = dvnd.digits + shift;
 	}
-	// divisor may have become zero. Check again.
-	if (divisor.isZero)
+	// the divisor may have become zero. Check again.
+	if (dvsr.isZero)
 		return divisionByZero(x, y);
-	quotient.coefficient = dividend.coefficient / divisor.coefficient;
-	quotient.exponent = dividend.exponent - divisor.exponent;
-	quotient.sign = dividend.sign ^ divisor.sign;
-	quotient.digits = decDigits(quotient.coefficient);
-	quotient = roundToPrecision(quotient, context);
-	quotient = reduceToIdeal(quotient, diff);
-	return quotient;
+	quo.coff = dvnd.coff / dvsr.coff;
+	quo.expo = dvnd.expo - dvsr.expo;
+	quo.sign = dvnd.sign ^ dvsr.sign;
+	quo.digits = countDigits(quo.coff);
+	quo = roundToPrecision(quo, context);
+	// TODO: what's up with this? revisit
+	quo = reduceToIdeal(quo, diff);
+	return quo;
 }
 
 /// Divides the first operand by the second operand and returns their quotient.
@@ -1901,32 +1892,29 @@ public T div(T, U : long)(in T x, in U n,
 	if (x.isNaN) return invalidOperand(x);
 	if (n == 0) return divisionByZero(x, n);
 
-	auto dividend = x.dup;
-	auto q = T.zero;
+	auto dvnd = x.dup;
+	auto quo = T.zero;
 
-	int diff = dividend.exponent;
+	int diff = dvnd.expo;
 	if (diff > 0) {
-		dividend.coefficient = shiftLeft(dividend.coefficient, diff);
-		dividend.exponent = dividend.exponent - diff;
-		dividend.digits = dividend.digits + diff;
+		dvnd.coff = shiftLeft(dvnd.coff, diff);
+		dvnd.expo = dvnd.expo - diff;
+		dvnd.digits = dvnd.digits + diff;
 	}
-	int shift = 4 + context.precision + decDigits(cast(uint)n) - dividend.digits;
+	int shift = 4 + context.precision + countDigits(cast(uint)n) - dvnd.digits;
 	if (shift > 0) {
-		dividend.coefficient = shiftLeft(dividend.coefficient, shift);
-		dividend.exponent = dividend.exponent - shift;
-		dividend.digits = dividend.digits + shift;
+		dvnd.coff = shiftLeft(dvnd.coff, shift);
+		dvnd.expo = dvnd.expo - shift;
+		dvnd.digits = dvnd.digits + shift;
 	}
-//	// divisor may have become zero. Check again.
-//	if (divisionIsInvalid!T(dividend, n, q)) {
-//		return nan;
-//	}
-	q.coefficient = dividend.coefficient / n;
-	q.exponent = dividend.exponent; // - n.exponent;
-	q.sign = dividend.sign ^ (n < 0);
-	q.digits = decDigits(q.coefficient);
-	q = roundToPrecision(q, context);
-	q = reduceToIdeal(q, diff);
-	return q;
+
+	quo.coff = dvnd.coff / n;
+	quo.expo = dvnd.expo; // - n.expo;
+	quo.sign = dvnd.sign ^ (n < 0);
+	quo.digits = countDigits(quo.coff);
+	quo = roundToPrecision(quo, context);
+	quo = reduceToIdeal(quo, diff);
+	return quo;
 }
 
 /// Divides the first operand by the second operand and returns their quotient.
@@ -1949,17 +1937,17 @@ private T reduceToIdeal(T)(T x, int ideal) if (isDecimal!T) {
 	if (!x.isFinite()) {
 		return x;
 	}
-	int zeros = trailingZeros(x.coefficient, decDigits(x.coefficient));
+	int zeros = trailingZeros(x.coff, x.digits);
 
-	int idealshift = ideal - x.exponent;
+	int idealshift = ideal - x.expo;
 	int	canshift = idealshift > zeros ? zeros : idealshift;
-	x.coefficient = shiftRight(x.coefficient, canshift);
-	x.exponent = x.exponent + canshift;
+	x.coff = shiftRight(x.coff, canshift);
+	x.expo = x.expo + canshift;
 
-	if (x.coefficient == 0) {
+	if (x.coff == 0) {
 		x = T.zero;
 	}
-	x.digits = decDigits(x.coefficient);
+	x.digits = countDigits(x.coff);
 	return x;
 }
 unittest
@@ -1988,11 +1976,11 @@ unittest
 
 /*public T integerPart(T)(T x) if (isDecimal!T)
 {
-	int expo = x.exponent;
+	int exp = x.expo;
 	int digits = x.digits;
-	if (expo >= 0) return x;
-	expo = -expo;
-	if (expo >= digits) return T.zero(x.sign);	// TODO: review conditions for -0
+	if (exp >= 0) return x;
+	exp = -exp;
+	if (exp >= digits) return T.zero(x.sign);	// TODO: review conditions for -0
 
 
 }*/
@@ -2005,35 +1993,8 @@ unittest
 /// Implements the 'divide-integer' function in the specification. (p. 30)
 public T divideInteger(T)(in T x, in T y)  {
 	T quo;
-	remquo(x,y,quo);
+	remQuo(x,y,quo);
 	return quo;
-/*	// check for NaN and division by zero
-	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
-	if (y.isZero) return divisionByZero(x, y);
-
-	auto dividend = x.dup;
-	auto divisor  = y.dup;
-	auto quotient = T.zero;
-
-	// align operands
-	int diff = dividend.exponent - divisor.exponent;
-	if (diff < 0) {
-		divisor.coefficient = shiftLeft(divisor.coefficient, -diff);
-	}
-	if (diff > 0) {
-		dividend.coefficient = shiftLeft(dividend.coefficient, diff);
-	}
-	quotient.sign = dividend.sign ^ divisor.sign;
-	quotient.coefficient = dividend.coefficient / divisor.coefficient;
-	if (quotient.coefficient == 0) return T.zero(quotient.sign);
-	quotient.exponent = 0;
-	// number of digits cannot exceed precision
-	int digits = decDigits(quotient.coefficient);
-	if (digits > T.precision) {
-		return invalidOperation!T;
-	}
-	quotient.digits = digits;
-	return quotient;*/
 }
 
 // TODO: (behavior) Does this implement the actual spec operation?
@@ -2042,43 +2003,38 @@ public T divideInteger(T)(in T x, in T y)  {
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
-public T remquo(T)(in T x, in T y, out T quotient) if (isDecimal!T)
+public T remQuo(T)(in T x, in T y, out T quo) if (isDecimal!T)
 {
 	// check for NaN and division by zero
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 	if (y.isZero) return divisionByZero(x, y);
 
 	auto dividend = x.dup;
-	auto divisor  = y.dup;
-	quotient.sign = dividend.sign ^ divisor.sign;
+	auto dvsr  = y.dup;
+	quo.sign = dividend.sign ^ dvsr.sign;
 	if (x.isZero) {
-		quotient = T.zero(quotient.sign);
-		return quotient.dup;
+		quo = T.zero(quo.sign);
+		return quo.dup;
 	}
-//    auto remainder = T.zero;
+//    auto rem = T.zero;
 
-	// align operands
-	int diff = dividend.exponent - divisor.exponent;
-	if (diff < 0) {
-		divisor.coefficient = shiftLeft(divisor.coefficient, -diff);
-	}
-	if (diff > 0) {
-		dividend.coefficient = shiftLeft(dividend.coefficient, diff);
-	}
-	bigint div = dividend.coefficient / divisor.coefficient;
-	bigint mod = dividend.coefficient % divisor.coefficient;
-	quotient = T(div);
-	T remainder = T(mod);
+	// align the operands
+	alignOps(dividend, dvsr);
+
+	BigInt div, mod;
+	divMod(dividend.coff, dvsr.coff, div, mod);
+	quo = T(div);
+	T rem = T(mod);
 	// number of digits cannot exceed precision
-	int digits = decDigits(quotient.coefficient);
+	int digits = countDigits(quo.coff);
 	if (digits > T.precision) {
-		remainder = T.nan;
+		rem = T.nan;
 		return invalidOperation!T;
 	}
-	quotient.digits = digits;
-	remainder.digits = decDigits(remainder.coefficient);
-	remainder.sign = quotient.sign;
-	return remainder;
+	quo.digits = digits;
+	rem.digits = countDigits(rem.coff);
+	rem.sign = quo.sign;
+	return rem;
 }
 
 unittest
@@ -2121,9 +2077,9 @@ public T remainder(T)(in T x, in T y,
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 	if (y.isZero) return divisionByZero(x, y);
 
-	T quotient = divideInteger!T(x, y,);
-	T remainder = x - mul!T(y, quotient, Context(context.precision, context.maxExpo, ROUND_NONE));
-	return remainder;
+	T quo = divideInteger!T(x, y,);
+	T rem = x - (y * quo);
+	return rem;
 }
 
 unittest
@@ -2163,10 +2119,10 @@ public T remainderNear(T)(in T x, in T y) if (isDecimal!T)
 	// check for NaN and division by zero
 	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
 	if (y.isZero) return divisionByZero(x, y);
-	T quotient = x/y;
+	T quo = x/y;
 	// TODO: (behavior) roundToIntegralValue?
-	T remainder = x - y * (roundToIntegralExact(quotient));
-	return remainder;
+	T rem = x - y * roundToIntegralExact(quo);
+	return rem;
 }
 
 unittest
@@ -2187,8 +2143,6 @@ unittest
 	foreach (t; s) f.test(t, remainderNear(t.x, t.y));
     writefln(f.report);
 }
-
-// TODO: (behavior) add 'remquo' function. (Uses remainder-near(?))
 
 //--------------------------------
 // rounding routines
@@ -2213,7 +2167,7 @@ public T quantize(T)(in T x, in T y,
 		return x.dup;
 	}
 	T z = x.dup;
-	int diff = x.exponent - y.exponent;
+	int diff = x.expo - y.expo;
 
 	if (diff == 0) {
 		return z;
@@ -2221,9 +2175,9 @@ public T quantize(T)(in T x, in T y,
 
 	// TODO: (behavior) this shift can cause integer overflow for fixed size decimals
 	if (diff > 0) {
-		z.coefficient = shiftLeft(z.coefficient, diff/*, precision*/);
+		z.coff = shiftLeft(z.coff, diff/*, precision*/);
 		z.digits = z.digits + diff;
-		z.exponent = y.exponent;
+		z.expo = y.expo;
 		if (z.digits > T.precision) {
 			z = T.nan;
 		}
@@ -2232,7 +2186,7 @@ public T quantize(T)(in T x, in T y,
 	else {
 		int precision = (-diff > x.digits) ? 0 : x.digits + diff;
 		z = roundToPrecision(z, precision, context.maxExpo, context.mode);
-		z.exponent = y.exponent;
+		z.expo = y.expo;
 		if (z.isZero && x.isSigned) {
 			z.sign = true;
 		}
@@ -2281,10 +2235,10 @@ public T roundToIntegralExact(T)(in T x,
 	T result = x.dup;
 	if (result.isSignaling) return invalidOperation!T;
 	if (result.isSpecial) return result;
-	if (result.exponent >= 0) return result;
+	if (result.expo >= 0) return result;
 
 	// TODO: (behavior) need to prevent precision overrides
-	int precision = result.digits + result.exponent;
+	int precision = result.digits + result.expo;
 	result = roundToPrecision(result, precision, T.maxExpo, mode);
 	return result;
 }
@@ -2312,15 +2266,14 @@ unittest
 /// The result may be rounded and context flags may be set.
 /// Implements the 'round-to-integral-value' function
 /// in the specification. (p. 39)
-public T roundToIntegralValue(T)(in T arg,
-		const Rounding mode = T.mode) if (isDecimal!T)
+public T roundToIntegralValue(T)(in T arg) if (isDecimal!T)
 {
 	T result = arg.dup;
 	if (result.isSignaling) return invalidOperation!T;
 	if (result.isSpecial) return result;
-	if (result.exponent >= 0) return result;
+	if (result.expo >= 0) return result;
 
-	int precision = result.digits + result.exponent;
+	int precision = result.digits + result.expo;
 	result = roundToPrecision(result, context);
 	return result;
 }
@@ -2344,14 +2297,14 @@ public T roundToIntegralValue(T)(in T arg,
 /// No flags are set and the result is not rounded.
 private void alignOps(T, U)(ref T x, ref U y) if (isDecimal!T && isDecimal!U)
 {
-	int diff = x.exponent - y.exponent;
+	int diff = x.expo - y.expo;
 	if (diff > 0) {
-		x.coefficient = shiftLeft(x.coefficient, diff);
-		x.exponent = y.exponent;
+		x.coff = shiftLeft(x.coff, diff);
+		x.expo = y.expo;
 	}
 	else if (diff < 0) {
-		y.coefficient = shiftLeft(y.coefficient, -diff);
-		y.exponent = x.exponent;
+		y.coff = shiftLeft(y.coff, -diff);
+		y.expo = x.expo;
 	}
 }
 
@@ -2362,16 +2315,16 @@ private void alignOps(T, U)(ref T x, ref U y) if (isDecimal!T && isDecimal!U)
 /// No flags are set and the result is not rounded.
 private void alignOps(T, U:long)(ref T x, U n) if (isDecimal!T)
 {
-	int diff = x.exponent;
-	if (x.exponent == 0) return;
+	int diff = x.expo;
+	if (x.expo == 0) return;
 
-	if (x.exponent > 0) {
-		x.coefficient = shiftLeft(x.coefficient, x.exponent);
-		x.exponent = 0;
+	if (x.expo > 0) {
+		x.coff = shiftLeft(x.coff, x.expo);
+		x.expo = 0;
 	}
 	else if (diff < 0) {
-		y.coefficient = shiftLeft(y.coefficient, -diff);
-		y.exponent = x.exponent;
+		y.coff = shiftLeft(y.coff, -diff);
+		y.expo = x.expo;
 	}
 }
 
@@ -2381,8 +2334,8 @@ unittest { // alignOps
 	arg1 = TD("1.3E35");
 	arg2 = TD("-17.4E29");
 	alignOps(arg1, arg2);
-	assertEqual(arg1.coefficient, 13000000);
-	assertEqual(arg2.exponent, 28);
+	assertEqual(arg1.coff, 13000000);
+	assertEqual(arg2.expo, 28);
 	writeln("passed");
 }
 
@@ -2425,7 +2378,7 @@ package T invalidOperand(T)(in T x) if (isDecimal!T)
 	// if the operand is a quiet NaN return it.
 	if (x.isQuiet) return x.dup;
 	// Otherwise change the signalling NaN to a quiet NaN.
-	if (x.isSignaling) return T.nan(x.payload, x.sign);
+	if (x.isSignaling) return T.nan(cast(ushort)x.coff);
 	// if the operand is neither quiet nor signaling something else is wrong
 	// so return NaN.
 	return T.nan.dup;
@@ -2445,8 +2398,8 @@ package T invalidOperand(T)(in T x, in T y) if (isDecimal!T)
 	contextFlags.set(INVALID_OPERATION);
 	// if either operand is signaling return a quiet NaN.
 	// NOTE: sign is ignored.
-	if (x.isSignaling) return T.nan(x.payload);
-	if (y.isSignaling) return T.nan(y.payload);
+	if (x.isSignaling) return T.nan(cast(ushort)x.coff);
+	if (y.isSignaling) return T.nan(cast(ushort)y.coff);
 	// if the operand is a quiet NaN return it.
 	if (x.isQuiet) return x.dup;
 	if (y.isQuiet) return y.dup;

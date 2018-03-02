@@ -20,12 +20,9 @@
 module eris.decimal.rounding;
 
 import eris.decimal;
-import eris.decimal.context;
-import eris.decimal.test;
-
 import std.conv;
 import std.string;
-import std.internal.math.biguintcore;
+import std.traits;
 
 ///=============================
 /// Summary of 484...
@@ -44,12 +41,13 @@ unittest {
 	writeln("==========================");
 }
 
-import std.stdio;
+//import std.stdio;
 
 version(unittest)
 {
 	import std.stdio;
-	import eris.test.assertion;
+//	import eris.decimal.asserts;
+	import eris.decimal.test;
 }
 
 /**
@@ -68,8 +66,8 @@ public T roundToPrecision(T)(in T num) if (isDecimal!T)
  *  Returns the rounded number.
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
-public T roundToPrecision(T)(
-	in T num, Context context = T.context, bool setFlags = true)
+package T roundToPrecision(T)(
+		in T num, Context context = T.context, bool setFlags = true)
 	if (isDecimal!T)
 {
 	return roundToPrecision(num,
@@ -83,9 +81,7 @@ public T roundToPrecision(T)(
  */
 //@safe
 public T roundToPrecision(T)(in T num, int precision,
-	int maxExpo = T.maxExpo,
-	Rounding mode = T.mode,
-	bool setFlags = true)
+		int maxExpo = T.maxExpo, Rounding mode = T.mode, bool setFlags = true)
 	if (isDecimal!T)
 {
 	// check for overflow before rounding and copy the input
@@ -105,11 +101,11 @@ public T roundToPrecision(T)(in T num, int precision,
 	// zero values aren't rounded, but they are checked for
 	// subnormal and out of range exponents.
 	if (num.isZero) {
-		if (num.exponent < minExpo) {
+		if (num.expo < minExpo) {
 			if (setFlags) contextFlags.set(SUBNORMAL);
-			if (num.exponent < tinyExpo) {
+			if (num.expo < tinyExpo) {
 				int temp = tinyExpo;
-				copy.exponent = tinyExpo;
+				copy.expo = tinyExpo;
 			}
 		}
 		return copy;
@@ -127,7 +123,7 @@ public T roundToPrecision(T)(in T num, int precision,
 		// if the result of rounding a subnormal is zero
 		// the clamped flag is set. (Spec. p. 51)
 		if (copy.isZero) {
-			copy.exponent = tinyExpo;
+			copy.expo = tinyExpo;
 			if (setFlags) contextFlags.set(CLAMPED);
 		}
 		return copy;
@@ -140,7 +136,7 @@ public T roundToPrecision(T)(in T num, int precision,
 
 unittest
 {	// roundToPrecision
-	static struct S { TD x; int n; TD expect; }
+	static struct S { D64 x; int n; D64 expect; }
 	S[] s =
 	[
 		{ "9999", 3, "1.00E+4" },
@@ -155,14 +151,14 @@ unittest
 		{ "1245",  3, "1.24E+3" },
 		{ "12459", 3, "1.25E+4" },
 	];
-	auto f = FunctionTest!(S,TD)("roundPrec");
-	foreach (t; s) f.test(t, roundToPrecision!TD(t.x,t.n));
+	auto f = FunctionTest!(S,D64)("roundPrec");
+	foreach (t; s) f.test(t, roundToPrecision!D64(t.x,t.n));
     writefln(f.report);
 }
 
 //unittest {	// roundToPrecision
 //	write("-- roundToPrecision.");
-//	bigint test = "18690473486004564289165545643685440097";
+//	BigInt test = "18690473486004564289165545643685440097";
 //	long  count = reduceDigits(test);
 //	roundToPrecision(test);
 		// TODO: (testing) test for subnormal as below...
@@ -190,6 +186,7 @@ unittest
 // private methods
 //--------------------------------
 
+// TODO: needs unittests
 /**
  *  Returns true if the number is too large to be represented
  *  and adjusts the number according to the rounding mode.
@@ -201,10 +198,10 @@ unittest
 private T checkOverflow(T)(in T num, Rounding mode = T.mode,
 		int maxExpo = T.maxExpo, bool setFlags = true) if (isDecimal!T)
 {
-	T copy = num.copy;
-	if (num.adjustedExponent <= maxExpo) return copy;
+	if (num.adjustedExponent <= maxExpo) return num;
 
 	// TODO: if the number has not been normalized will this work?
+	T copy = num.copy;
 	switch (mode)
 	{
 		case ROUND_NONE: 	// can this branch be reached? should it be?
@@ -230,6 +227,8 @@ private T checkOverflow(T)(in T num, Rounding mode = T.mode,
 	return copy;
 }
 
+
+// TODO: needs unittests
 // Returns true if the rounding mode is half-even, half-up, or half-down.
 private bool halfRounding(Rounding mode) {
 	return (mode == HALF_EVEN ||
@@ -237,29 +236,36 @@ private bool halfRounding(Rounding mode) {
 	 		mode == HALF_DOWN);
 }
 
+unittest
+{
+	assert(halfRounding(HALF_UP));
+	assert(!halfRounding(ROUND_UP));
+}
+
 /**
  *  Rounds the number to the context precision
  *  using the specified rounding mode.
  */
-private T roundByMode(T)(T num, int precision, Rounding mode,
-	int maxExpo = T.maxExpo, bool setFlags = true) if (isDecimal!T)
+private T roundByMode(T)(T num, int precision,
+		Rounding mode = T.mode, int maxExpo = T.maxExpo, bool setFlags = true)
+	if (isDecimal!T)
 {
 	T copy = checkOverflow(num, mode, maxExpo, setFlags);
 
 	// did it overflow to infinity?
 	if (copy.isSpecial) return copy;
 
-	if (mode == ROUND_NONE) return copy;
+	if (mode == ROUND_NONE) return num;
 
 	// calculate the remainder
 	T remainder = getRemainder(num, precision);
 	// if the number wasn't rounded, return
-	if (remainder.isZero) return copy;
+	if (remainder.isZero) return num;
 
 	// check for deleted leading zeros in the remainder.
 	// makes a difference only in round-half modes.
-	if (halfRounding(mode) &&
-		decDigits(remainder.coefficient) != remainder.digits) {
+	if ((mode == HALF_EVEN || mode == HALF_UP || mode == HALF_DOWN) &&
+		countDigits(remainder.coff) != remainder.digits) {
 		return num.copy;
 	}
 
@@ -276,22 +282,22 @@ private T roundByMode(T)(T num, int precision, Rounding mode,
 			if (num.sign) incrementAndRound(num);
 			break;
 		case HALF_UP:
-			if (firstDigit(remainder.coefficient) >= 5)
+			if (firstDigit(remainder.coff) >= 5)
 				incrementAndRound(num);
 			break;
 		case HALF_DOWN:
-			if (testFive(remainder.coefficient) > 0)
+			if (testFive(remainder.coff) > 0)
 				incrementAndRound(num);
 			break;
 		case HALF_EVEN:
-			switch (testFive(remainder.coefficient)) {
+			switch (testFive(remainder.coff)) {
 				case -1:
 					break;
 				case 1:
 					incrementAndRound(num);
 					break;
 				default:
-					if (lastDigit(num.coefficient) & 1) {
+					if (lastDigit(num.coff) & 1) {
 						incrementAndRound(num);
 					}
 					break;
@@ -305,7 +311,7 @@ private T roundByMode(T)(T num, int precision, Rounding mode,
 
 unittest
 {	// roundByMode
-	static struct S { TD x; int p; Rounding r; TD expect; }
+	static struct S { D64 x; int p; Rounding r; D64 expect; }
 	S[] s =
 	[
 		{ "1000",    5, HALF_EVEN,  "1000" },
@@ -315,8 +321,8 @@ unittest
 		{ "1234550", 5, ROUND_DOWN, "1.2345E+6" },
 		{ "1234550", 5, ROUND_UP,   "1.2346E+6" },
 	];
-	auto f = FunctionTest!(S,TD)("roundByMode");
-	foreach (t; s) f.test(t, roundByMode!TD(t.x,t.p,t.r));
+	auto f = FunctionTest!(S,D64)("roundByMode");
+	foreach (t; s) f.test(t, roundByMode!D64(t.x,t.p,t.r));
     writefln(f.report);
 }
 
@@ -337,32 +343,32 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 		return remainder;
 	}
 	contextFlags.set(ROUNDED);
-	bigint divisor = pow10b(diff);
-	bigint dividend = x.coefficient;
-	bigint quotient = dividend/divisor;
+	BigInt divisor = pow10b(diff);
+	BigInt dividend = x.coff;
+	BigInt quotient = dividend/divisor;
 	auto cf = dividend - quotient*divisor;
 	if (cf != 0) {
 		remainder = T.zero;
 		remainder.digits = diff;
-		remainder.exponent = x.exponent;
-		remainder.coefficient = cf;
+		remainder.expo = x.expo;
+		remainder.coff = cf;
 		contextFlags.set(INEXACT);
 	}
-	x.coefficient = quotient;
-	x.digits = decDigits(quotient); //precision;
-	x.exponent = x.exponent + diff;
+	x.coff = quotient;
+	x.digits = countDigits(quotient); //precision;
+	x.expo = x.expo + diff;
 	return remainder;
 }
 
 unittest
 {	// getRemainder
-	static struct S { TD x; int p; TD expect; }
+	static struct S { D64 x; int p; D64 expect; }
 	S[] s =
 	[
 		{ 1234567890123456L, 5, "67890123456" },
 	];
-	auto f = FunctionTest!(S,TD)("getRemainder");
-	foreach (t; s) f.test(t, getRemainder!TD(t.x,t.p));
+	auto f = FunctionTest!(S,D64)("getRemainder");
+	foreach (t; s) f.test(t, getRemainder!D64(t.x,t.p));
     writefln(f.report);
 }
 
@@ -371,39 +377,39 @@ unittest
  *  If this causes an overflow the coefficient is adjusted by clipping
  *  the last digit (it will be zero) and incrementing the exponent.
  */
-private void incrementAndRound(T)(ref T dec) if (isDecimal!T)
+private void incrementAndRound(T)(ref T num) if (isDecimal!T)
 {
-	// if dec is zero
-	if (dec.digits == 0) {
-		dec.coefficient = 1;
-		dec.digits = 1;
+	// if num is zero
+	if (num.digits == 0) {
+		num.coff = 1;
+		num.digits = 1;
 		return;
 	}
-	dec.coefficient = dec.coefficient + 1;
+	num.coff = num.coff + 1;
 	// TODO: (efficiency) is there a less expensive test?
-	if (lastDigit(dec.coefficient) == 0) {
-		if (dec.coefficient / pow10b(dec.digits) > 0) {
-			dec.coefficient = dec.coefficient / 10;
-			dec.exponent = dec.exponent + 1;
+	if (lastDigit(num.coff) == 0) {
+		if (num.coff / pow10b(num.digits) > 0) {
+			num.coff = num.coff / 10;
+			num.expo = num.expo + 1;
 		}
 	}
 }
 
 /*unittest
 {	// incrementAndRound
-	static struct S { TD x; int p; TD expect; }
+	static struct S { D64 x; int p; D64 expect; }
 	S[] s =
 	[
 		{ 1234567890123456L, 5, "67890123456" },
 	];
-	auto f = FunctionTest!(S,TD)("incrementAndRound");
-	foreach (t; s) f.test(t, incrementAndRound!TD(t.x,t.p));
+	auto f = FunctionTest!(S,D64)("incrementAndRound");
+	foreach (t; s) f.test(t, incrementAndRound!D64(t.x,t.p));
     writefln(f.report);
 }*/
 
 unittest {	// increment
 	write("-- increment&round..");
-	TD actual, expect;
+	D64 actual, expect;
 	actual = 10;
 	expect = 11;
 	incrementAndRound(actual);
@@ -424,20 +430,20 @@ unittest {	// increment
  *  or exactly half the least significant digit of the shortened coefficient.
  *  Exactly half is a five followed by zero or more zero digits.
  */
-public int testFive(in bigint x)
+private int testFive(in BigInt x)
 {
-	int num = decDigits(x);
-	bigint btens = pow10b(num - 1);
+	int num = countDigits(x);
+	BigInt btens = pow10b(num - 1);
 	int first = cast(int)(x / btens);
 	if (first < 5) return -1;
 	if (first > 5) return +1;
-	bigint zeros = x % btens;
+	BigInt zeros = x % btens;
 	return zeros ? 1 : 0;
 }
 
 unittest
 {	// testFive
-	static struct S { bigint x; int expect; }
+	static struct S { BigInt x; int expect; }
 	S[] s =
 	[
 		{ "5000000000000000000000",  0 },
@@ -453,92 +459,110 @@ unittest
 // useful constants
 //-----------------------------
 
-/*private enum bigint BIG_ZERO = bigint(0);
-private enum bigint BIG_ONE  = bigint(1);
-private enum bigint BIG_FIVE = bigint(5);
-private enum bigint BIG_TEN  = bigint(10);
-private enum bigint BILLION  = bigint(1_000_000_000);
-private enum bigint QUINTILLION  = bigint(1_000_000_000_000_000_000);*/
+/*private enum BigInt BIG_ZERO = BigInt(0);
+private enum BigInt BIG_ONE  = BigInt(1);
+private enum BigInt BIG_FIVE = BigInt(5);
+private enum BigInt BIG_TEN  = BigInt(10);
+private enum BigInt BILLION  = BigInt(1_000_000_000);
+private enum BigInt QUINTILLION  = BigInt(1_000_000_000_000_000_000);*/
 
 
 ///  The maximum number of decimal digits that fit in an int value.
-public enum int MAX_INT_DIGITS = 9;
+//public enum int MAX_INT_DIGITS = 9;
 ///  The maximum decimal value that fits in an int.
-public enum uint MAX_DECIMAL_INT = 999999999U;
+//public enum uint MAX_DECIMAL_INT = 999999999U;
 ///  The maximum number of decimal digits that fit in a long value.
 public enum int MAX_LONG_DIGITS = 18;
-///  The maximum decimal value that fits in a long.
+///  The maximum decimal value that fits in a long value.
 public enum ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
 
 //-----------------------------
-// decimal digit functions
+// BigInt digit functions
 //-----------------------------
-
-public ulong ulongDigit(bigint big, int n)
-{
-	if (n > big.ulongLength - 1) return 0;
-//	return big.ulongDigit(n);
-return 0;
-}
-
-public uint uintDigit(bigint big, int n)
-{
-	if (n > big.uintLength - 1) return 0;
-//	return big.uintDigit(n);
-return 0;
-}
 
 /**
  *  An array of unsigned long integers with values of
- *  powers of ten from 10^^0 to 10^^18
+ *  powers of ten from 10^^0 to 10^^19
  */
-private enum ulong[19] pow10 = [10UL^^0,
+private enum ulong[20] pow10UL = [10UL^^0,
 		10UL^^1,  10UL^^2,  10UL^^3,  10UL^^4,  10UL^^5,  10UL^^6,
 		10UL^^7,  10UL^^8,  10UL^^9,  10UL^^10, 10UL^^11, 10UL^^12,
-		10UL^^13, 10UL^^14, 10UL^^15, 10UL^^16, 10UL^^17, 10UL^^18];
+		10UL^^13, 10UL^^14, 10UL^^15, 10UL^^16, 10UL^^17, 10UL^^18, 10UL^^19];
 
 /**
- * Returns the number of decimal digits in an unsigned long integer
+ * Returns the number of decimal digits in a non-negative big integer
  */
-public int decDigits(ulong n)
+public int countDigits(T)(in T m)
+	if (is(T == BigInt) || isUnsigned!T)
 {
-	// special cases:
-	if (n == 0) return 0;
-	if (n < 10) return 1;
-	if (n >= pow10[18]) return 19;
-	// use a binary search to count the digits
-	// TODO: is a binary search really faster?
-	int min = 2;
-	int max = 18;
-	while (min <= max)
+	if (m == 0)
 	{
-		int mid = (min + max)/2;
-		if (n < pow10[mid])
-		{
-			max = mid - 1;
-		}
-		else
-		{
-			min = mid + 1;
-		}
+		return 0;
 	}
-	return min;
+
+	static if (is(T == BigInt))
+	{
+		if (m.ulongLength == 1)
+		{
+			return countDigits(m.getDigit(0));
+		}
+
+		int count;
+		ulong n = clipDigits(m, count);
+		return count + countDigits(n);
+	}
+	else
+	{
+		auto n = cast(ulong)m;
+		// special cases:
+		if (n == 0) return 0;
+		if (n < 10) return 1;
+		if (n >= pow10UL[19]) return 20;
+		// use a binary search to count the digits
+		int min = 2;
+		int max = 19;
+		while (min <= max)
+		{
+			int mid = (min + max)/2;
+			if (n < pow10UL[mid])
+			{
+				max = mid - 1;
+			}
+			else
+			{
+				min = mid + 1;
+			}
+		}
+		return min;
+	}
 }
 
+///
+unittest // countDigits
+{
+	auto big = BigInt(
+		"1234567890_1234567890_1234567890_1234567890_1234567890" ~
+		"1234567890_1234567890_1234567890_1234567890_1234567890_1");
+ 	assert(countDigits(big) == 101);
+}
+
+
 unittest
-{	// decDigits
-	static struct S { bigint n; int expect; }
+{	// countDigits
+	static struct S { BigInt n; int expect; }
 	S[] s =
 	[
-		{ "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905", 101 },
+		{ "123456", 6 },
+		{ "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901", 101 },
+		{ "1234567890123456789012345678901234567890123456789012", 52 },
 	];
-	auto f = FunctionTest!(S,int)("decDigits");
-	foreach (t; s) f.test(t, decDigits(t.n));
+	auto f = FunctionTest!(S,int)("countDigits");
+	foreach (t; s) f.test(t, countDigits(t.n));
     writefln(f.report);
 }
 
 unittest
-{	// decDigits
+{	// countDigits
 	static struct S { ulong n; int expect; }
 	S[] s =
 	[
@@ -551,89 +575,92 @@ unittest
 		{		 1234567890, 10 },
 		{		10000000000, 11 },
 		{	123456789012345, 15 },
-		{ 1234567890123456, 16 },
+		{  1234567890123456, 16 },
 		{123456789012345678, 18 },
 		{		   long.max, 19 },
-		{		  ulong.max, 19 },
+		{		  ulong.max, 20 },
 		{		  ulong.min,  0 },
 	];
-	auto f = FunctionTest!(S,int)("decDigits");
-	foreach (t; s) f.test(t, decDigits(t.n));
+	auto f = FunctionTest!(S,int)("countDigits");
+	foreach (t; s) f.test(t, countDigits(t.n));
     writefln(f.report);
 }
 
-/**
- * Returns the number of decimal digits in an unsigned big integer
- */
-public int decDigits(bigint big)
+
+/// Clips decimal digits until a single ulong digit is left.
+private ulong clipDigits(in BigInt big, out int count)
 {
-	if (big == 0)
-	{
-		return 0;
-	}
+	if (big <= ulong.max) return cast(ulong)big;
 
-	if (big.ulongLength == 1)
-	{
-		return decDigits(ulongDigit(big, 0));
-	}
-
-	int count;
-	ulong n = truncDigits(big, count);
-	return count + decDigits(n);
-}
-
-//enum bigint quint = bigint(1_000_000_000_000_000_000);
-enum bigint quint = bigint(10UL^^18);
-//enum bigint undec = quint * quint;
-
-ulong truncDigits(in bigint inbig) {
-	bigint big = bigint(inbig);
-	while (big > quint) {
-		big /= quint;
-	}
-	return ulongDigit(big, 0);
-}
-
-ulong truncDigits(in bigint inbig, out int count)
-{
+	enum BigInt tenQuint = 10UL^^19;
 	count = 0;
-	bigint big = bigint(inbig);
-	while (big > quint) {
-		big /= quint;
-		count += 18;
+	BigInt quotient = big;
+	while (quotient > tenQuint) {
+		quotient /= tenQuint;
+		count += 19;
 	}
-	return ulongDigit(big, 0);
+	return cast(ulong)quotient;
 }
 
-int firstDigit(in bigint big) {
-	return firstDigit(truncDigits(big));
+unittest // clipDigits
+{
+	int count;
+	BigInt big;
+	big = BigInt("123456");
+	assert(clipDigits(big, count) == 123456);
+	assert(clipDigits(BigInt(ulong.max), count) == ulong.max);
+	big = BigInt("1234567890_1234567890_1234567890_1234567890_1234567890");
+	assert(clipDigits(big, count) == 123456789012);
 }
 
-int firstDigit(ulong n) {
-	if (n == 0) return 0;
-	if (n < 10) return cast(int) n;
-	int digits = decDigits(n);
-	return cast(int) (n/pow10[digits-1]);
+/// returns the first decimal digit of the number
+public uint firstDigit(T)(T n)
+	if (is(T == BigInt) || isUnsigned!T)
+{
+	static if (is(T == BigInt))
+	{
+		int count;
+		return firstDigit(clipDigits(n,count));
+	}
+	else
+	{
+		if (n == 0) return 0;
+		if (n < 10) return cast(int) n;
+		int digits = countDigits(n);
+		return cast(uint)(n / pow10UL[digits-1]);
+	}
 }
 
 unittest
-{	// firstDigit(bigint)
-	static struct S { bigint n; uint expect; }
+{
+	assert(firstDigit(BigInt("8234567890123456789012345678901234567890123")) == 8);
+	assert(firstDigit(0U) == 0);
+	assert(firstDigit(7U) == 7);
+	assert(firstDigit(9999UL) == 9);
+	assert(firstDigit(uint.max) == 4);
+	assert(firstDigit(ulong.max) == 1);
+}
+
+unittest	// move to regression testing
+{	// firstDigit(BigInt)
+	static struct S { BigInt n; uint expect; }
 	S[] s =
 	[
 		{ "5000000000000000000000", 5 },
+		{ "45500000001209854300023400000000000000", 4 },
 		{ "82345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905", 8 },
 	];
-	auto f = FunctionTest!(S,uint)("firstDigit");
+	auto f = FunctionTest!(S,uint)("1stDigit(b)");
 	foreach (t; s) f.test(t, firstDigit(t.n));
     writefln(f.report);
 }
 
 unittest
-{	// firstDigit(bigint)
+{	// firstDigit(ulong)
 	static struct S { ulong n; uint expect; }
 	S[] s =
 	[
+		{ 0, 0 },
 		{ 7, 7 },
 		{ 13, 1 },
 		{ 999, 9 },
@@ -647,17 +674,19 @@ unittest
 		{ 623456789012345678, 6 },
 		{long.max, 9 }
 	];
-	auto f = FunctionTest!(S,uint)("firstDigit");
+	auto f = FunctionTest!(S,uint)("1stDigit(u)");
 	foreach (t; s) f.test(t, firstDigit(t.n));
     writefln(f.report);
 }
 
+// TODO: move to arithmetic, templatize
 /**
+ *  Decimal shift left.
  *  Shifts the number left by the specified number of decimal digits.
  *  If n == 0 the number is returned unchanged.
  *  If n < 0 the number is shifted right.
  */
-public bigint shiftLeft(bigint num, int n)
+public BigInt shiftLeft(BigInt num, int n)
 {
 	// NOTE: simply multiplies by 10^^n.
 	if (n > 0) {
@@ -670,15 +699,15 @@ public bigint shiftLeft(bigint num, int n)
 }
 
 
-/+unittest {	// shiftLeft(bigint)
-	bigint m;
+/+unittest {	// shiftLeft(BigInt)
+	BigInt m;
 	int n;
 	m = 12345;
 	n = 2;
 	assert(shiftLeft(m, n/*, 100*/) == 1234500);
 	m = 1234567890;
 	n = 7;
-	assert(shiftLeft(m, n/*, 100*/) == bigint(12345678900000000));
+	assert(shiftLeft(m, n/*, 100*/) == BigInt(12345678900000000));
 	m = 12;
 	n = 2;
 	assert(shiftLeft(m, n/*, 100*/) == 1200);
@@ -709,8 +738,8 @@ public bigint shiftLeft(bigint num, int n)
 		const int precision = MAX_LONG_DIGITS) {
 	if (n > precision) return 0;
 	if (n > 0) {
-		// may need to clip before shifting
-		int m = decDigits(num);
+		// may need to clipDigits before shifting
+		int m = countDigits(num);
 		int diff = precision - m - n;
 		if (diff < 0 ) {
 			num %= cast(ulong)ltens[m + diff];
@@ -725,11 +754,12 @@ public bigint shiftLeft(bigint num, int n)
 }*/
 
 /**
+ *  Decimal shift right.
  *  Shifts the number right the specified number of decimal digits.
  *  If n == 0 the number is returned unchanged.
  *  If n < 0 the number is shifted left.
  */
-public bigint shiftRight(bigint num, int n)
+public BigInt shiftRight(BigInt num, int n)
 {
 	// NOTE: simply divides by 10^^n.
 	if (n > 0)
@@ -744,15 +774,15 @@ public bigint shiftRight(bigint num, int n)
 
 /*unittest {
 	write("shiftRight...");
-	bigint num;
-	bigint res;
-	num = bigint("9223372036854775807");
+	BigInt num;
+	BigInt res;
+	num = BigInt("9223372036854775807");
 	res = shiftRight(num, 10);
-	assertEqual!bigint(res, bigint("922337203"));
+	assertEqual!BigInt(res, BigInt("922337203"));
 
-	num = bigint("9223372036854775808");
+	num = BigInt("9223372036854775808");
 	res = shiftRight(num, 10);
-	assertEqual!bigint(res, bigint("922337203"));
+	assertEqual!BigInt(res, BigInt("922337203"));
 	writeln("passed");
 }*/
 
@@ -820,18 +850,18 @@ writeln("rot = ", rot);
 }
 +/
 
-// TODO: split into bigint, ulong?
+// TODO: split into BigInt, ulong?
 ///  Returns the last digit of the argument.
-public int lastDigit(in bigint big)
+public int lastDigit(in BigInt big)
 {
-	auto digit = big % bigint(10);
+	auto digit = big % BigInt(10);
 	if (digit < 0) digit = -digit;
 	return digit.toInt;
 }
 
 unittest
 {	// lastDigit
-	static struct S { bigint n; int expect; }
+	static struct S { BigInt n; int expect; }
 	S[] s =
 	[
 		{  7, 7 },
@@ -853,7 +883,7 @@ unittest
 }
 
 ///  Returns the number of trailing zeros in the argument.
-public int trailingZeros(bigint n, int digits)
+public int trailingZeros(BigInt n, int digits)
 {
 	// shortcuts for frequent values
 	if (n ==  0) return 0;
@@ -877,13 +907,74 @@ public int trailingZeros(bigint n, int digits)
 }
 
 ///  Trims any trailing zeros and returns the number of zeros trimmed.
-public int trimZeros(ref bigint n, int digits)
+public int trimZeros(ref BigInt n, int digits)
 {
 	int zeros = trailingZeros(n, digits);
 	if (zeros == 0) return 0;
 	n /= pow10b(zeros);
 	return zeros;
 }
+
+/**
+ *
+ *  Returns the operand reduced to its simplest form.
+ *
+ *  <code>reduce</code> has the same semantics as the plus operation,
+ *  except that a finite result is
+ *  reduced to its simplest form, with all trailing
+ *  zeros removed and its sign preserved.
+ *
+ *  Standard: Implements the 'reduce' function in the specification. (p. 37)
+ *  "This operation was called 'normalize' prior to
+ *  version 1.68 of the specification." (p. 37)
+ *
+ *  Flags: INVALID_OPERATION
+ *
+ */
+public T reduce(T)(in T num,
+		Context context = T.context) if (isDecimal!T)
+{
+	// special cases
+	if (num.isNaN) return T.nan; //invalidOperand(num);
+	if (!num.isFinite) return num.dup;
+
+	// round the argument
+	T reduced = roundToPrecision(num, context);
+
+	// have to check again -- rounding may have made it infinite
+	if (!reduced.isFinite) return reduced;
+
+	int digits = reduced.digits;
+	auto temp = reduced.coff;
+	int zeros = trimZeros(temp, digits);
+	if (zeros)
+	{
+		reduced.coff = temp;
+		reduced.digits = digits - zeros;
+		reduced.expo = reduced.expo + zeros;
+	}
+
+	return reduced;
+}
+
+unittest
+{	// reduce
+	// test results depend on context
+	static struct S { TD x; TD expect; }
+	S[] s =
+	[
+		{ "1.200", "1.2" },
+//		{ "1.200", "1.3" },	// should fail
+//	FIXTHIS: should fail but doesn't
+		{ "1.200", "1.20" },	// NOTE: should fail but doesn't
+		{ "1.2001", "1.2001" },
+		{ "1.2000000000000001", "1.2" },
+	];
+	auto f = FunctionTest!(S,TD)("reduce");
+	foreach (t; s) f.test(t, reduce(t.x));
+    writefln(f.report);
+}
+
 
 unittest {
 	writeln("==========================");

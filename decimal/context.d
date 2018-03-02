@@ -29,23 +29,27 @@ version(unittest) {
 	import std.stdio;
 }
 
+/// Pre-defined default context for decimal numbers.
+public enum Context DefaultContext = Context(99, 9999, HALF_EVEN);
+
+/// Approximates floating-point real numbers.
+public enum Context RealContext    = Context(real.dig, real.max_10_exp, HALF_EVEN);
+/// Approximates floating-point double numbers.
+public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, HALF_EVEN);
+/// Approximates floating-point float numbers.
+public enum Context FloatContext   = Context(float.dig, float.max_10_exp, HALF_EVEN);
+
+/// Decimal64 BID
+public enum Context Bid32Context   = Context(7, 96, HALF_EVEN);
+/// Decimal64 BID
+public enum Context Bid64Context   = Context(16, 369, HALF_EVEN);
+
 /**
  * The available rounding modes. For cumulative operations use the
  * halfEven mode to prevent accumulation of errors. Otherwise, the
  * halfUp and halfDown modes are satisfactory. The up, down, floor,
  * and ceiling modes are also useful for some operations.
  * General Decimal Arithmetic Specification, p. 13-14.
- *
- * $(DDOC_ENUM_MEMBERS(	none,
-    halfEven,
-    halfDown,
-    halfUp,
-    down,
-    up,
-    floor,
-    ceiling,
-	)
-)
  *
  */
 public enum Rounding {
@@ -112,6 +116,13 @@ public struct Context
 		this.maxExpo = maxExpo;
 		this.mode = mode;
 	}
+}
+
+//public bool enableFlags = false;
+
+version(unittest)
+{
+	public enum Context TestContext    = Context(9, 99, HALF_EVEN);
 }
 
 /**
