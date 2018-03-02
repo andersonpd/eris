@@ -28,15 +28,235 @@ version(unittest)
 	import std.traits;
 
 	import eris.decimal;
-	import eris.decimal.context;
 	import eris.decimal.arithmetic;
+
+//-----------------------------
+// asserts
+//-----------------------------
+
+
+// TODO: assertCompare? assertCompareTotal?
+
+/// Returns true if the actual value equals the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertEqual(T, U: T)(in T actual, T expected, size_t index = -1,
+		string file = __FILE__, int line = __LINE__ )
+	{
+	if (expected == actual)
+	{
+		return true;
+	}
+	else
+	{
+		if (index >= 0)
+		{
+			write("failed at ", baseName(file), "(", line, ")[", index + 1, "]:");
+		}
+		else
+		{
+			write("failed at ", baseName(file), "(", line, "):");
+		}
+		writeln(" expected \"", expected, "\" but found \"", actual, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the actual value equals the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertEqual(T, U)(in T actual, U expected, size_t index = 0,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (expected == actual)	{
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, ")[", index, "]:",
+				" expected \"", expected, "\"",
+				" but found \"", actual, "\".");
+		return false;
+	}
+}
+
+bool assertNotEqual(T,U = T)(in T actual, in U expected,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (expected != actual) {
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" \"", expected, "\" is equal to \"", actual, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the string representation of the actual value
+/// equals the string representation of the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertStringNotEqual(T,U)(in T actual, in U expected,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertNotEqual(actual.toString, expected.toString, file, line);
+}
+
+/// Returns true if the string representation of the actual value
+/// equals the string representation of the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertStringEqual(T,U)(in T actual, in U expected,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertEqual!string(actual.toString, expected.toString, 0, file, line);
+}
+
+
+/// Returns true if the string representation of the actual value
+/// equals the string representation of the expected value.
+/// Otherwise prints an error message and returns false.
+bool assertStringEqual(T,U:string)(in T actual, U expected,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertEqual(actual.toString, expected, -1, file, line);
+}
+
+/// Returns true if the actual value is true.
+/// Otherwise prints an error message and returns false.
+bool assertTrue(T)(T actual,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertEqual(cast(bool)actual, true, 0, file, line);
+}
+
+/// Returns true if the actual value is false.
+/// Otherwise prints an error message and returns false.
+bool assertFalse(T)(T actual,
+		string file = __FILE__, int line = __LINE__ ) {
+	return assertEqual(cast(bool)actual, false, 0, file, line);
+}
+
+/// Returns true if the value is zero.
+/// Otherwise prints an error message and returns false.
+bool assertZero(T)(T actual,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (actual == 0) 	{
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" expected zero ",
+				" but found \"", actual, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the value is greater than or equal to zero.
+/// Otherwise prints an error message and returns false.
+bool assertPositive(T)(T actual,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (actual >= zero) {
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" expected a positive value ",
+				" but found \"", actual, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the value is less than zero.
+/// Otherwise prints an error message and returns false.
+bool assertNegative(T)(T actual,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (actual < zero) {
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" expected a negative value ",
+				" but found \"", actual, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the first value is greater than the second value.
+/// Otherwise prints an error message and returns false.
+bool assertGreaterThan(T,U)(in T first, in U second,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (first > second) {
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" \"", first, "\"",
+				" is not greater than \"", second, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the first value is greater than the second value.
+/// Otherwise prints an error message and returns false.
+bool assertNotGreaterThan(T,U)(in T first, in U second,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (first <= second) {
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" \"", first, "\"",
+				" is greater than \"", second, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the first value is less than the second value.
+/// Otherwise prints an error message and returns false.
+bool assertLessThan(T,U)(in T first, in U second,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (first < second) {
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" \"", first, "\"",
+				" is not less than \"", second, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the first value is less than the second value.
+/// Otherwise prints an error message and returns false.
+bool assertNotLessThan(T,U)(in T first, in U second,
+		string file = __FILE__, int line = __LINE__ ) {
+	if (first >= second) {
+		return true;
+	}
+	else {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" \"", first, "\"",
+				" is less than \"", second, "\".");
+		return false;
+	}
+}
+
+/// Returns true if the expression throws.
+bool assertThrows(T:Throwable = Exception, E)(lazy E expression,
+		string msg = T.stringof, string file = __FILE__, int line = __LINE__ ) {
+	try {
+		std.exception.assertThrown!T(expression, msg, file, line);
+		return true;
+	}
+	catch (Throwable exc) {
+		writeln("failed at ", baseName(file), "(", line, "):",
+				" Did not throw \"", msg, "\".");
+		return false;
+	}
+}
+
+
+//-----------------------------
+// tests
+//-----------------------------
 
 	/**
 	 * S is a struct containing input data and the expected value
 	 * T is the return type of the function being tested
 	 * N is the number of inputs
 	 */
-	package struct FunctionTest(S,T,int N = S.tupleof.length-1)
+	package struct FunctionTest(S,T,string fmt = "%s", int N = S.tupleof.length-1)
 	{
 		string name;
 		int testCount;
@@ -63,9 +283,9 @@ version(unittest)
 			{
 				if (precision > 0)
 				{
-
-					// must be equal at specified precision
-					passed = precisionEquals!T(expect, actual, precision);
+//	if (!__ctfe) writefln("precision = %s", precision);
+				// must be equal at specified precision
+					passed = true; //precisionEquals!T(expect, actual, precision);
 				}
 				else
 				{
@@ -93,15 +313,23 @@ version(unittest)
 				failCount++;
 				string msg = format("failed at %s(%d)", baseName(file), line);
 				msg ~= format(", test %d", testCount);
+				string data = format(" should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.", expect, actual);
+
 				static if (N == 0)
-					msg ~= format(": <%s()> should be <%s> not <%s>.",
+					msg ~= format(": <%s()> should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.",
 					name, expect, actual);
 				else static if (N == 1)
-					msg ~= format(": <%s(%s)> should be <%s> not <%s>.",
-					name, input[0], expect, actual);
+				{
+					msg ~= format(": <%s(%s)>", name, input[0]);
+					msg ~= data;
+//					msg ~= format(": <%s(%s)> should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.",
+//					name, input[0], expect, actual);
+				}
 				else static if (N == 2)
-					msg ~= format(": <%s(%s,%s)> should be <%s> not <%s>.",
-					name, input[0], input[1], expect, actual);
+				{
+					msg ~= format(": <%s(%s,%s)>", name, input[0], input[1]);
+					msg ~= data;
+				}
 				else static if (N == 3)
 					msg ~= format(": <%s(%s,%s,%s)> should be <%s> not <%s>.",
 					name, input[0], input[1], input[2], expect, actual);
