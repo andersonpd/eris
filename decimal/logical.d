@@ -40,8 +40,6 @@ import std.math;
 
 import eris.decimal;
 import eris.decimal.arithmetic: invalidOperation, invalidOperand;
-import eris.decimal.context;
-import eris.decimal.rounding;
 
 unittest {
 	writeln("==========================");
@@ -56,7 +54,6 @@ version(unittest)
 {
 	import std.stdio;
 	import eris.decimal.test;
-	import eris.test.assertion;
 }
 
 //--------------------------------
@@ -70,8 +67,8 @@ version(unittest)
  */
 public bool isLogical(T)(in T arg, out string str) if (isDecimal!T)
 {
-	if (arg.sign != 0 || arg.exponent != 0) return false;
-	str = std.string.format("%d", arg.coefficient);
+	if (arg.sign != 0 || arg.expo != 0) return false;
+	str = std.string.format("%d", arg.coff);
 	size_t n = str.length;
 	int p = T.precision;
 	// if length > precision, truncate left chars
@@ -103,8 +100,8 @@ public bool isLogical(T)(in T arg) if (isDecimal!T)
 
 unittest {	// logical string/number tests
  	write("-- logical tests....");
-	assertTrue(isLogical(TD("010101010101")));
-	assertTrue(isLogical(TD("1010101")));
+	assertTrue(isLogical(TD("010101110101")));
+	assertTrue(isLogical(TD("1011101")));
 	writeln("passed");
 }
 

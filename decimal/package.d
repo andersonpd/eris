@@ -20,41 +20,36 @@
 
 module eris.decimal;
 
+import std.array : replace;
+import std.bitmanip : DoubleRep;
 import std.conv;
 import std.string;
 import std.traits;
 import std.math;
 static import std.path;
+
 public import std.bigint;
+public import eris.decimal.context;
+public import eris.decimal.rounding;
+public import eris.decimal.arithmetic;
+public import eris.decimal.conv;
 
-import eris.decimal.context;
-import eris.decimal.arithmetic;
 import eris.decimal.logical;
-import eris.decimal.rounding;
-import eris.decimal.conv;
 
-// temporary import
-	import std.stdio;
+// import std.stdio;	// temporary import for testing
 
 version(unittest)
 {
 	import std.stdio;
-	import eris.test.assertion;
 	import eris.decimal.test;
 }
 
-alias bigint = BigInt;
-
-public enum Context DefaultContext = Context(99, 9999, HALF_EVEN);
-public enum Context TestContext    = Context(9, 99, HALF_EVEN);
-public enum Context Context99      = Context(99, 999, HALF_EVEN);
-public enum Context RealContext    = Context(real.dig, real.max_10_exp, HALF_EVEN);
-public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, HALF_EVEN);
-public enum Context Context64      = Context(16, 369, HALF_EVEN);
-
-alias D9 = Decimal!(TestContext);
-alias D64 = Decimal!(Context64);
-alias TD = D64;
+version(unittest)
+{
+	alias D9 = Decimal!(TestContext);
+	alias D64 = Decimal!(Bid64Context);
+	alias TD = D64;
+}
 
 // special values for NaN, Inf, etc.
 private enum SpecialValue { ZERO, INF, QNAN, SNAN };
@@ -68,10 +63,10 @@ private enum SpecialValue { ZERO, INF, QNAN, SNAN };
  * An integer exponent
  * A special value flag
  */
-struct Decimal(immutable Context _context)
+struct Decimal(immutable Context _context = DefaultContext)
 {
 
-static if (context == Context64) {
+static if (context == Bid64Context) {
 	unittest {
 		writeln("==========================");
 		writeln("decimal64............begin");
@@ -81,37 +76,40 @@ static if (context == Context64) {
 
 	package enum Context context = _context;
 	public  enum IsDecimal;
-	private SpecialValue sval = SpecialValue.QNAN;
+	alias decimal = Decimal!(context);
+
+	private SpecialValue m_spcl = SpecialValue.QNAN;
 									// special value: default is quiet NaN
-	private bool signed = false;	// true if the value is negative, false otherwise.
-	private int expo = 0;			// the exponent of the decimal value
-	private bigint coff;			// the coefficient of the decimal value
-	package int digits;				// the number of decimal digits in the coefficient.
+	// TODO: any chance of this doing double duty as special value and sign?
+	private ubyte  m_sign = 0;	// true if the value is negative, false otherwise.
+	private int    m_expo = 0;		// the exponent of the decimal value
+	private BigInt m_coff;			// the coefficient of the decimal value
+	private int    m_digs;	    	// the number of decimal digits in the coefficient.
 
 	// context-based parameters
 	public:
-		/// the maximum length of the coefficient in decimal digits.
-		enum int precision = context.precision;
+		/// the maximum length of the coefficient in decimal .
+		enum precision = context.precision;
 		/// maximum value of the exponent.
-		enum int maxExpo = context.maxExpo;
+		enum maxExpo = context.maxExpo;
 		/// maximum value of the adjusted exponent.
-		enum int maxAdjustedExpo = maxExpo - (precision - 1);
+		enum maxAdjustedExpo = maxExpo - (precision - 1);
 		/// smallest normalized exponent.
-		enum int minExpo = 1 - maxExpo;
+		enum minExpo = 1 - maxExpo;
 		/// smallest non-normalized exponent.
-		enum int tinyExpo = 1 - maxExpo - precision;
+		enum tinyExpo = 1 - maxExpo - precision;
+		/// maximum value of the coefficient.
+		enum maxCoefficient = BigInt(10)^^precision - 1;
 		/// rounding mode.
 		enum Rounding mode = context.mode;
 
-		alias decimal = Decimal!(context);
-
 	// decimal special values
-	enum decimal NAN		= decimal(SpecialValue.QNAN);
-	enum decimal SIG_NAN	= decimal(SpecialValue.SNAN);
-	enum decimal INFINITY	= decimal(SpecialValue.INF);
-	enum decimal NEG_INF	= decimal(SpecialValue.INF, true);
-	enum decimal ZERO		= decimal(SpecialValue.ZERO);
-	enum decimal NEG_ZERO	= decimal(SpecialValue.ZERO, true);
+	enum NAN		= decimal(SpecialValue.QNAN);
+	enum SNAN	= decimal(SpecialValue.SNAN);
+	enum INFINITY	= decimal(SpecialValue.INF);
+	enum NEG_INF	= decimal(SpecialValue.INF, true);
+	enum ZERO		= decimal(SpecialValue.ZERO);
+	enum NEG_ZERO	= decimal(SpecialValue.ZERO, true);
 
 /*	unittest
 	{	// special values
@@ -119,7 +117,7 @@ static if (context == Context64) {
 		S[] s =
 		[
 			{ NAN,      "NaN" },
-			{ SIG_NAN,  "sNaN" },
+			{ SNAN,  "sNaN" },
 			{ ZERO,     "0" },
 			{ NEG_ZERO, "-0" },
 			{ INFINITY, "Infinity" },
@@ -136,10 +134,10 @@ static if (context == Context64) {
 
 	/// Constructs a decimal number from a special value and an optional sign.
 	@safe
-	private this(const SpecialValue sv, const bool sign = false)
+	private this(const SpecialValue spcl, const bool sign = false)
 	{
-		this.signed = sign;
-		this.sval = sv;
+		this.m_sign = sign;
+		this.m_spcl = spcl;
 	}
 
 	/// Constructs a decimal number from a boolean value.
@@ -147,12 +145,6 @@ static if (context == Context64) {
 	public this(const bool value)
 	{
 		this = value ? zero() : one();
-/*		if (value) {
-			this = z
-		if (value) {
-			coff = 1;
-			this.digits = 1;
-		}*/
 	}
 
 	// TODO: reduce the number of constructors
@@ -163,13 +155,13 @@ static if (context == Context64) {
 	/// The intial precision of the number is deduced from the number
 	/// of decimal digits in the coefficient.
 	//@safe
-	this(bigint coefficient, int exponent, bool sign = false)
+	this(BigInt coefficient, int exponent, bool sign = false)
 	{
 		this = zero();
-		this.signed = sign;
-		this.coff = coefficient >= 0 ? coefficient : -coefficient;
-		this.expo = exponent;
-		this.digits = decDigits(this.coff);
+		this.m_sign = sign;
+		this.m_coff = coefficient >= 0 ? coefficient : -coefficient;
+		this.m_expo = exponent;
+		this.m_digs = countDigits(this.m_coff);
 	}
 
 	// TODO: reduce the number of constructors
@@ -182,14 +174,14 @@ static if (context == Context64) {
 	//@safe
 	this(long coefficient, int exponent, bool sign = false)
 	{
-		this(bigint(coefficient), exponent, sign);
+		this(BigInt(coefficient), exponent, sign);
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// this(u,i,b)
-		static struct S { bigint cf; int expo; bool sign; TD expect; }
+		static struct S { BigInt cf; int exp; bool sign; TD expect; }
 		S[] s =
 		[
 			{ 7254, 94, true, "-7.254E+97" },
@@ -197,7 +189,7 @@ static if (context == Context64)
 			{ 1,   194, true, "-1E+194" },
 		];
 		auto f = FunctionTest!(S,TD)("this(uib)");
-		foreach (t; s) f.test(t, TD(t.cf, t.expo, t.sign));
+		foreach (t; s) f.test(t, TD(t.cf, t.exp, t.sign));
     	writefln(f.report);
 	}
 }
@@ -207,7 +199,7 @@ static if (context == Context64)
 	/// of the coefficient. The initial precision is determined by the number
 	/// of digits in the coefficient.
 	//@safe
-	this(bigint coefficient, int exponent = 0)
+	this(BigInt coefficient, int exponent = 0)
 	{
 		bool sign = coefficient < 0;
 		this(coefficient, exponent, sign);
@@ -227,15 +219,14 @@ static if (context == Context64)
 	// Constructs a decimal number from a string representation
 	this(string str)
 	{
-		auto dec = eris.decimal.conv.toNumber!decimal(str);
-		this = dec;
+		this = eris.decimal.conv.fromString!decimal(str);
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// this(string)
-		// NOTE: this is a chicken and an egg sort of test:
+		// NOTE: this is a chicken and egg sort of test:
 		// Tests to and from strings at once
 		static struct S { string str; string expect; }
 		S[] s =
@@ -265,29 +256,84 @@ static if (context == Context64)
 		this(cast(long)n);
 	}
 
+	this(double dbl)
+	{
+		this = fromBinary!(decimal,double)(dbl);
+	}
+
+static if (context == Bid64Context)
+{
+	unittest
+	{	// this(double)
+		double third = 1.0/3.0;
+		static struct S { double dbl; TD expect; }
+		S[] s =
+		[
+			{ double.infinity,		"Infinity" },
+			{ 1.0E4,		"1E4" },
+			{ 1.0/3.0,	 	"0.333333333333333" },
+		];
+		auto f = FunctionTest!(S, TD)("this(dbl)");
+		foreach (t; s) f.test(t, TD(t.dbl));
+    	writefln(f.report);
+	}
+}
+
+	this(float flt)
+	{
+		this = fromBinary!(decimal,float)(flt);
+	}
+
+static if (context == Bid64Context)
+{
+	unittest
+	{	// this(flt)
+		assert(TD(-float.infinity) == TD("-infinity"));
+		assert(TD(1.0E4F) == TD("1E4"));
+		assert(TD(1.0f/3.0f) == TD("0.333333"));
+	}
+
+	unittest
+	{	// this(flt)
+		static struct S { float flt; decimal expect; }
+		S[] s =
+		[
+			{ -float.infinity,	"-Infinity" },
+			{ 1.0E4f,			"1E4" },
+			{ 1.0f/3.0f,	 	"0.333333" },
+		];
+		auto f = FunctionTest!(S, decimal)("this(flt)");
+		foreach (t; s) f.test(t, decimal(t.flt));
+    	writefln(f.report);
+	}
+}
+
 	this(real r)
 	{
-		string str;
-		if (r == real.nan)
-		{
-			this(SpecialValue.QNAN);
-		}
-		else if (r == real.infinity)
-		{
-			this(SpecialValue.INF);
-		}
-		else if (r == -real.infinity)
-		{
-			this(SpecialValue.INF, true);
-		}
-		else
-		{
-			this(format("%.20G", r));
-		}
+		this = fromBinary!(decimal,real)(r);
+//		this = fromReal!decimal(r);
+//		this = num;
+//		string str;
+//		if (r == real.nan)
+//		{
+//			this(SpecialValue.QNAN);
+//		}
+//		else if (r == real.infinity)
+//		{
+//			this(SpecialValue.INF);
+//		}
+//		else if (r == -real.infinity)
+//		{
+//			this(SpecialValue.INF, true);
+//		}
+//		else
+//		{
+//			this(format("%.20G", r));
+//		}
 	}
 
 	// TODO: (testing) need to test this with 15-17 digit precision
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest // real construction
 	{
@@ -316,7 +362,7 @@ static if (context == Context64)
 			{ 1E54,				"1E54" },
 
 // FIXTHIS: this is the actual value : should pass; problem with asm stmts
-//			{ double.max, 		"1.7976931348623157079E+308" },
+			{ double.max, 		"1.79769313486231571E+308" },
 			{ -real.infinity, 	"-Infinity" },
 		];
 
@@ -333,10 +379,10 @@ static if (context == Context64)
 	/// Returns the exponent of this number
 	@property
 	@safe
-	int exponent() const
+	int expo() const
 	{
 		if (isSpecial) return 0;
-		return this.expo;
+		return this.m_expo;
 	}
 
 
@@ -344,42 +390,42 @@ static if (context == Context64)
 	/// sets the exponent of this number
 	@property
 	@safe
-	int exponent(int expo)
+	int expo(int exp)
 	{
-		this.expo = expo;
-		return this.expo;
+		this.m_expo = exp;
+		return this.m_expo;
 	}
 
 	@property
 	@safe
-	bigint coefficient() const
+	BigInt coff() const
 	{
-		if (isSpecial) return bigint(0);
-		return this.coff;
+//		if (isSpecial) return BigInt(0);
+		return this.m_coff;
 	}
 
 	@property
 	@safe
-	bigint coefficient(bigint coff)
+	BigInt coff(BigInt m_coff)
 	{
-		this.coff = coff;
-		return this.coff;
+		this.m_coff = m_coff;
+		return this.m_coff;
 	}
 
 	@property
 	@safe
-	bigint coefficient(long coff)
+	BigInt coff(long m_coff)
 	{
-		this.coff = coff;
-		return this.coff;
+		this.m_coff = m_coff;
+		return this.m_coff;
 	}
 
-	@property
+/*	@property
 	@safe
 	ushort payload() const
 	{
 		if (this.isNaN) {
-			return cast(ushort)(this.coff.toLong);
+			return cast(ushort)(this.m_coff.toLong);
 		}
 		return 0;
 	}
@@ -389,11 +435,11 @@ static if (context == Context64)
 	ushort payload(const ushort value)
 	{
 		if (this.isNaN) {
-			this.coff = bigint(value);
+			this.m_coff = BigInt(value);
 			return value;
 		}
 		return 0;
-	}
+	}*/
 
 	/// Returns the adjusted exponent of this number
 	@property
@@ -401,31 +447,39 @@ static if (context == Context64)
 	int adjustedExponent() const
 	{
 		if (isSpecial) return 0;
-		return expo + digits - 1;
+		return m_expo + m_digs - 1;
 	}
 
 	/// Returns the number of decimal digits in the coefficient of this number
 	@property
 	@safe
-	int getDigits() const
+	int digits() const
 	{
 		if (isSpecial) return 0;
-		return this.digits;
+		return this.m_digs;
+	}
+
+	@property
+	@safe
+	int digits(int count)
+	{
+		if (isSpecial) return 0;
+		return this.m_digs = count;
 	}
 
 	@property
 //	@safe
 	bool sign() const
 	{
-		return signed;
+		return cast(bool) m_sign & 1;
 	}
 
 	@property
 //	@safe
 	bool sign(const bool value)
 	{
-		signed = value;
-		return signed;
+		m_sign = value; // | 1 -- may incorporate nan,inf flags into sign byte
+		return m_sign & 1;
 	}
 
 //--------------------------------
@@ -444,8 +498,8 @@ static if (context == Context64)
 	static decimal nan(ushort payload = 0, bool sign = false)
 	{
 		decimal dec = NAN;
-		dec.payload = payload;
-		dec.signed = sign;
+		dec.m_coff = payload;
+		dec.m_sign = sign;
 		return dec;
 	}
 
@@ -453,9 +507,9 @@ static if (context == Context64)
 	@safe
 	static decimal snan(ushort payload = 0, bool sign = false)
 	{
-		decimal dec = SIG_NAN;
-		dec.payload = payload;
-		dec.signed = sign;
+		decimal dec = SNAN;
+		dec.m_coff = payload;
+		dec.m_sign = sign;
 		return dec;
 	}
 
@@ -484,19 +538,6 @@ static if (context == Context64)
 //	alias max_exp = maxExpo;	// FIXTHIS: binary, not decimal
 //	alias min_10_exp = minExpo;
 //	alias max_10_exp = maxExpo;
-
-	/// Returns the maximum integer value of the coefficient in the current context.
-	static bigint maxCoefficient()
-	{
-		static bool initialized = false;
-		static bigint maxCf;
-		if (!initialized)
-		{
-			maxCf = pow10b(precision) - 1;
-			initialized = true;
-		}
-		return maxCf;
-	}
 
 	/// Returns the maximum representable normal value in the current context.
 	static decimal max()
@@ -554,7 +595,7 @@ static if (context == Context64)
 	enum decimal FIVE    = decimal(5);
 	enum decimal TEN     = decimal(10);
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// constants
@@ -574,11 +615,11 @@ static if (context == Context64)
 	@safe
 	public this(const decimal that)
 	{
-		this.signed = that.signed;
-		this.sval	= that.sval;
-		this.digits = that.digits;
-		this.expo	= that.expo;
-		this.coff	= that.coff;
+		this.m_sign = that.m_sign;
+		this.m_spcl	= that.m_spcl;
+		this.m_digs = that.m_digs;
+		this.m_expo	= that.m_expo;
+		this.m_coff	= that.m_coff;
 	};
 
 //--------------------------------
@@ -706,15 +747,15 @@ static if (context == Context64)
 
 	/// Returns true if this number's representation is canonical.
 	///
-	/// All decimal numbers are canonical, whether or not they are
-	/// reduced to their simplest form.
+	/// Always returns true. All decimal numbers are canonical,
+	/// whether or not they are reduced to their simplest form.
 	@safe
 	const bool isCanonical()
 	{
 		return true;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isCanonical
@@ -737,7 +778,7 @@ static if (context == Context64)
 		if (isNegative || isZero || isSpecial) {
 			return false;
 		}
-		if (coefficient == 1 && exponent == 0) {
+		if (coff == 1 && expo == 0) {
 			return true;
 		}
 		return this.reduce.isSimpleOne;
@@ -747,10 +788,10 @@ static if (context == Context64)
 	@safe
 	const bool isSimpleOne()
 	{
-		return isFinite && !isSigned && coefficient == 1 && exponent == 0;
+		return isFinite && !isSigned && coff == 1 && expo == 0;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isNaN, isQuiet, isSignaling
@@ -782,10 +823,10 @@ static if (context == Context64)
 	@safe
 	const bool isZero()
 	{
-		return isFinite && coefficient == 0;
+		return isFinite && coff == 0;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isZero
@@ -807,24 +848,25 @@ static if (context == Context64)
 	@safe
 	const bool isNaN()
 	{
-		return this.sval == SpecialValue.QNAN || this.sval == SpecialValue.SNAN;
+		return this.m_spcl == SpecialValue.QNAN
+		    || this.m_spcl == SpecialValue.SNAN;
 	}
 
 	/// Returns true if this number is a signaling NaN.
 	@safe
 	const bool isSignaling()
 	{
-		return this.sval == SpecialValue.SNAN;
+		return this.m_spcl == SpecialValue.SNAN;
 	}
 
 	/// Returns true if this number is a quiet NaN.
 	@safe
 	const bool isQuiet()
 	{
-		return this.sval == SpecialValue.QNAN;
+		return this.m_spcl == SpecialValue.QNAN;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isNaN, isQuiet, isSignaling
@@ -862,7 +904,7 @@ static if (context == Context64)
 	}
 }
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isNaN
@@ -883,19 +925,19 @@ static if (context == Context64)
 	@safe
 	const bool isInfinite()
 	{
-		return this.sval == SpecialValue.INF;
+		return this.m_spcl == SpecialValue.INF;
 	}
 
 	/// Returns true if this number is not an infinity or a NaN.
 	@safe
 	const bool isFinite()
 	{
-		return sval != SpecialValue.INF
-			&& sval != SpecialValue.QNAN
-			&& sval != SpecialValue.SNAN;
+		return m_spcl != SpecialValue.INF
+			&& m_spcl != SpecialValue.QNAN
+			&& m_spcl != SpecialValue.SNAN;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isFinite
@@ -931,12 +973,12 @@ static if (context == Context64)
 	@safe
 	const bool isSpecial()
 	{
-		return sval == SpecialValue.INF
-			|| sval == SpecialValue.QNAN
-			|| sval == SpecialValue.SNAN;
+		return m_spcl == SpecialValue.INF
+			|| m_spcl == SpecialValue.QNAN
+			|| m_spcl == SpecialValue.SNAN;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isSpecial
@@ -958,19 +1000,19 @@ static if (context == Context64)
 	@safe
 	bool isNegative() const
 	{
-		return this.signed;
+		return sign;
 	}
 
 	/// Returns true if this number is positive. (Excludes -0)
 	@safe
 	const bool isPositive()
 	{
-		return !this.signed;
+		return !sign;
 	}
 
 	alias isSigned = isNegative;
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isSpecial
@@ -1009,7 +1051,7 @@ static if (context == Context64)
 			&& adjustedExponent >= subExponent;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// isNormal, isSubnormal
@@ -1051,19 +1093,18 @@ static if (context == Context64)
 	const bool isIntegralValued()
 	{
 		if (isSpecial) return false;
-		if (exponent >= 0) return true;
-		int expo = -exponent;
-		if (expo >= context.precision) return false;
-		// NOTE: this is an expensive operation if the goal is to reduce calculation cost.
-		int zeros = trailingZeros(coefficient, digits);
+		if (expo >= 0) return true;
+		int exp = -expo;
+		if (exp >= context.precision) return false;
+		int zeros = trailingZeros(coff, digits);
 		if (zeros) {
-			expo += zeros;
-			if (expo >= 0) return true;
+			exp += zeros;
+			if (exp >= 0) return true;
 		}
 		return false;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest {	// isIntegralValued
 		write("-- isIntegralValued.");
@@ -1104,7 +1145,7 @@ static if (context == Context64)
 		return isNaN || isZero;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest {	//isTrue/isFalse
 		write("-- isTrue/isFalse...");
@@ -1129,14 +1170,14 @@ static if (context == Context64)
 		return !isSpecial && coefficient == 0;
 	}*/
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 /*	unittest {	// isZeroCoefficient
 		write("-- isZeroCoeff......");
 		TD num;
 		num = 0;
 		assertTrue(num.isZeroCoefficient);
-		num = bigint("-0");
+		num = BigInt("-0");
 		assertTrue(num.isZeroCoefficient);
 		num = TD("0E+4");
 		assertTrue(num.isZeroCoefficient);
@@ -1160,15 +1201,15 @@ static if (context == Context64)
 	// COMPILER BUG?
 	void opAssign(T:decimal)(in T that)
 	{
-		this.sval	 = that.sval;
-		this.digits  = that.digits;
-		this.signed  = that.signed;
-		this.expo	 = that.expo;
-		this.coff	 = that.coff;
+		this.m_spcl	 = that.m_spcl;
+		this.m_digs  = that.m_digs;
+		this.m_sign  = that.m_sign;
+		this.m_expo	 = that.m_expo;
+		this.m_coff	 = that.m_coff;
 	}
 
-	///	Assigns an bigint value.
-	void opAssign(T:bigint)(T that)
+	///	Assigns an BigInt value.
+	void opAssign(T:BigInt)(T that)
 	{
 		this = decimal(that);
 	}
@@ -1182,7 +1223,7 @@ static if (context == Context64)
 	/// Assigns an value.
 	void opAssign(T)(in T that) if (isIntegral!T)
 	{
-			this = decimal(bigint(that));
+			this = decimal(BigInt(that));
 	}
 
 	/// Assigns a floating point value.
@@ -1197,7 +1238,7 @@ static if (context == Context64)
 		this = decimal(that);
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest {	// opAssign
 		write("-- opAssign.........");
@@ -1215,10 +1256,15 @@ static if (context == Context64)
 		num = 237UL;
 		str = "237";
 		assertStringEqual(num,str);
+//if (!__ctfe) writefln("real.max = %.18G", real.max);
+//if (!__ctfe) writefln("real.dig = %s", real.dig);
+//if (!__ctfe) writefln("real.max_10_exp = %s", real.max_10_exp);
 		num = real.max;
-		str = "1.1897314953572317649E+4932";
+//if (!__ctfe) writefln("num = %s", num);
+		str = "1.18973149535723176E+4932";
+//if (!__ctfe) writefln("str = %s", str);
 		assertStringEqual(num, str);
-		num = bigint("123456098420234978023480");
+		num = BigInt("123456098420234978023480");
 		str = "123456098420234978023480";
 		assertStringEqual(num, str);
 		num = "123456098420234978023480";
@@ -1298,7 +1344,7 @@ static if (context == Context64)
 		return opEquals(decimal(that));
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest {	// comparison
 		write("-- comparison.......");
@@ -1347,7 +1393,7 @@ static if (context == Context64)
 		}
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest {	// opUnary
 		write("-- opUnary..........");
@@ -1414,7 +1460,7 @@ static if (context == Context64)
 		}
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// opBinary
@@ -1496,7 +1542,7 @@ static if (context == Context64)
 		return this;
 	}
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest {	// opOpAssign
 		write("-- opOpAssign.......");
@@ -1628,7 +1674,7 @@ static if (context == Context64)
 		"20309179805762862135448622705260462818902449707207204189391137",
 		decimal.precision);*/
 
-static if (context == Context64)
+static if (context == Bid64Context)
 {
 	unittest
 	{	// constants
@@ -1674,19 +1720,19 @@ static if (context == Context64)
 		return nextToward(this, x, decimal.context);
 	}
 
-	static if (context == Context64) {
+	static if (context == Bid64Context) {
 	unittest {	// nextUp, nextDown, nextAfter
 		write("-- next.............");
 		TD big = 123.45;
-		assertEqual(big.nextUp,   TD("123.45000000000001"));
-		assertEqual(big.nextDown, TD("123.44999999999999"));
+		assertEqual(big.nextUp,   TD("123.4500000000001"));
+		assertEqual(big.nextDown, TD("123.4499999999999"));
 		assertEqual(big.nextAfter(TD(123.46)), big.nextUp);
 		assertEqual(big.nextAfter(TD(123.44)), big.nextDown);
 		writeln("passed");
 	}}
 
 
-	static if (context == Context64) {
+	static if (context == Bid64Context) {
 	unittest {
 		writeln("==========================");
 		writeln("decimal64..............end");
@@ -1700,38 +1746,45 @@ unittest {
 	writeln("==========================");
 }
 
-private enum bigint[19] btens =
-[
-	bigint(1),
-	bigint(10),
-	bigint(100),
-	bigint(1_000),
-	bigint(1_000_0),
-	bigint(1_000_00),
-	bigint(1_000_000),
-	bigint(1_000_000_0),
-	bigint(1_000_000_00),
-	bigint(1_000_000_000),
-	bigint(1_000_000_000_0),
-	bigint(1_000_000_000_00),
-	bigint(1_000_000_000_000),
-	bigint(1_000_000_000_000_0),
-	bigint(1_000_000_000_000_00),
-	bigint(1_000_000_000_000_000),
-	bigint(1_000_000_000_000_000_0),
-	bigint(1_000_000_000_000_000_00),
-	bigint(1_000_000_000_000_000_000)];
-
-package bigint pow10b(int n)
+package BigInt pow10b(int n)
 {
-	const bigint ten = 10;
-	if (n < 19) return btens[n];
-	return ten^^n;
+	enum BigInt[19] tens =
+	[
+		BigInt(1),
+		BigInt(10),
+		BigInt(100),
+		BigInt(1_000),
+		BigInt(1_000_0),
+		BigInt(1_000_00),
+		BigInt(1_000_000),
+		BigInt(1_000_000_0),
+		BigInt(1_000_000_00),
+		BigInt(1_000_000_000),
+		BigInt(1_000_000_000_0),
+		BigInt(1_000_000_000_00),
+		BigInt(1_000_000_000_000),
+		BigInt(1_000_000_000_000_0),
+		BigInt(1_000_000_000_000_00),
+		BigInt(1_000_000_000_000_000),
+		BigInt(1_000_000_000_000_000_0),
+		BigInt(1_000_000_000_000_000_00),
+		BigInt(1_000_000_000_000_000_000)
+	];
+
+	if (n < 19) return tens[n];
+	return BigInt(10)^^n;
 }
+
+//package BigInt pow10b(int n)
+//{
+//	const BigInt ten = 10;
+//	if (n < 19) return btens[n];
+//	return ten^^n;
+//}
 
 /// Returns true if the parameter is convertible to a decimal number.
 public enum bool isConvertible(T) =
-	is(T:bigint) || std.traits.isNumeric!T ||
+	is(T:BigInt) || std.traits.isNumeric!T ||
 	is(T:string) || isBoolean!T;
 
 unittest {
@@ -1739,15 +1792,15 @@ unittest {
 	assertTrue(isConvertible!int);
 	assertTrue(isConvertible!bool);
 	assertTrue(isConvertible!string);
-	assertTrue(isConvertible!bigint);
+	assertTrue(isConvertible!BigInt);
 	assertTrue(isConvertible!double);
-	assertFalse(isConvertible!creal);
+//	assertFalse(isConvertible!creal);
 	assertFalse(isConvertible!TD);
 	writeln("passed");
 }
 
 public enum bool isInteger(T) =
-	is(T:bigint) || isIntegral!T;
+	is(T:BigInt) || isIntegral!T;
 
 unittest {
 	write("-- isInteger........");
@@ -1755,7 +1808,7 @@ unittest {
 	assertTrue(isInteger!int);
 	assertFalse(isInteger!float);
 	assertFalse(isInteger!bool);
-	assertTrue(isInteger!bigint);
+	assertTrue(isInteger!BigInt);
 	assertTrue(isInteger!byte);
 	assertTrue(isInteger!ubyte);
 	writeln("passed");
@@ -1763,7 +1816,7 @@ unittest {
 
 /// Returns true if the parameter is a decimal number.
 public enum bool isDecimal(T) = hasMember!(T, "IsDecimal");
-
+//public enum bool isDecimal(T) = is(T:decimal);
 unittest {
 	write("-- isDecimal........");
 	TD dummy;
@@ -1836,7 +1889,8 @@ mixin template Constant(string name, string value)
 	}
 +/
 
-/*/// mixin template to create a constant at the type precision,
+/*
+/// mixin template to create a constant at the type precision,
 /// with an option to create an arbitrary precision constant.
 mixin template Constant(string lcName, string ucName)
 {
@@ -1848,7 +1902,8 @@ mixin template Constant(string lcName, string ucName)
 			~ "}"
 		~ "return " ~ ucName ~ ";"
 		~ "}");
-}*/
+}
+*/
 
 // TODO: move this to rounding.d
 public string roundString(string str, int precision)
@@ -1862,9 +1917,12 @@ public string roundString(string str, int precision)
 	if (copy.indexOf('.') >= 0) precision++;
 
 	// strip out any underscores
-	if (indexOf(copy, '_') >= 0) {
-				copy = removechars(copy.idup, "_").dup;
-	}
+	copy = copy.replace("_", "");
+//	copy = copy.replaceAll(regex("_"), "");
+
+//	if (indexOf(copy, '_') >= 0) {
+//				copy = removechars(copy.idup, "_").dup;
+//	}
 
 	// ignore leading zeros
 	size_t index = 0;
@@ -1952,16 +2010,16 @@ version(unittest)
 		}
 	}
 
-/*	// TODO: (efficiency) can this take advantage of small numbers? i.e. < long.max?
-	public U pow10(U)(int n) if (is(U!bigint) || is(U!long))
+	// TODO: (efficiency) can this take advantage of small numbers? i.e. < long.max?
+	public U pow10(U)(int n) if (is(U!BigInt) || is(U!long))
 	{
-		U ten = U(10);
+		auto ten = U(10);
 //		if (n < 0) throw new InvalidOperationException();
 		if (n == 0) return ten;
 		return ten^^n;
-	}*/
+	}
 
-	public enum double dpow10(int n)
+	public enum double pow10Dbl(int n)
 	{
 		static double[23] dtens;
 		static bool initialized = false;
@@ -1978,108 +2036,11 @@ version(unittest)
 		return dtens[n];
 	}
 
+// ======================================================== //
+// dead code
+// ======================================================== //
+
 /+
-	private enum struct RealRep
-	{
-		union
-		{
-			real value;
-			struct
-			{
-				ulong fraction;
-				mixin(std.bitmanip.bitfields!(
-					ushort,  "exponent", 15,
-					bool,    "sign",      1));
-			}
-		}
-		enum uint bias = 16383, signBits = 1, exponentBits = 15,
-				integerBits = 1, fractionBits = 63;
-	}
-
-	/// Constructs a decimal number from a real value.
-	this(T)(T r) if (isFloatingPoint!T)
-	{
-		static if (T.sizeof == 10)	// 80-bit real
-		{
-			RealRep rep;
-		}
-		else static if (T.sizeof == 8)	// 64-bit double
-		{
-			std.bitmanip.DoubleRep rep;
-		}
-		else static if (T.sizeof == 4)	// 32-bit float
-		{
-			std.bitmanip.FloatRep rep;
-		}
-		else // Shouldn't reach here
-		{
-			// always works but it's slow
-			string str = format("%.20G", r);
-			this(str);
-		}
-
-		// finite numbers
-		if (std.math.isFinite(r))
-		{
-			if (r == 0.0)
-			{
-				this(SpecialValue.ZERO, r < 0.0);
-			}
-			else if (std.math.abs(r) == 1.0)
-			{
-				this((r < 0.0) ? -1 : 1);
-			}
-			else
-			{
-				rep.value = r;
-				ulong f = 1L << rep.fractionBits | rep.fraction;
-				int e = rep.exponent - rep.bias - rep.fractionBits;
-				this(r, f, e, rep.sign);
-			}
-		}
-		// special values
-		else if (std.math.isInfinity(r))
-		{
-			this(SpecialValue.INF, r < 0.0);
-		}
-		else
-		{
-			this(SpecialValue.QNAN);
-		}
-	}
-
-	static private long ones(int n)
-	{
-		return (1L << n) - 1;
-	}
-
-	this(T)(T r, ulong frac, int expo, bool sign)
-		if (isFloatingPoint!T)
-	{
-		trimZeros(frac, expo);
-		int c = std.math.abs(expo);
-		if (c <= 63)	// if coefficient fits in a long integer
-		{
-			bigd n = bigd(bigint(frac));
-			if (sign) n = n.copyNegate;
-			// scale factor
-			auto scale = bigd(1L << c);
-			// multiply or divide
-			if (expo < 0)
-			{
-				this(n / scale);
-			}
-			else
-			{
-				this(n * scale);
-			}
-		}
-		else
-		{
-			string str = format("%.20G", r);
-			this(str);
-		}
-	}
 
 
 	// Returns a real number constructed from
@@ -2088,7 +2049,7 @@ version(unittest)
 	{
 		// convert the coefficient to a real number
 		real r;
-		r = cast(ulong)x.coefficient;
+		r = cast(ulong)x.coff;
 		if (x.sign) r = -r;
 		if (x.expo == 0) return r;
 
@@ -2112,18 +2073,18 @@ version(unittest)
 
 		// if this number is larger than the largest real value,
 		// return infinity
-		if (this.expo >= real.max_10_exp) {
+		if (this.m_expo >= real.max_10_exp) {
 			if (this > RealMax)	return  real.infinity;
 			if (this < RealMin) return -real.infinity;
 		}
 
 		// if smaller than the smallest value, return zero
-		if (this.expo <= real.min_10_exp) {
+		if (this.m_expo <= real.min_10_exp) {
 			if (this.copyAbs < RealMinNorm) return this.sign ? -0.0 : 0.0;
 		}
 
 		// will the coefficent fit into a long integer?
-		if (this.coefficient.ulongLength <= 2)
+		if (this.coff.ulongLength <= 2)
 		{
 			return longToReal(this);
 		}
@@ -2132,7 +2093,7 @@ version(unittest)
 		// (i.e. more than 18 digits but less than long.max)
 		// the reduced coefficient will fit
 		bigd reduced = this.reduce(RealContext);
-		if (reduced.coefficient.ulongLength <= 2)
+		if (reduced.coff.ulongLength <= 2)
 		{
 			return longToReal(reduced);
 		}
@@ -2140,34 +2101,7 @@ version(unittest)
 		return real.nan;	// NOTE: nan or infinity?
 	}
 
-	public static bigd toDecimal(T)(T fl) if (isFloatingPoint!T) {
-		string str = format("%.20G", fl);
-		return bigd(str);
-	}
-
 	static if (context == TestContext) {
-/*	unittest
-	{	// quantum
-		static struct S { real x; real expect; }
-		S[] s =
-		[
-			{ 1.0, 1.0 },
-			{ 2.0, 2.0 },
-			{ 1.0E5, 1.0E5 },
-			{ 0.1, 0.1 },
-			{123.456, 123.456},	// fails because r == r only when exact
-			{ 32E-27, 32E-27 },
-			{ double.max, double.max },
-			{ real.max, real.max },
-		];
-		auto f = FunctionTest!(S,real)("toReal");
-		foreach (t; s)
-		{
-			f.test(t, toDecimal(t.x).toReal);
-		}
-		writefln(f.report);
-	}*/
-
 	unittest {	// toReal, toDecimal
 		write("-- toReal...........");
 		static real[] tests =
@@ -2196,13 +2130,13 @@ version(unittest)
 	{
 		// try for an exact conversion...
 		if (digits <= 15) {
-			int absExpo = std.math.abs(expo);
+			int absExpo = std.math.abs(m_expo);
 			if (absExpo <= 22) {
 				double s = cast(double)(coefficient.toLong);
 				if (absExpo == 0) return s;
-				double p = dpow10(absExpo);
-				if (expo > 0) return s * p;
-				if (expo < 0) return s / p;
+				double p = pow10Dbl(absExpo);
+				if (m_expo > 0) return s * p;
+				if (m_expo < 0) return s / p;
 			}
 		}
 		// TODO: (behavior) add method for other values
@@ -2260,43 +2194,6 @@ version(unittest)
 		klm = TD(spcl);
 		assertEqual(klm, TD("-Infinity"));*/
 		writeln("test missing");
-	}}
-
-//-----------------------------
-// nextUp, nextDown, nextAfter
-//-----------------------------
-
-	/// Returns the smallest representable number that is larger than
-	/// this number.
-	bigd nextUp() const
-	{
-		return nextPlus(this, bigd.context);
-	}
-
-	/// Returns the largest representable number that is smaller than
-	/// this number.
-	bigd nextDown() const
-	{
-		return nextMinus(this, bigd.context);
-	}
-
-	/// Returns the representable number that is closest to the
-	/// this number (but not this number) in the
-	/// direction toward the argument.
-	bigd nextAfter(bigd x) const
-	{
-		return nextToward(this, x, bigd.context);
-	}
-
-	static if (context == TestContext) {
-	unittest {	// nextUp, nextDown, nextAfter
-		write("-- next.............");
-		TD big = 123.45;
-		assertEqual(big.nextUp,   TD(123.450001));
-		assertEqual(big.nextDown, TD(123.449999));
-		assertEqual(big.nextAfter(TD(123.46)), big.nextUp);
-		assertEqual(big.nextAfter(TD(123.44)), big.nextDown);
-		writeln("passed");
 	}}
 
 //--------------------------------
@@ -2443,6 +2340,12 @@ unittest
 
 }	 // end struct BigDecimal
 +/
+
+// ======================================================== //
+// end dead code
+// ======================================================== //
+
+
 
 }
 

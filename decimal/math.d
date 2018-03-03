@@ -19,12 +19,9 @@
 
 module eris.decimal.math;
 
-import std.bigint;
+import std.stdio; // for test only
 
 import eris.decimal;
-import eris.decimal.context;
-import eris.decimal.arithmetic;
-import eris.decimal.rounding;
 
 unittest {
 	writeln("==========================");
@@ -34,7 +31,7 @@ unittest {
 
 version(unittest) {
 	import std.stdio;
-	import eris.test.assertion;
+//	import eris.decimal.asserts;
 	import eris.decimal.test;
 }
 
@@ -227,22 +224,22 @@ public long toLong(T)(T x,
  *  The value is rounded based on the specified rounding mode. The default
  *  mode is half-even.
  */
-public bigint toBigInt(T)(T x, Rounding mode = HALF_EVEN)
+public BigInt toBigInt(T)(T x, Rounding mode = HALF_EVEN)
 {
 	if (x.isNaN)
 	{
-		throw new InvalidOperationException("NaN cannot be converted to bigint");
+		throw new InvalidOperationException("NaN cannot be converted to BigInt");
 	}
 	if (x.isInfinite)
 	{
-		return x.isNegative ? -T.max.coefficient : T.max.coefficient;
+		return x.isNegative ? -T.max.coff : T.max.coff;
 	}
-	if (x.exponent != 0)
+	if (x.expo != 0)
 	{
 		// FIXTHIS: what does this actually do?
-		return round(x, mode).coefficient;
+		return round(x, mode).coff;
 	}
-	return x.coefficient;
+	return x.coff;
 }
 
 //--------------------------------
@@ -386,7 +383,7 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 	long k = 1;
 	T a0 = T.one;
 	T b0 = sqrt1_2!T(context);
-	T s0 = T.HALF;
+	T s0 = T(5,-1);//.HALF;
 	T a1, b1, s1;
 	// loop until the arithmetic mean equals the geometric mean
 	while (!equals(a0, b0, context))
@@ -736,7 +733,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 	}
 	const t = T(3);
 	// reduce the exponent
-	x.exponent = x.exponent - k - 1;
+	x.expo = x.expo - k - 1;
 	// Newton's method
 	while (true) {
 		T b = a;
@@ -744,7 +741,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 		if (equals(b, a, context)) break;
 	}
 	// restore the exponent
-	a.exponent = a.exponent - k/2 - 1;
+	a.expo = a.expo - k/2 - 1;
 	// round to the original precision
 	return roundToPrecision(a, inContext);
 }
@@ -795,7 +792,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 		a = T(2, -1);
 		k++;
 	}
-	x.exponent = x.exponent - k - 1;
+	x.expo = x.expo - k - 1;
 
 	// Newton's method
 	while (true) {
@@ -804,7 +801,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 		if (equals(a, b, context)) break;
 	}
 	// restore the exponent
-	a.exponent = a.exponent + (k+1)/2;
+	a.expo = a.expo + (k+1)/2;
 	// round the result
 	return roundToPrecision(a, context);
 }
@@ -832,6 +829,19 @@ unittest
 //--------------------------------
 
 mixin (UnaryFunction!("exp"));
+/+
+	"/// Returns the value of the function at the specified precision.
+	public T " ~ name ~ "(T)(T x, int precision = T.precision) if (isDecimal!T)
+	{
+		if (x.isNaN) {
+			contextFlags.set(INVALID_OPERATION);
+			return T.nan;
+		}
+		Context context = Context(precision, T.maxExpo, HALF_EVEN);
+		return " ~ name ~ "!T(x, context);
+	}
++/
+
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 package T exp(T)(T x, Context inContext) if (isDecimal!T)
@@ -960,6 +970,19 @@ mixin (UnaryFunction!("log1p"));
 mixin (UnaryFunction!("log10"));
 mixin (UnaryFunction!("log2"));
 
+/+
+	"/// Returns the value of the function at the specified precision.
+	public T " ~ name ~ "(T)(T x, int precision = T.precision) if (isDecimal!T)
+	{
+		if (x.isNaN) {
+			contextFlags.set(INVALID_OPERATION);
+			return T.nan;
+		}
+		Context context = Context(precision, T.maxExpo, HALF_EVEN);
+		return " ~ name ~ "!T(x, context);
+	}
++/
+
 // TODO: (behavior) add log(number, base) function (will have to have a different name -- logBase or something
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
@@ -981,7 +1004,7 @@ package T log(T)(T x, Context inContext,
 	int k;
 	if (reduceArg) {
 		k = ilogb(x) + 1;
-		x.exponent = x.exponent - k;
+		x.expo = x.expo - k;
 	}
 	T a = div(sub(x, 1, context), add(x, 1, context), context);
 	T b = sqr(a, context);
@@ -1056,14 +1079,23 @@ public T log1p(T)(T x, Context inContext) if (isDecimal!T)
 		term = div(pwr, n, context);
 	}
 	sum = add(term, sum, context);
-	return roundToPrecision(sum, inContext);
+//if (!__ctfe) writeln;
+//if (!__ctfe) writefln("sum = %s", abstractForm(sum));
+//if (!__ctfe) writefln("sum.digits = %s", sum.digits);
+//if (!__ctfe) writefln("inContext.precision = %s", inContext.precision);
+
+	sum = roundToPrecision(sum, inContext);
+//if (!__ctfe) writefln("sum = %s", abstractForm(sum));
+//if (!__ctfe) writefln("sum.digits = %s", sum.digits);
+	return sum;
+//	return roundToPrecision(sum, inContext);
 }
 
 // TODO: (testing) unittest this.
 unittest {
 	write("-- log1p............");
 	TD x = "0.1";
-	assertEqual(log1p(x), "0.095310179804");
+	assertEqual(log1p(x), "0.09531017980432486");
 	writeln("passed");
 }
 
@@ -1080,8 +1112,8 @@ public T log10(T)(T x, Context inContext) if (isDecimal!T)
 	}
 	auto context = guard(inContext);
 	int k = ilogb(x) + 1;
-	x.exponent = x.exponent - k;
-//	x.exponent -= k;
+	x.expo = x.expo - k;
+//	x.expo -= k;
 	T lg10 = add(div(log(x, context), ln10!T(context)), k);
 	return roundToPrecision(lg10, inContext);
 }
@@ -1089,9 +1121,9 @@ public T log10(T)(T x, Context inContext) if (isDecimal!T)
 unittest {
 	write("-- log10............");
 	TD x = TD("2.55");
-	assertEqual(log10(x), TD("0.40654018"));
+	assertEqual(log10(x), TD("0.4065401804339552"));
 	x = 123.456;
-	assertEqual(log10(x), TD("2.09151220"));
+	assertEqual(log10(x), TD("2.091512201627772"));
 	x = 10.0;
 	assertEqual(log10(x), 1);
 	writeln("passed");
@@ -1110,8 +1142,8 @@ public T log2(T)(T x, Context inContext) if (isDecimal!T)
 
 unittest {
 	write("-- log2.............");
-	assertEqual(log2(TD(10)), TD("3.32192809"));
-	assertEqual(log2(TD.E), TD("1.44269504"));
+	assertEqual(log2(TD(10)), TD("3.321928094887362"));
+	assertEqual(log2(TD.E), TD("1.442695040888963"));
 	writeln("passed");
 }
 
@@ -1352,7 +1384,7 @@ public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision
  *
  */
 // TODO: (behavior) context, angle reduction
-public void sincos(T)(T x, out T sine, out T cosine,
+public void sincos(T)(const T x, out T sine, out T cosine,
 		Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
@@ -1382,6 +1414,8 @@ unittest {
 	TD sine;
 	TD cosine;
 	sincos(TD("1.0"), sine, cosine);
+if (!__ctfe) writefln("sine = %s", sine);
+if (!__ctfe) writefln("cosine = %s", cosine);
 	writeln("..failed");
 }
 
@@ -1468,21 +1502,21 @@ public T atan(T)(T x, Context inContext) if (isDecimal!T)
 }
 
 
-/*unittest
+unittest
 {	// atan
 	static struct S { TD x; TD expect; }
 	S[] s =
 	[
-		{ "1.0",   "0.785398163397" },
-		{ "0.5",   "0.463647609" },
-		{ "0.333", "0.32145052439664" },
-		{ "0.1", "0.099668652491162038065120043484057532623410224914551" },
-		{ "0.9", "0.73281510178650655085164089541649445891380310058594" },
+//		{ "1.0",   "0.785398163397" },
+//		{ "0.5",   "0.463647609" },
+//		{ "0.333", "0.32145052439664" },
+//		{ "0.1", "0.099668652491162038065120043484057532623410224914551" },
+//		{ "0.9", "0.73281510178650655085164089541649445891380310058594" },
 	];
 	auto f = FunctionTest!(S,TD)("atan");
 	foreach (t; s) f.test(t, atan(t.x));
     writefln(f.report);
-}*/
+}
 
 /// Decimal version of std.math function.
 // TODO: (behavior) convert to std unary function.
@@ -1497,9 +1531,9 @@ unittest
 	static struct S { TD x; TD expect; }
 	S[] s =
 	[
-		{ "1.0",   "1.57079632679" },
-		{ "0.5",   "0.523598775598" },
-		{ "0.333", "0.339483378150" },
+		{ "1.0",   "1.570796326794897" },
+		{ "0.5",   "0.5235987755982990" },
+		{ "0.333", "0.3394833781504900" },
 	];
 	auto f = FunctionTest!(S,TD)("asin");
 	foreach (t; s) f.test(t, asin!TD(t.x));
@@ -1510,23 +1544,23 @@ unittest
 // TODO: (behavior) convert to std unary function.
 public T acos(T)(T x) if (isDecimal!T)
 {
-	T result = 2 * atan(sqrt(1-sqr(x))/(1 + x));
+	T result = 2 * atan!T(sqrt(1-sqr(x))/(1 + x));
 	return result;
 }
 
-/*unittest
+unittest
 {	// acos
 	static struct S { TD x; TD expect; }
 	S[] s =
 	[
 		{ "1.0",   "0" },
-		{ "0.5",   "1.04719755120" },
-		{ "0.333", "1.23131294864" },
+//		{ "0.5",   "1.04719755120" },
+//		{ "0.333", "1.23131294864" },
 	];
 	auto f = FunctionTest!(S,TD)("acos");
 	foreach (t; s) f.test(t, acos(t.x));
     writefln(f.report);
-}*/
+}
 
 /// Decimal version of std.math function.
 public TD atan2(T)(T y, TD x) if (isDecimal!T)
@@ -1575,9 +1609,9 @@ unittest
 	static struct S { TD x; TD expect; }
 	S[] s =
 	[
-		{ "1.0",   "1.1752011936438" },
-		{ "0.5",   "0.521095305494" },
-		{ "0.333", "0.339188552157" },
+		{ "1.0",   "1.175201193643801" },
+		{ "0.5",   "0.5210953054937474" },
+		{ "0.333", "0.3391885521570523" },
 	];
 	auto f = FunctionTest!(S,TD)("sinh");
 	foreach (t; s) f.test(t, sinh(t.x));
@@ -1609,9 +1643,9 @@ unittest
 	static struct S { TD x; TD expect; }
 	S[] s =
 	[
-		{ "1.0",   "1.543080634815" },
-		{ "0.5",   "1.12762596521" },
-		{ "0.333", "1.05595874631" },
+		{ "1.0",   "1.543080634815244" },
+		{ "0.5",   "1.127625965206381" },
+		{ "0.333", "1.055958746312751" },
 	];
 	auto f = FunctionTest!(S,TD)("cosh");
 	foreach (t; s) f.test(t, cosh(t.x));
@@ -1631,9 +1665,9 @@ unittest
 	static struct S { TD x; TD expect; }
 	S[] s =
 	[
-		{ "1.0",   "0.761594155956" },
-		{ "0.5",   "0.462117157260" },
-		{ "0.333", "0.321213828989" },
+		{ "1.0",   "0.7615941559557649" },
+		{ "0.5",   "0.4621171572600098" },
+		{ "0.333", "0.3212138289885354" },
 	];
 	auto f = FunctionTest!(S,TD)("tanh");
 	foreach (t; s) f.test(t, tanh(t.x));
