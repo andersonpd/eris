@@ -52,7 +52,7 @@ version(unittest)
 }
 
 // special values for NaN, Inf, etc.
-private enum SpecialValue { ZERO, INF, QNAN, SNAN };
+private enum SpecialValue : ubyte { ZERO, INF, QNAN, SNAN };
 
 /**
  * A floating-point decimal number.
@@ -75,13 +75,13 @@ static if (context == Bid64Context) {
 }
 
 	package enum Context context = _context;
-	public  enum IsDecimal;
+	public  static enum IsDecimal;
 	alias decimal = Decimal!(context);
 
 	private SpecialValue m_spcl = SpecialValue.QNAN;
 									// special value: default is quiet NaN
 	// TODO: any chance of this doing double duty as special value and sign?
-	private ubyte  m_sign = 0;	// true if the value is negative, false otherwise.
+	private bool  m_sign = 0;	// true if the value is negative, false otherwise.
 	private int    m_expo = 0;		// the exponent of the decimal value
 	private BigInt m_coff;			// the coefficient of the decimal value
 	private int    m_digs;	    	// the number of decimal digits in the coefficient.

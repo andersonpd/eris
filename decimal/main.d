@@ -300,6 +300,15 @@ void main()
 
 	separator;
 
+if (!__ctfe) writefln("dec1.sign.sizeof   = %s", dec1.sign.sizeof);
+if (!__ctfe) writefln("dec1.expo.sizeof   = %s", dec1.expo.sizeof);
+if (!__ctfe) writefln("dec1.coff.sizeof   = %s", dec1.coff.sizeof);
+if (!__ctfe) writefln("dec1.digits.sizeof = %s", dec1.digits.sizeof);
+
+if (!__ctfe) writefln("dec64.sizeof = %s", dec64.sizeof);
+if (!__ctfe) writefln("dec64.alignof = %s", dec64.alignof);
+
+
 }
 }
 
