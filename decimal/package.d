@@ -52,7 +52,7 @@ version(unittest)
 }
 
 // special values for NaN, Inf, etc.
-private enum SpecialValue : ubyte { ZERO, INF, QNAN, SNAN };
+private enum Tag : byte { NONE=0, INF=1, MINF=-1, QNAN=2, SNAN=3 };
 
 /**
  * A floating-point decimal number.
@@ -74,42 +74,38 @@ static if (context == Bid64Context) {
 	}
 }
 
-	package enum Context context = _context;
-	public  static enum IsDecimal;
+	public static enum IsDecimal;
+
+	public enum Context context = _context;
 	alias decimal = Decimal!(context);
 
-	private SpecialValue m_spcl = SpecialValue.QNAN;
-									// special value: default is quiet NaN
-	// TODO: any chance of this doing double duty as special value and sign?
-	private bool  m_sign = 0;	// true if the value is negative, false otherwise.
-	private int    m_expo = 0;		// the exponent of the decimal value
-	private BigInt m_coff;			// the coefficient of the decimal value
-	private int    m_digs;	    	// the number of decimal digits in the coefficient.
-
-	// context-based parameters
-	public:
-		/// the maximum length of the coefficient in decimal .
-		enum precision = context.precision;
-		/// maximum value of the exponent.
-		enum maxExpo = context.maxExpo;
-		/// maximum value of the adjusted exponent.
-		enum maxAdjustedExpo = maxExpo - (precision - 1);
-		/// smallest normalized exponent.
-		enum minExpo = 1 - maxExpo;
-		/// smallest non-normalized exponent.
-		enum tinyExpo = 1 - maxExpo - precision;
-		/// maximum value of the coefficient.
-		enum maxCoefficient = BigInt(10)^^precision - 1;
-		/// rounding mode.
-		enum Rounding mode = context.mode;
+	private     Tag m_tag = Tag.QNAN;// special value: default is quiet NaN
+	private   bool m_sign = 0;		// true if the value is negative, false otherwise.
+	private    int m_expo = 0;		// the exponent of the decimal value
+	private BigInt m_coff = 0;		// the coefficient of the decimal value
+	private    int m_digs = 0;    	// the number of decimal digits in the coefficient.
 
 	// decimal special values
-	enum NAN		= decimal(SpecialValue.QNAN);
-	enum SNAN	= decimal(SpecialValue.SNAN);
-	enum INFINITY	= decimal(SpecialValue.INF);
-	enum NEG_INF	= decimal(SpecialValue.INF, true);
-	enum ZERO		= decimal(SpecialValue.ZERO);
-	enum NEG_ZERO	= decimal(SpecialValue.ZERO, true);
+	public enum NAN  = decimal(Tag.QNAN);
+	public enum SNAN = decimal(Tag.SNAN);
+	public enum INF  = decimal(Tag.INF);
+	public enum MINF = decimal(Tag.MINF);
+
+	// context-based parameters
+	/// the maximum length of the coefficient in decimal .
+	public enum precision = context.precision;
+	/// maximum value of the exponent.
+	public enum maxExpo = context.maxExpo;
+	/// maximum value of the adjusted exponent.
+	public enum maxAdjustedExpo = maxExpo - (precision - 1);
+	/// smallest normalized exponent.
+	public enum minExpo = 1 - maxExpo;
+	/// smallest non-normalized exponent.
+	public enum tinyExpo = 1 - maxExpo - precision;
+	/// maximum value of the coefficient.
+	public enum maxCoefficient = BigInt(10)^^precision - 1;
+	/// rounding mode.
+	public enum Rounding mode = context.mode;
 
 /*	unittest
 	{	// special values
@@ -118,10 +114,8 @@ static if (context == Bid64Context) {
 		[
 			{ NAN,      "NaN" },
 			{ SNAN,  "sNaN" },
-			{ ZERO,     "0" },
-			{ NEG_ZERO, "-0" },
-			{ INFINITY, "Infinity" },
-			{ NEG_INF,  "-Infinity" },
+			{ INF, "Infinity" },
+			{ MINF,  "-Infinity" },
 		];
 		auto f = FunctionTest!(S,string)("specials");
 		foreach (t; s) f.test(t, t.x.toString);
@@ -132,19 +126,60 @@ static if (context == Bid64Context) {
 // construction
 //--------------------------------
 
-	/// Constructs a decimal number from a special value and an optional sign.
+	/// Constructs a decimal number from a tag and an optional sign.
 	@safe
-	private this(const SpecialValue spcl, const bool sign = false)
+	private this(Tag tag)
 	{
-		this.m_sign = sign;
-		this.m_spcl = spcl;
+		this.m_sign = tag < 0;
+		this.m_tag  = tag;
 	}
 
 	/// Constructs a decimal number from a boolean value.
 	/// false == 0, true == 1
-	public this(const bool value)
+	this(bool sign)
 	{
-		this = value ? zero() : one();
+		if (sign) {
+			this(BigInt(1));
+		}
+		else
+		{
+			this(BigInt(0));
+		}
+	}
+
+	// Constructs a decimal number from a string representation
+	this(string str)
+	{
+		this = eris.decimal.conv.fromString!decimal(str);
+	}
+
+	this(U)(U r)
+		if (isFloatingPoint!U)
+	{
+		this = fromBinary!(decimal,U)(r);
+	}
+
+	this(U)(U coefficient)
+		if (isIntegral!U && !is(U == Tag))
+	{
+		this(BigInt(coefficient));
+	}
+
+	this(U)(U coefficient)
+		if (is(U == BigInt))
+	{
+		this(coefficient, 0);
+	}
+
+	this(D)(D that) if (isDecimal!D)
+	{
+		this.m_sign = that.m_sign;
+		this.m_tag 	= that.m_tag ;
+		this.m_digs = that.m_digs;
+		this.m_expo	= that.m_expo;
+		this.m_coff	= that.m_coff;
+		if (that.context > this.context)
+			roundToPrecision(this, that.context);
 	}
 
 	// TODO: reduce the number of constructors
@@ -155,13 +190,38 @@ static if (context == Bid64Context) {
 	/// The intial precision of the number is deduced from the number
 	/// of decimal digits in the coefficient.
 	//@safe
-	this(BigInt coefficient, int exponent, bool sign = false)
+	this(U)(U coefficient, int exponent)
+		if (is(U == BigInt) || isIntegral!U && !is(U == Tag))
 	{
+		static if (isIntegral!U)
+		{
+			this(BigInt(coefficient), exponent);
+		}
+		else
+		{
+		this = zero();
+		this.m_sign = coefficient < 0;
+		this.m_coff = sign ? -coefficient : coefficient;
+		this.m_expo = exponent;
+		this.m_digs = countDigits(this.m_coff);
+		}
+	}
+
+	this(U)(U coefficient, int exponent, bool sign)
+		if (is(U == BigInt) || isIntegral!U && !is(U == Tag))
+	{
+		static if (isIntegral!U)
+		{
+			this(BigInt(coefficient), exponent, sign);
+		}
+		else
+		{
 		this = zero();
 		this.m_sign = sign;
 		this.m_coff = coefficient >= 0 ? coefficient : -coefficient;
 		this.m_expo = exponent;
 		this.m_digs = countDigits(this.m_coff);
+		}
 	}
 
 	// TODO: reduce the number of constructors
@@ -172,10 +232,10 @@ static if (context == Bid64Context) {
 	/// The intial precision of the number is deduced from the number
 	/// of decimal digits in the coefficient.
 	//@safe
-	this(long coefficient, int exponent, bool sign = false)
+/*	this(long coefficient, int exponent, bool sign)
 	{
 		this(BigInt(coefficient), exponent, sign);
-	}
+	}*/
 
 static if (context == Bid64Context)
 {
@@ -192,35 +252,8 @@ static if (context == Bid64Context)
 		foreach (t; s) f.test(t, TD(t.cf, t.exp, t.sign));
     	writefln(f.report);
 	}
+
 }
-
-	/// Constructs a decimal from an integer coefficient and an
-	/// optional integer exponent. The sign of the number is the sign
-	/// of the coefficient. The initial precision is determined by the number
-	/// of digits in the coefficient.
-	//@safe
-	this(BigInt coefficient, int exponent = 0)
-	{
-		bool sign = coefficient < 0;
-		this(coefficient, exponent, sign);
-	}
-
-	/// Constructs a decimal from an integer coefficient and an
-	/// optional integer exponent. The sign of the number is the sign
-	/// of the coefficient. The initial precision is determined by the number
-	/// of digits in the coefficient.
-	//@safe
-	this(long coefficient, int exponent = 0)
-	{
-		bool sign = coefficient.sgn < 0;
-		this(coefficient, exponent, sign);
-	}
-
-	// Constructs a decimal number from a string representation
-	this(string str)
-	{
-		this = eris.decimal.conv.fromString!decimal(str);
-	}
 
 static if (context == Bid64Context)
 {
@@ -250,16 +283,6 @@ static if (context == Bid64Context)
 	}
 }
 
-	// without this(int) compiler can't choose between this(long) or this(real)
-	this(int n)
-	{
-		this(cast(long)n);
-	}
-
-	this(double dbl)
-	{
-		this = fromBinary!(decimal,double)(dbl);
-	}
 
 static if (context == Bid64Context)
 {
@@ -279,19 +302,14 @@ static if (context == Bid64Context)
 	}
 }
 
-	this(float flt)
-	{
-		this = fromBinary!(decimal,float)(flt);
-	}
-
 static if (context == Bid64Context)
 {
-	unittest
+/*	unittest
 	{	// this(flt)
 		assert(TD(-float.infinity) == TD("-infinity"));
 		assert(TD(1.0E4F) == TD("1E4"));
 		assert(TD(1.0f/3.0f) == TD("0.333333"));
-	}
+	}*/
 
 	unittest
 	{	// this(flt)
@@ -307,30 +325,6 @@ static if (context == Bid64Context)
     	writefln(f.report);
 	}
 }
-
-	this(real r)
-	{
-		this = fromBinary!(decimal,real)(r);
-//		this = fromReal!decimal(r);
-//		this = num;
-//		string str;
-//		if (r == real.nan)
-//		{
-//			this(SpecialValue.QNAN);
-//		}
-//		else if (r == real.infinity)
-//		{
-//			this(SpecialValue.INF);
-//		}
-//		else if (r == -real.infinity)
-//		{
-//			this(SpecialValue.INF, true);
-//		}
-//		else
-//		{
-//			this(format("%.20G", r));
-//		}
-	}
 
 	// TODO: (testing) need to test this with 15-17 digit precision
 static if (context == Bid64Context)
@@ -515,29 +509,10 @@ static if (context == Bid64Context)
 
 	/// Returns infinity.
 	@safe
-	static decimal infinity(bool signed = false)
+	static decimal infinity(bool sign = false)
 	{
-		return signed ? NEG_INF.dup : INFINITY.dup;
+		return sign ? MINF : INF;
 	}
-
-	/// Returns the maximum number of decimal digits in this context.
-/*	@safe
-	static uint dig()
-	{
-		return precision;
-	}*/
-
-	/// Returns the number of binary digits in this context.
-/*	@safe
-	static int mant_dig()
-	{
-		return cast(int)(precision/std.math.LB);
-	}*/
-
-//	alias min_exp = minExpo; 	// FIXTHIS: binary, not decimal
-//	alias max_exp = maxExpo;	// FIXTHIS: binary, not decimal
-//	alias min_10_exp = minExpo;
-//	alias max_10_exp = maxExpo;
 
 	/// Returns the maximum representable normal value in the current context.
 	static decimal max()
@@ -558,7 +533,7 @@ static if (context == Bid64Context)
 
 	/// Returns the minimum representable normal value in this context.
 	@safe
-	enum decimal min_normal = decimal(1, minExpo);
+	enum decimal min_normal = decimal(1L, minExpo);
 
 	/// Returns the minimum representable subnormal value in this context.
 	@safe
@@ -572,21 +547,10 @@ static if (context == Bid64Context)
 	@safe
 	enum int radix = 10;
 
-	/// Returns zero.
-	@safe
-	static enum decimal zero(bool signed = false)
-	{
-		return signed ? NEG_ZERO : ZERO;
-	}
-
-	/// Returns 1.
-	//@safe
-	static decimal one(bool signed = false) {
-		return signed ? NEG_ONE : ONE;
-	}
-
 	// TODO: need to determine what constants it makes sense to include
 	// common decimal numbers
+	enum decimal ZERO    = decimal(Tag.NONE);
+	enum decimal NEG_ZRO = -ZERO; // decimal(Tag.NONE, true);
 	enum decimal HALF    = decimal(5, -1);
 	enum decimal ONE     = decimal(1);
 	enum decimal NEG_ONE = decimal(-1);
@@ -594,6 +558,19 @@ static if (context == Bid64Context)
 	enum decimal THREE   = decimal(3);
 	enum decimal FIVE    = decimal(5);
 	enum decimal TEN     = decimal(10);
+
+	/// Returns zero.
+	@safe
+	static enum decimal zero(bool sign = false)
+	{
+		return sign ? NEG_ZRO : ZERO;
+	}
+
+	/// Returns 1.
+	//@safe
+	static decimal one(bool sign = false) {
+		return sign ? NEG_ONE : ONE;
+	}
 
 static if (context == Bid64Context)
 {
@@ -616,7 +593,7 @@ static if (context == Bid64Context)
 	public this(const decimal that)
 	{
 		this.m_sign = that.m_sign;
-		this.m_spcl	= that.m_spcl;
+		this.m_tag 	= that.m_tag ;
 		this.m_digs = that.m_digs;
 		this.m_expo	= that.m_expo;
 		this.m_coff	= that.m_coff;
@@ -848,22 +825,22 @@ static if (context == Bid64Context)
 	@safe
 	const bool isNaN()
 	{
-		return this.m_spcl == SpecialValue.QNAN
-		    || this.m_spcl == SpecialValue.SNAN;
+		return this.m_tag  == Tag.QNAN
+		    || this.m_tag  == Tag.SNAN;
 	}
 
 	/// Returns true if this number is a signaling NaN.
 	@safe
 	const bool isSignaling()
 	{
-		return this.m_spcl == SpecialValue.SNAN;
+		return this.m_tag  == Tag.SNAN;
 	}
 
 	/// Returns true if this number is a quiet NaN.
 	@safe
 	const bool isQuiet()
 	{
-		return this.m_spcl == SpecialValue.QNAN;
+		return this.m_tag  == Tag.QNAN;
 	}
 
 static if (context == Bid64Context)
@@ -925,16 +902,18 @@ static if (context == Bid64Context)
 	@safe
 	const bool isInfinite()
 	{
-		return this.m_spcl == SpecialValue.INF;
+		return m_tag == Tag.INF
+			|| m_tag == Tag.MINF;
 	}
 
 	/// Returns true if this number is not an infinity or a NaN.
 	@safe
 	const bool isFinite()
 	{
-		return m_spcl != SpecialValue.INF
-			&& m_spcl != SpecialValue.QNAN
-			&& m_spcl != SpecialValue.SNAN;
+		return m_tag  != Tag.INF
+			&& m_tag  != Tag.MINF
+			&& m_tag  != Tag.QNAN
+			&& m_tag  != Tag.SNAN;
 	}
 
 static if (context == Bid64Context)
@@ -973,9 +952,10 @@ static if (context == Bid64Context)
 	@safe
 	const bool isSpecial()
 	{
-		return m_spcl == SpecialValue.INF
-			|| m_spcl == SpecialValue.QNAN
-			|| m_spcl == SpecialValue.SNAN;
+		return m_tag  == Tag.INF
+			|| m_tag  == Tag.MINF
+			|| m_tag  == Tag.QNAN
+			|| m_tag  == Tag.SNAN;
 	}
 
 static if (context == Bid64Context)
@@ -1201,7 +1181,7 @@ static if (context == Bid64Context)
 	// COMPILER BUG?
 	void opAssign(T:decimal)(in T that)
 	{
-		this.m_spcl	 = that.m_spcl;
+		this.m_tag 	 = that.m_tag ;
 		this.m_digs  = that.m_digs;
 		this.m_sign  = that.m_sign;
 		this.m_expo	 = that.m_expo;

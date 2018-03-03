@@ -358,6 +358,7 @@ unittest
 	S[] r =
 	[
 		{ "Infinity",	"Inf" },
+		{ "-Infinity",	"-Inf" },
 	];
 	foreach (t; r) f.test(t, specialForm(TD(t.num),true));
     writefln(f.report);
@@ -1291,40 +1292,40 @@ struct RealRep
 	}
 }
 
-public T fromBinary(T,U)(U bin)
-	if (isDecimal!T && isFloatingPoint!U)
+public D fromBinary(D,U)(in U bin)
+	if (isDecimal!D && isFloatingPoint!U)
 {
-	if (std.math.isNaN(bin)) return T.nan;
+	if (std.math.isNaN(bin)) return D.nan;
 
 	bool sign = bin < 0;
-	if (sign) bin = -bin;
 	if (!std.math.isFinite(bin))
 	{
 		if (sign)
 		{
-			return -T.infinity;
+			return -D.infinity;
    		}
 		else
 		{
-			return T.infinity;
+			return D.infinity;
 		}
 	}
-	if (bin == 0.0) return T(0,0,sign);
+	if (bin == 0.0) return D(0,0,sign);
 
-	T num;
+	D num;
 	int expo;
 	BigInt one;
+	U bing = sign ? -bin : bin;
 
     static if (is(U == real))
     {
-		RealRep rep = RealRep(bin);
+		RealRep rep = RealRep(bing);
 		num = BigInt(rep.fraction);
    		expo = rep.exponent - rep.bias - rep.fractionBits + 1;
 	}
     else if (is(U == float))
     {
 		std.bitmanip.FloatRep rep;
-		rep.value = bin;
+		rep.value = bing;
 		one = BigInt(1) << rep.fractionBits;
 		num = one | rep.fraction;
    		expo = rep.exponent - rep.bias - rep.fractionBits;
@@ -1332,7 +1333,7 @@ public T fromBinary(T,U)(U bin)
     else	// double
     {
 		std.bitmanip.DoubleRep rep;
-		rep.value = bin;
+		rep.value = bing;
 		one = BigInt(1) << rep.fractionBits;
 		num = one | rep.fraction;
    		expo = rep.exponent - rep.bias - rep.fractionBits;
@@ -1351,7 +1352,7 @@ public T fromBinary(T,U)(U bin)
 	{
 		string str = std.format.format!"%.18G"(bin);
 //		return num = fromString!T(str);
-		return fromString!T(str);
+		return fromString!D(str);
 	}
 	auto mult = BigInt(1) << expo;
 	num = divide ? num/mult : num*mult;

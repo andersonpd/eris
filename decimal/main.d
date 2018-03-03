@@ -294,8 +294,10 @@ void main()
     auto d = b % e;
 	writefln("%X",d); // BigInt("1_000_012_345")
 	b -= c;
-//	writefln("%X",b); // BigInt("1_000_012_345")
-//	writefln("getBigDigit = %X", big.getBigDigit(2));
+
+if (!__ctfe) writefln("dec64.infinity = %s", dec64.infinity);
+
+if (!__ctfe) writefln("infinity(true) = %s", dec64.infinity(true));
 
 
 	separator;

@@ -55,9 +55,9 @@ version(unittest)
  *  Returns the rounded number.
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
-public T roundToPrecision(T)(in T num) if (isDecimal!T)
+public D roundToPrecision(D)(in D num) if (isDecimal!D)
 {
-	return roundToPrecision(num, T.context);
+	return roundToPrecision(num, D.context);
 }
 
 /**
