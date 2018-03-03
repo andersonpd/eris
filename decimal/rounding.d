@@ -1,7 +1,7 @@
 // Written in the D programming language
 
 /**
- * Rounding methods for floating-point decimal arithmetic.
+ * Round methods for floating-point decimal arithmetic.
  *
  * An implementation of the
  * General Decimal Arithmetic Specification.
@@ -46,7 +46,6 @@ unittest {
 version(unittest)
 {
 	import std.stdio;
-//	import eris.decimal.asserts;
 	import eris.decimal.test;
 }
 
@@ -66,9 +65,9 @@ public D roundToPrecision(D)(in D num) if (isDecimal!D)
  *  Returns the rounded number.
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
-package T roundToPrecision(T)(
-		in T num, Context context = T.context, bool setFlags = true)
-	if (isDecimal!T)
+package D roundToPrecision(D)(
+		in D num, Context context = D.context, bool setFlags = true)
+	if (isDecimal!D)
 {
 	return roundToPrecision(num,
 		context.precision, context.maxExpo, context.mode, setFlags);
@@ -80,12 +79,12 @@ package T roundToPrecision(T)(
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
 //@safe
-public T roundToPrecision(T)(in T num, int precision,
-		int maxExpo = T.maxExpo, Rounding mode = T.mode, bool setFlags = true)
-	if (isDecimal!T)
+public D roundToPrecision(D)(in D num, int precision,
+		int maxExpo = D.maxExpo, Round mode = D.mode, bool setFlags = true)
+	if (isDecimal!D)
 {
 	// check for overflow before rounding and copy the input
-	T copy = checkOverflow(num, mode, maxExpo, setFlags);
+	D copy = checkOverflow(num, mode, maxExpo, setFlags);
 
 	// check rounding mode
 	if (mode == ROUND_NONE) return copy;
@@ -195,13 +194,13 @@ unittest
  *  Precondition: number must be finite.
  */
 //@safe
-private T checkOverflow(T)(in T num, Rounding mode = T.mode,
-		int maxExpo = T.maxExpo, bool setFlags = true) if (isDecimal!T)
+private D checkOverflow(D)(in D num, Round mode = D.mode,
+		int maxExpo = D.maxExpo, bool setFlags = true) if (isDecimal!D)
 {
 	if (num.adjustedExponent <= maxExpo) return num;
 
 	// TODO: if the number has not been normalized will this work?
-	T copy = num.copy;
+	D copy = num.copy;
 	switch (mode)
 	{
 		case ROUND_NONE: 	// can this branch be reached? should it be?
@@ -209,16 +208,16 @@ private T checkOverflow(T)(in T num, Rounding mode = T.mode,
 		case HALF_EVEN:
 		case HALF_DOWN:
 		case ROUND_UP:
-			copy = T.infinity(num.sign);
+			copy = D.infinity(num.sign);
 			break;
 		case ROUND_DOWN:
-			copy = num.sign ? T.max.copyNegate : T.max;
+			copy = num.sign ? D.max.copyNegate : D.max;
 			break;
 		case ROUND_CEILING:
-			copy = num.sign ? T.max.copyNegate : T.infinity;
+			copy = num.sign ? D.max.copyNegate : D.infinity;
 			break;
 		case ROUND_FLOOR:
-			copy = num.sign ? T.infinity(true) : T.max;
+			copy = num.sign ? D.infinity(true) : D.max;
 			break;
 		default:
 			break;
@@ -230,7 +229,7 @@ private T checkOverflow(T)(in T num, Rounding mode = T.mode,
 
 // TODO: needs unittests
 // Returns true if the rounding mode is half-even, half-up, or half-down.
-private bool halfRounding(Rounding mode) {
+private bool halfRounding(Round mode) {
 	return (mode == HALF_EVEN ||
 	 		mode == HALF_UP ||
 	 		mode == HALF_DOWN);
@@ -246,11 +245,11 @@ unittest
  *  Rounds the number to the context precision
  *  using the specified rounding mode.
  */
-private T roundByMode(T)(T num, int precision,
-		Rounding mode = T.mode, int maxExpo = T.maxExpo, bool setFlags = true)
-	if (isDecimal!T)
+private D roundByMode(D)(D num, int precision,
+		Round mode = D.mode, int maxExpo = D.maxExpo, bool setFlags = true)
+	if (isDecimal!D)
 {
-	T copy = checkOverflow(num, mode, maxExpo, setFlags);
+	D copy = checkOverflow(num, mode, maxExpo, setFlags);
 
 	// did it overflow to infinity?
 	if (copy.isSpecial) return copy;
@@ -258,7 +257,7 @@ private T roundByMode(T)(T num, int precision,
 	if (mode == ROUND_NONE) return num;
 
 	// calculate the remainder
-	T remainder = getRemainder(num, precision);
+	D remainder = getRemainder(num, precision);
 	// if the number wasn't rounded, return
 	if (remainder.isZero) return num;
 
@@ -311,7 +310,7 @@ private T roundByMode(T)(T num, int precision,
 
 unittest
 {	// roundByMode
-	static struct S { D64 x; int p; Rounding r; D64 expect; }
+	static struct S { D64 x; int p; Round r; D64 expect; }
 	S[] s =
 	[
 		{ "1000",    5, HALF_EVEN,  "1000" },
@@ -335,9 +334,9 @@ unittest
  *  the inexact flag is also set.
  *  Flags: ROUNDED, INEXACT.
  */
-private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
+private D getRemainder(D) (ref D x, int precision) if (isDecimal!D)
 {
-	T remainder = T.zero;
+	D remainder = D.zero;
 	int diff = x.digits - precision;
 	if (diff <= 0) {
 		return remainder;
@@ -348,7 +347,7 @@ private T getRemainder(T) (ref T x, int precision) if (isDecimal!T)
 	BigInt quotient = dividend/divisor;
 	auto cf = dividend - quotient*divisor;
 	if (cf != 0) {
-		remainder = T.zero;
+		remainder = D.zero;
 		remainder.digits = diff;
 		remainder.expo = x.expo;
 		remainder.coff = cf;
@@ -377,7 +376,7 @@ unittest
  *  If this causes an overflow the coefficient is adjusted by clipping
  *  the last digit (it will be zero) and incrementing the exponent.
  */
-private void incrementAndRound(T)(ref T num) if (isDecimal!T)
+private void incrementAndRound(D)(ref D num) if (isDecimal!D)
 {
 	// if num is zero
 	if (num.digits == 0) {
@@ -914,67 +913,6 @@ public int trimZeros(ref BigInt n, int digits)
 	n /= pow10b(zeros);
 	return zeros;
 }
-
-/**
- *
- *  Returns the operand reduced to its simplest form.
- *
- *  <code>reduce</code> has the same semantics as the plus operation,
- *  except that a finite result is
- *  reduced to its simplest form, with all trailing
- *  zeros removed and its sign preserved.
- *
- *  Standard: Implements the 'reduce' function in the specification. (p. 37)
- *  "This operation was called 'normalize' prior to
- *  version 1.68 of the specification." (p. 37)
- *
- *  Flags: INVALID_OPERATION
- *
- */
-public T reduce(T)(in T num,
-		Context context = T.context) if (isDecimal!T)
-{
-	// special cases
-	if (num.isNaN) return T.nan; //invalidOperand(num);
-	if (!num.isFinite) return num.dup;
-
-	// round the argument
-	T reduced = roundToPrecision(num, context);
-
-	// have to check again -- rounding may have made it infinite
-	if (!reduced.isFinite) return reduced;
-
-	int digits = reduced.digits;
-	auto temp = reduced.coff;
-	int zeros = trimZeros(temp, digits);
-	if (zeros)
-	{
-		reduced.coff = temp;
-		reduced.digits = digits - zeros;
-		reduced.expo = reduced.expo + zeros;
-	}
-
-	return reduced;
-}
-
-unittest
-{	// reduce
-	// test results depend on context
-	static struct S { TD x; TD expect; }
-	S[] s =
-	[
-		{ "1.200", "1.2" },
-//		{ "1.200", "1.3" },	// should fail
-//	FIXTHIS: should fail but doesn't
-		{ "1.200", "1.20" },	// NOTE: should fail but doesn't
-		{ "1.2001", "1.2001" },
-		{ "1.2000000000000001", "1.2" },
-	];
-	auto f = FunctionTest!(S,TD)("reduce");
-	foreach (t; s) f.test(t, reduce(t.x));
-    writefln(f.report);
-}
-
 
 unittest {
 	writeln("==========================");

@@ -39,7 +39,6 @@ import std.string;
 import std.math;
 
 import eris.decimal;
-import eris.decimal.arithmetic: invalidOperation, invalidOperand;
 
 unittest {
 	writeln("==========================");
@@ -65,12 +64,12 @@ version(unittest)
  *  The sign and exponent must both be zero, and all decimal digits
  *  in the coefficient must be either '1' or '0'.
  */
-public bool isLogical(T)(in T arg, out string str) if (isDecimal!T)
+public bool isLogical(D)(in D arg, out string str) if (isDecimal!D)
 {
 	if (arg.sign != 0 || arg.expo != 0) return false;
 	str = std.string.format("%d", arg.coff);
 	size_t n = str.length;
-	int p = T.precision;
+	int p = D.precision;
 	// if length > precision, truncate left chars
 	if (n > p)
 	{
@@ -92,10 +91,10 @@ public bool isLogical(T)(in T arg, out string str) if (isDecimal!T)
  *  The sign and exponent must both be zero, and all decimal digits
  *  in the coefficient must be either '1' or '0'.
  */
-public bool isLogical(T)(in T arg) if (isDecimal!T)
+public bool isLogical(D)(in D arg) if (isDecimal!D)
 {
 	string str;
-	return isLogical!T(arg, str);
+	return isLogical!D(arg, str);
 }
 
 unittest {	// logical string/number tests
@@ -113,25 +112,25 @@ unittest {	// logical string/number tests
  *  Inverts and returns a decimal logical number.
  *  Implements the 'invert' function in the specification. (p. 44)
  */
-public T not(T)(T arg) if (isDecimal!T)
+public D not(D)(D arg) if (isDecimal!D)
 {
 	string str;
 	if (!isLogical(arg, str)) {
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 	char[] result = new char[str.length];
 	for (size_t i = 0; i < str.length; i++)
 	{
 		result[i] = str[i] == '0' ? '1' : '0';
 	}
-	return T(result.idup);
+	return D(result.idup);
 }
 
 /**
  *  Inverts and returns a logical string.
  *  Each '1' is changed to a '0', and vice versa.
  */
-private T not(T: string)(T str)
+private S not(S: string)(S str)
 {
 	char[] result = new char[str.length];
 	for (size_t i = 0; i < str.length; i++)
@@ -166,15 +165,15 @@ unittest
  *  Performs a logical and of the arguments and returns the result.
  *  Implements the 'and' function in the specification. (p. 41)
  */
-public T and(T)(in T x, in T y) if (isDecimal!T)
+public D and(D)(in D x, in D y) if (isDecimal!D)
 {
 	string xstr;
 	if (!isLogical(x, xstr)) {
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 	string ystr;
 	if (!isLogical(y, ystr)) {
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 	auto len = xstr.length;
 	char[] result = new char[len];
@@ -186,22 +185,22 @@ public T and(T)(in T x, in T y) if (isDecimal!T)
 			result[i] = '0';
 		}
 	}
-	return T(result.idup);
+	return D(result.idup);
 }
 
 /**
  *  Performs a logical or of the arguments and returns the result.
  *  Implements the 'or' function in the specification. (p. 41)
  */
-public T or(T)(in T x, in T y) if (isDecimal!T)
+public D or(D)(in D x, in D y) if (isDecimal!D)
 {
 	string xstr;
 	if (!isLogical(x, xstr)) {
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 	string ystr;
 	if (!isLogical(y, ystr)) {
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 	auto len = xstr.length;
 	char[] result = new char[len];
@@ -213,22 +212,22 @@ public T or(T)(in T x, in T y) if (isDecimal!T)
 			result[i] = '0';
 		}
 	}
-	return T(result.idup);
+	return D(result.idup);
 }
 
 /**
  *  Performs a logical xor of the arguments and returns the result.
  *  Implements the 'xor' function in the specification. (p. 41)
  */
-public T xor(T)(in T x, in T y) if (isDecimal!T)
+public D xor(D)(in D x, in D y) if (isDecimal!D)
 {
 	string xstr;
 	if (!isLogical(x, xstr)) {
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 	string ystr;
 	if (!isLogical(y, ystr)) {
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 	auto len = xstr.length;
 	char[] result = new char[len];
@@ -240,7 +239,7 @@ public T xor(T)(in T x, in T y) if (isDecimal!T)
 			result[i] = '0';
 		}
 	}
-	return T(result.idup);
+	return D(result.idup);
 }
 
 unittest { // binary logical ops
@@ -267,15 +266,15 @@ unittest { // binary logical ops
 /// If the argument is not a valid logical operand, or if the absolute value of
 /// the shift is greater than precision, an INVALID_OPERATION is signaled.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T lsh(T)(in T arg, int n,
-		Context context = T.context) if (isDecimal!T)
+public D lsh(D)(in D arg, int n,
+		Context context = D.context) if (isDecimal!D)
 {
 	string str;
 	int p = context.precision;
 
 	if (n > p || n < -p || !isLogical(arg, str))
 	{
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 
 	if (n == 0)
@@ -287,13 +286,13 @@ public T lsh(T)(in T arg, int n,
 	{
 		str = str[n..$];
 		str = leftJustify(str, p, '0');
-		return T(str);
+		return D(str);
 	}
 	else
 	{
 		str = str[0..$+n];
 		str = rightJustify(str, p, '0');
-		return T(str);
+		return D(str);
 	}
 }
 
@@ -319,14 +318,14 @@ unittest
 /// is not a valid logical operand, or if the absolute value of the rotation
 /// is greater than precision, an INVALID_OPERATION is signaled.
 /// Implements the 'rotate' function in the specification. (p. 47)
-public T rot(T)(in T arg, int n,
-		Context context = T.context) if (isDecimal!T)
+public D rot(D)(in D arg, int n,
+		Context context = D.context) if (isDecimal!D)
 {
 	string str;
 	int p = context.precision;
 	if (n > p || n < -p || !isLogical(arg, str))
 	{
-		return invalidOperation!T;
+		return invalidOperation!D;
 	}
 
 	if (n == 0)
@@ -338,13 +337,13 @@ public T rot(T)(in T arg, int n,
 	{
 		string str1 = str[n..$];
 		string str2 = str[0..n];
-		return T(str1 ~ str2);
+		return D(str1 ~ str2);
 	}
 	else
 	{
 		string str1 = str[$+n..$];
 		string str2 = str[0..$+n];
-		return T(str1 ~ str2);
+		return D(str1 ~ str2);
 	}
 }
 

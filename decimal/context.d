@@ -52,7 +52,7 @@ public enum Context Bid64Context   = Context(16, 369, HALF_EVEN);
  * General Decimal Arithmetic Specification, p. 13-14.
  *
  */
-public enum Rounding {
+public enum Round {
 	none,
     halfEven,
     halfDown,
@@ -63,14 +63,14 @@ public enum Rounding {
     ceiling,
 }
 
-alias ROUND_NONE     = Rounding.none;
-alias HALF_EVEN      = Rounding.halfEven;
-alias HALF_DOWN      = Rounding.halfDown;
-alias HALF_UP        = Rounding.halfUp;
-alias ROUND_DOWN     = Rounding.down;
-alias ROUND_UP       = Rounding.up;
-alias ROUND_FLOOR    = Rounding.floor;
-alias ROUND_CEILING  = Rounding.ceiling;
+alias ROUND_NONE     = Round.none;
+alias HALF_EVEN      = Round.halfEven;
+alias HALF_DOWN      = Round.halfDown;
+alias HALF_UP        = Round.halfUp;
+alias ROUND_DOWN     = Round.down;
+alias ROUND_UP       = Round.up;
+alias ROUND_FLOOR    = Round.floor;
+alias ROUND_CEILING  = Round.ceiling;
 
 /**
  *  Flags: The available flags and trap-enablers.
@@ -106,11 +106,11 @@ public struct Context
 {
 	public immutable int precision;
 	public immutable int maxExpo;
-	public immutable Rounding mode;
+	public immutable Round mode;
 
 	@disable this();
 
-	this(int precision, int maxExpo, Rounding mode)
+	this(int precision, int maxExpo, Round mode)
 	{
 		this.precision = precision;
 		this.maxExpo = maxExpo;

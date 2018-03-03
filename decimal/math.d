@@ -64,19 +64,6 @@ mixin template checkNaN() {
 //--------------------------------
 
 /**
- *  Rounds the argument to an integer using the specified rounding mode.
- *  The default rounding mode is the current context mode. //FIXTHIS
- */
-public T round(T)(T x, Rounding mode = T.mode) {
-	if (x.isNaN) {
-		contextFlags.set(INVALID_OPERATION);
-		return T.nan;
-	}
-	T value = roundToIntegralExact(x, mode);
-	return value;
-}
-
-/**
  *  Rounds the argument to the nearest integer. If the argument is exactly
  *  half-way between two integers the even integer is returned.
  */
@@ -186,7 +173,7 @@ unittest
  *  The value is rounded based on the specified rounding mode. The default
  *  mode is half-even.
  */
-public int toInt(T)(T x, Rounding mode = HALF_EVEN)
+public int toInt(T)(T x, Round mode = HALF_EVEN)
 {
 	if (x.isNaN)
 	{
@@ -206,7 +193,7 @@ public int toInt(T)(T x, Rounding mode = HALF_EVEN)
  *  mode is half-even.
  */
 public long toLong(T)(T x,
-		Rounding mode = HALF_EVEN) if (isDecimal!T)
+		Round mode = HALF_EVEN) if (isDecimal!T)
 {
 	if (x.isNaN)
 	{
@@ -219,12 +206,13 @@ public long toLong(T)(T x,
 	return toBigInt(x, mode).toLong;
 }
 
+// FIXTHIS: toBigInt doesn't work?
 /**
  *  Returns the nearest extended integer value.
  *  The value is rounded based on the specified rounding mode. The default
  *  mode is half-even.
  */
-public BigInt toBigInt(T)(T x, Rounding mode = HALF_EVEN)
+public BigInt toBigInt(T)(T x, Round mode = HALF_EVEN)
 {
 	if (x.isNaN)
 	{

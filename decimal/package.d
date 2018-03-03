@@ -51,9 +51,6 @@ version(unittest)
 	alias TD = D64;
 }
 
-// special values for NaN, Inf, etc.
-private enum Tag : byte { NONE=0, INF=1, MINF=-1, QNAN=2, SNAN=3 };
-
 /**
  * A floating-point decimal number.
  *
@@ -79,17 +76,20 @@ static if (context == Bid64Context) {
 	public enum Context context = _context;
 	alias decimal = Decimal!(context);
 
-	private     Tag m_tag = Tag.QNAN;// special value: default is quiet NaN
-	private   bool m_sign = 0;		// true if the value is negative, false otherwise.
-	private    int m_expo = 0;		// the exponent of the decimal value
+	private Tag m_tag     = Tag.QNAN;// special value: default is quiet NaN
+	private bool m_sign   = 0;		// true if the value is negative, false otherwise.
+	private int m_expo    = 0;		// the exponent of the decimal value
 	private BigInt m_coff = 0;		// the coefficient of the decimal value
-	private    int m_digs = 0;    	// the number of decimal digits in the coefficient.
+	private int m_digits  = 0;    	// the number of decimal digits in the coefficient.
+
+	// special values for NaN, Inf, etc.
+	private enum Tag : byte { NONE=0, INF=1, MINF=-1, QNAN=2, SNAN=3 };
 
 	// decimal special values
-	public enum NAN  = decimal(Tag.QNAN);
-	public enum SNAN = decimal(Tag.SNAN);
-	public enum INF  = decimal(Tag.INF);
-	public enum MINF = decimal(Tag.MINF);
+	private enum NAN  = decimal(Tag.QNAN);
+	private enum SNAN = decimal(Tag.SNAN);
+	private enum INF  = decimal(Tag.INF);
+	private enum MINF = decimal(Tag.MINF);
 
 	// context-based parameters
 	/// the maximum length of the coefficient in decimal .
@@ -105,7 +105,7 @@ static if (context == Bid64Context) {
 	/// maximum value of the coefficient.
 	public enum maxCoefficient = BigInt(10)^^precision - 1;
 	/// rounding mode.
-	public enum Rounding mode = context.mode;
+	public enum Round mode = context.mode;
 
 /*	unittest
 	{	// special values
@@ -160,7 +160,7 @@ static if (context == Bid64Context) {
 	}
 
 	this(U)(U coefficient)
-		if (isIntegral!U && !is(U == Tag))
+		if (isIntegral!U)
 	{
 		this(BigInt(coefficient));
 	}
@@ -175,7 +175,7 @@ static if (context == Bid64Context) {
 	{
 		this.m_sign = that.m_sign;
 		this.m_tag 	= that.m_tag ;
-		this.m_digs = that.m_digs;
+		this.m_digits = that.m_digits;
 		this.m_expo	= that.m_expo;
 		this.m_coff	= that.m_coff;
 		if (that.context > this.context)
@@ -191,7 +191,7 @@ static if (context == Bid64Context) {
 	/// of decimal digits in the coefficient.
 	//@safe
 	this(U)(U coefficient, int exponent)
-		if (is(U == BigInt) || isIntegral!U && !is(U == Tag))
+		if (is(U == BigInt) || isIntegral!U)
 	{
 		static if (isIntegral!U)
 		{
@@ -199,16 +199,16 @@ static if (context == Bid64Context) {
 		}
 		else
 		{
-		this = zero();
-		this.m_sign = coefficient < 0;
-		this.m_coff = sign ? -coefficient : coefficient;
-		this.m_expo = exponent;
-		this.m_digs = countDigits(this.m_coff);
+			this = zero();
+			this.m_sign = coefficient < 0;
+			this.m_coff = sign ? -coefficient : coefficient;
+			this.m_expo = exponent;
+			this.m_digits = countDigits(this.m_coff);
 		}
 	}
 
 	this(U)(U coefficient, int exponent, bool sign)
-		if (is(U == BigInt) || isIntegral!U && !is(U == Tag))
+		if (is(U == BigInt) || isIntegral!U)
 	{
 		static if (isIntegral!U)
 		{
@@ -220,7 +220,7 @@ static if (context == Bid64Context) {
 		this.m_sign = sign;
 		this.m_coff = coefficient >= 0 ? coefficient : -coefficient;
 		this.m_expo = exponent;
-		this.m_digs = countDigits(this.m_coff);
+		this.m_digits = countDigits(this.m_coff);
 		}
 	}
 
@@ -355,7 +355,6 @@ static if (context == Bid64Context)
 
 			{ 1E54,				"1E54" },
 
-// FIXTHIS: this is the actual value : should pass; problem with asm stmts
 			{ double.max, 		"1.79769313486231571E+308" },
 			{ -real.infinity, 	"-Infinity" },
 		];
@@ -441,7 +440,7 @@ static if (context == Bid64Context)
 	int adjustedExponent() const
 	{
 		if (isSpecial) return 0;
-		return m_expo + m_digs - 1;
+		return m_expo + m_digits - 1;
 	}
 
 	/// Returns the number of decimal digits in the coefficient of this number
@@ -450,7 +449,7 @@ static if (context == Bid64Context)
 	int digits() const
 	{
 		if (isSpecial) return 0;
-		return this.m_digs;
+		return this.m_digits;
 	}
 
 	@property
@@ -458,7 +457,7 @@ static if (context == Bid64Context)
 	int digits(int count)
 	{
 		if (isSpecial) return 0;
-		return this.m_digs = count;
+		return this.m_digits = count;
 	}
 
 	@property
@@ -594,7 +593,7 @@ static if (context == Bid64Context)
 	{
 		this.m_sign = that.m_sign;
 		this.m_tag 	= that.m_tag ;
-		this.m_digs = that.m_digs;
+		this.m_digits = that.m_digits;
 		this.m_expo	= that.m_expo;
 		this.m_coff	= that.m_coff;
 	};
@@ -1182,7 +1181,7 @@ static if (context == Bid64Context)
 	void opAssign(T:decimal)(in T that)
 	{
 		this.m_tag 	 = that.m_tag ;
-		this.m_digs  = that.m_digs;
+		this.m_digits  = that.m_digits;
 		this.m_sign  = that.m_sign;
 		this.m_expo	 = that.m_expo;
 		this.m_coff	 = that.m_coff;
@@ -1795,8 +1794,8 @@ unittest {
 }
 
 /// Returns true if the parameter is a decimal number.
-public enum bool isDecimal(T) = hasMember!(T, "IsDecimal");
-//public enum bool isDecimal(T) = is(T:decimal);
+public enum bool isDecimal(D) = hasMember!(D, "IsDecimal");
+//public enum bool isDecimal(D) = is(D:decimal);
 unittest {
 	write("-- isDecimal........");
 	TD dummy;
@@ -1944,9 +1943,9 @@ public string roundString(string str, int precision)
 version(unittest)
 {
 
-	public enum bool testBinaryOp(T)(string op, T x, T y, T z,
+	public enum bool testBinaryOp(D)(string op, D x, D y, D z,
 			string file = __FILE__, int line = __LINE__)
-		if (isDecimal!T)
+		if (isDecimal!D)
 	{
 		switch (op)
 		{
@@ -1966,16 +1965,16 @@ version(unittest)
 		}
 	}
 
-	public enum bool testBinaryOp(T)
-		(string op, T x, T y, T z, string file = __FILE__, int line = __LINE__)
-		if (!isDecimal!T && isConvertible!T)
+	public enum bool testBinaryOp(D)
+		(string op, D x, D y, D z, string file = __FILE__, int line = __LINE__)
+		if (!isDecimal!D && isConvertible!D)
 	{
 		return testBinaryOp!TD
 			(op, TD(x), TD(y), TD(z), file, line);
 	}
 
-	private bool assertBinaryOp(T)
-		(string op, T x, T y, T computed, T expected, string file, int line)
+	private bool assertBinaryOp(D)
+		(string op, D x, D y, D computed, D expected, string file, int line)
 	{
 		if (computed == expected)
 		{

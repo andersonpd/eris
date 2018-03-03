@@ -259,7 +259,20 @@ unittest
 // unary functions
 //--------------------------------
 
-/+
+/**
+ *  Rounds the argument to an integer using the specified rounding mode.
+ *  The default rounding mode is the current context mode. //FIXTHIS
+ */
+public D round(D)(D x, Round mode = D.mode) {
+	if (x.isNaN) {
+		contextFlags.set(INVALID_OPERATION);
+		return D.nan;
+	}
+	D value = roundToIntegralExact(x, mode);
+	return value;
+}
+
+
 /**
  *
  *  Returns the operand reduced to its simplest form.
@@ -328,13 +341,12 @@ unittest
 	foreach (t; s) f.test(t, reduce(t.x));
     writefln(f.report);
 }
-+/
 
 /**
  *  Returns the absolute value of the argument.
  *
- *  The result is equivalent to plus(x) for positive numbers
- *  and to minus(x) for negative numbers.
+ *  The result is equivalent to plus(arg) for positive numbers
+ *  and to minus(arg) for negative numbers.
  *
  *  Note: This operation rounds the result and may set flags.
  *  To return the absolute value without rounding or setting flags
@@ -344,16 +356,15 @@ unittest
  *
  *  Flags: INVALID_OPERATION
  */
-public T abs(T)(in T x, Context context = T.context) if (isDecimal!T)
+public D abs(D)(in D arg, Context context = D.context) if (isDecimal!D)
 {
-	if (x.isNaN) return invalidOperand(x);
-
-	return roundToPrecision(x.copyAbs, context);
+	if (arg.isNaN) return invalidOperand(arg);
+	return roundToPrecision(arg.copyAbs, context);
 }
 
 unittest
 {	// abs
-	static struct S { TD x; TD expect; }
+	static struct S { TD arg; TD expect; }
 	S[] s =
 	[
 		{ "-Inf", "Inf" },
@@ -363,7 +374,7 @@ unittest
 		{ "-1.234567890123456749E+23", "1.2345678901234567E+23" },	// rounds the argument
 	];
 	auto f = FunctionTest!(S,TD)("abs");
-	foreach (t; s) f.test(t, abs(t.x));
+	foreach (t; s) f.test(t, abs(t.arg));
     writefln(f.report);
 }
 
@@ -372,15 +383,15 @@ unittest
  *  negative, zero, or positive, respectively.
  *  The sign of zero is ignored: returns 0 for +0 or -0.
  */
-public int sgn(T)(in T x) if (isDecimal!T)
+public int sgn(D)(in D arg) if (isDecimal!D)
 {
-	if (x.isZero) return 0;
-	return x.isNegative ? -1 : 1;
+	if (arg.isZero) return 0;
+	return arg.isNegative ? -1 : 1;
 }
 
 unittest
 {	// sgn
-	static struct S { TD x; int expect; }
+	static struct S { TD arg; int expect; }
 	S[] s =
 	[
 		{  "-123", -1 },
@@ -392,7 +403,7 @@ unittest
 		{  "-Inf", -1 },
 	];
 	auto f = FunctionTest!(S,int)("sgn");
-	foreach (t; s) f.test(t, sgn(t.x));
+	foreach (t; s) f.test(t, sgn(t.arg));
     writefln(f.report);
 }
 
@@ -400,15 +411,15 @@ unittest
  *  Returns -1, 0, or 1
  *  if the argument is negative, zero, or positive, respectively.
  */
-public int sgn(T:BigInt)(T x) {
-	if (x < 0) return -1;
-	if (x > 0) return 1;
+/*public int sgn(T:BigInt)(T arg) {
+	if (arg < 0) return -1;
+	if (arg > 0) return 1;
 	return 0;
-}
+}*/
 
 /**
  *  Returns a copy of the argument with the same sign as the argument.
- *  The result is equivalent to add('0', x).
+ *  The result is equivalent to add('0', arg).
  *
  *  Note: This operation rounds the result and may set flags.
  *  To copy without rounding or setting flags use the 'copy' function.
@@ -417,16 +428,16 @@ public int sgn(T:BigInt)(T x) {
  *
  *  Flags: INVALID_OPERATION
  */
-public T plus(T)(in T x,
-		Context context = T.context) if (isDecimal!T)
+public D plus(D)(in D arg,
+		Context context = D.context) if (isDecimal!D)
 {
-	if (x.isNaN) return invalidOperand(x);
-	return roundToPrecision(x, context);
+	if (arg.isNaN) return invalidOperand(arg);
+	return roundToPrecision(arg, context);
 }
 
 unittest
 {	// plus -- depends on context
-	static struct S { TD x; TD expect; }
+	static struct S { TD arg; TD expect; }
 	S[] s =
 	[
 		{ "1.3", "1.3" },
@@ -434,14 +445,14 @@ unittest
 		{ "-101.5", "-101.5" },
 	];
 	auto f = FunctionTest!(S,TD)("plus");
-	foreach (t; s) f.test(t, plus(t.x));
+	foreach (t; s) f.test(t, plus(t.arg));
     writefln(f.report);
 }
 
 /**
  *
  *  Returns a copy of the argument with the opposite sign.
- *  The result is equivalent to subtract('0', x).
+ *  The result is equivalent to subtract('0', arg).
  *
  *  This operation rounds the argument and may set flags.
  *  To copy without rounding or setting flags use the 'copyNegate' function.
@@ -451,16 +462,16 @@ unittest
  *  Flags: INVALID_OPERATION
  *
  */
-public T minus(T)(in T x,
-		Context context = T.context) if (isDecimal!T)
+public D minus(D)(in D arg,
+		Context context = D.context) if (isDecimal!D)
 {
-	if (x.isNaN) return invalidOperand(x);
-	return roundToPrecision(x.copyNegate, context);
+	if (arg.isNaN) return invalidOperand(arg);
+	return roundToPrecision(arg.copyNegate, context);
 }
 
 unittest
 {	// minus -- depends on context
-	static struct S { TD x; TD expect; }
+	static struct S { TD arg; TD expect; }
 	S[] s =
 	[
 		{ "1.3", "-1.3" },
@@ -468,7 +479,7 @@ unittest
 		{ "-101.5", "101.5" },
 	];
 	auto f = FunctionTest!(S,TD)("minus");
-	foreach (t; s) f.test(t, minus(t.x));
+	foreach (t; s) f.test(t, minus(t.arg));
     writefln(f.report);
 }
 
@@ -488,37 +499,37 @@ unittest
  *  Flags: INVALID_OPERATION
  *
  */
-public T nextPlus(T)(in T x,
-		Context context = T.context) if (isDecimal!T)
+public D nextPlus(D)(in D arg, Context context = D.context)
+	if (isDecimal!D)
 {
-	if (x.isNaN) return invalidOperand(x);
+	if (arg.isNaN) return invalidOperand(arg);
 
-	if (x.isInfinite) {
-		if (x.sign) {
-			return T.max.copyNegate;
+	if (arg.isInfinite) {
+		if (arg.sign) {
+			return D.max.copyNegate;
 		}
 		else {
-			return x;
+			return arg;
 		}
 	}
-	int adjustedExpo = x.expo + x.digits - context.precision;
-	if (adjustedExpo < T.tinyExpo) {
-			return T(0, T.tinyExpo, true);
+	int adjustedExpo = arg.expo + arg.digits - context.precision;
+	if (adjustedExpo < D.tinyExpo) {
+			return D(0, D.tinyExpo, true);
 	}
 
-	T y = T(1, adjustedExpo);
-	T z = add(x, y, context, false);
-	if (z > T.max) {
-		z = T.infinity;
+	D increment = D(1, adjustedExpo);
+	D next = add(arg, increment, context, false);
+	if (next > D.max) {
+		next = D.infinity;
 	}
 
 	// FIXTHIS: need to pass setFlags value
-	return roundToPrecision(z);
+	return roundToPrecision(next);
 }
 
 unittest
 {	// nextPlus -- depends on context
-	static struct S { TD x; TD expect; }
+	static struct S { TD arg; TD expect; }
 	S[] s =
 	[
 /*		D99 tests
@@ -538,7 +549,7 @@ unittest
 	];
 //if (!__ctfe) writefln("TD.max = %s", TD.max);
 	auto f = FunctionTest!(S,TD)("nextPlus");
-	foreach (t; s) f.test(t, nextPlus(t.x));
+	foreach (t; s) f.test(t, nextPlus(t.arg));
     writefln(f.report);
 }
 
@@ -552,35 +563,32 @@ unittest
  *
  *  Note: The overflow flag is not set by this operation.
  */
-public T nextMinus(T)(in T x,
-		Context context = T.context) if (isDecimal!T)
+public D nextMinus(D)(in D arg,
+		Context context = D.context) if (isDecimal!D)
 {
-	if (x.isNaN) return invalidOperand(x);
+	if (arg.isNaN) return invalidOperand(arg);
 
-	if (x.isInfinite) {
-		if (!x.sign) {
-			return T.max;
-		}
-		else {
-			return x;
-		}
+	if (arg.isInfinite) {
+		return arg.sign ? arg : D.max;
 	}
-	int adjustedExpo = x.expo + x.digits - context.precision;
-	if (x.coff == 1) adjustedExpo--;
-	if (adjustedExpo < T.tinyExpo) {
-		return T(0, T.tinyExpo);
+
+	int adjustedExpo = arg.expo + arg.digits - context.precision;
+	if (arg.coff == 1) adjustedExpo--;
+	if (adjustedExpo < D.tinyExpo) {
+		return D(0, D.tinyExpo);
 	}
-	T y = T(1, adjustedExpo);
-	y = sub!T(x, y, context);
-		if (y < T.max.copyNegate) {
-		y = T.infinity.copyNegate;
+
+	D increment = D(1, adjustedExpo);
+	D next = sub!D(arg, increment, context);
+	if (next < D.max.copyNegate) {
+		next = D.infinity.copyNegate;
 	}
-	return y;
+	return next;
 }
 
 unittest
 {	// nextMinus -- depends on context
-	static struct S { TD x; TD expect; }
+	static struct S { TD arg; TD expect; }
 	S[] s =
 	[
 /*		{ "1", 					"0.999999999" },
@@ -590,7 +598,7 @@ unittest
 		{ "-9.99999999E+99",	"-Infinity" },*/
 	];
 	auto f = FunctionTest!(S,TD)("nextMinus");
-	foreach (t; s) f.test(t, nextMinus(t.x));
+	foreach (t; s) f.test(t, nextMinus(t.arg));
     writefln(f.report);
 }
 
@@ -605,30 +613,30 @@ unittest
  *
  */
 // TODO: anomalous flag settings
-public T nextToward(T)(in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+public D nextToward(D)(in D arg, in D toward,
+		Context context = D.context) if (isDecimal!D)
 {
-//   	T nan;
-	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
+//   	D nan;
+	if (arg.isNaN || toward.isNaN) return invalidOperand(arg, toward);
 
 	// compare them but don't round yet
-	int comp = compare(x, y, context);
-	if (comp < 0) return nextPlus(x, context);
-	if (comp > 0) return nextMinus(x, context);
+	int comp = compare(arg, toward, context);
+	if (comp < 0) return nextPlus(arg, context);
+	if (comp > 0) return nextMinus(arg, context);
 
-	return roundToPrecision(x.copySign(y), context);
+	return roundToPrecision(arg.copySign(toward), context);
 }
 
 unittest
 {	// nextToward -- depends on context
-	static struct S { TD x; TD y; TD expect; }
+	static struct S { TD arg; TD toward; TD expect; }
 	S[] s =
 	[
 /*		{ " 1",          "2", " 1.00000001" },
 		{ "-1.00000003", "0", "-1.00000002" },*/
 	];
 	auto f = FunctionTest!(S,TD)("nextToward");
-	foreach (t; s) f.test(t, nextToward(t.x, t.y));
+	foreach (t; s) f.test(t, nextToward(t.arg, t.toward));
     writefln(f.report);
 }
 
@@ -772,45 +780,45 @@ unittest
  *
  *  Flags: INVALID_OPERATION
  */
-public bool equals(T)(in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+public bool equals(D)(in D left, in D right,
+		Context context = D.context) if (isDecimal!D)
 {
 	// any operation with a signaling NaN is invalid.
-	if (x.isSignaling || y.isSignaling) {
+	if (left.isSignaling || right.isSignaling) {
 		contextFlags.set(INVALID_OPERATION);
 		return false;
 	}
 	// if either is NaN...
 	// NaN is never equal to any number, not even another NaN
-	if (x.isNaN || y.isNaN) return false;
+	if (left.isNaN || right.isNaN) return false;
 
 	// if they are identical...
-	if (x is y) return true;
+	if (left is right) return true;
 
 	// if either is zero...
-	if (x.isZero || y.isZero) {
+	if (left.isZero || right.isZero) {
 		// ...they are equal if both are zero (regardless of sign)
-		return (x.isZero && y.isZero);
+		return (left.isZero && right.isZero);
 	}
 
 	// if their signs differ they are not equal (except for zero, handled above)
-	if (x.sign != y.sign) return false;
+	if (left.sign != right.sign) return false;
 
 	// if either is infinite...
-	if (x.isInfinite || y.isInfinite) {
+	if (left.isInfinite || right.isInfinite) {
 		// ...they are equal only if both are infinite with the same sign
-		return (x.isInfinite && y.isInfinite);
+		return (left.isInfinite && right.isInfinite);
 	}
 
 	// if they have the same representation, they are equal
-	if (x.expo == y.expo && x.coff == y.coff) {
+	if (left.expo == right.expo && left.coff == right.coff) {
 		return true;
 	}
 
 	// restrict operands to the context precision
-	T rx, ry;
-	rx = roundToPrecision(x, context);
-	ry = roundToPrecision(y, context);
+	D rx, ry;
+	rx = roundToPrecision(left, context);
+	ry = roundToPrecision(right, context);
 
 	// if they are not of the same magnitude they are not equal
 	if (rx.expo + rx.digits != ry.expo + ry.digits) return false;
@@ -821,7 +829,7 @@ public bool equals(T)(in T x, in T y,
 
 unittest
 {	// equals -- depends on context
-	static struct S { TD x; TD y; bool expect; }
+	static struct S { TD left; TD right; bool expect; }
 	S[] s =
 	[
 		{ " 123.4567     ", " 123.4568   ", false},
@@ -832,7 +840,7 @@ unittest
 		{ "-1.00000000   ", "-1          ", true },
 	];
 	auto f = FunctionTest!(S,bool)("equals");
-	foreach (t; s) f.test(t, equals(t.x, t.y));
+	foreach (t; s) f.test(t, equals(t.left, t.right));
     writefln(f.report);
 }
 
@@ -841,10 +849,10 @@ unittest
  *  values are handled as in the equals() function. This function allows
  *  comparison at precision values other than the context precision.
  */
-public bool precisionEquals(T)(T x, T y, int precision) if (isDecimal!T)
+public bool precisionEquals(D)(D left, D right, int precision) if (isDecimal!D)
 {
-	auto context = Context(precision, T.maxExpo, T.mode);
-	return (equals(x, y, context));
+	auto context = Context(precision, D.maxExpo, D.mode);
+	return (equals(left, right, context));
 }
 
 /**
@@ -854,22 +862,22 @@ public bool precisionEquals(T)(T x, T y, int precision) if (isDecimal!T)
  *  Implements the 'compare-signal' function in the specification. (p. 27)
  *  Flags: INVALID_OPERATION
  */
-public int compareSignal(T) (in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+public int compareSignal(D) (in D left, in D right,
+		Context context = D.context) if (isDecimal!D)
 {
 
 	// any operation with NaN is invalid.
-	// if both are NaN, return as if x > y.
-	if (x.isNaN || y.isNaN) {
+	// if both are NaN, return as if left > right.
+	if (left.isNaN || right.isNaN) {
 		contextFlags.set(INVALID_OPERATION);
-		return x.isNaN ? 1 : -1;
+		return left.isNaN ? 1 : -1;
 	}
-	return (compare!T(x, y, context));
+	return (compare!D(left, right, context));
 }
 
 unittest
 {	// compareSignal -- depends on context
-	static struct S { TD x; TD y; int expect; }
+	static struct S { TD left; TD right; int expect; }
 	S[] s =
 	[
 /*		{ " 3  ", " 2.1 ",  1 },
@@ -883,29 +891,29 @@ unittest
 		{ "-Inf", " 12  ", -1 },*/
 	];
 	auto f = FunctionTest!(S,int)("compSignal");
-	foreach (t; s) f.test(t, compareSignal(t.x, t.y));
+	foreach (t; s) f.test(t, compareSignal(t.left, t.right));
     writefln(f.report);
 }
 
 unittest
 {
 	write("-- compareSignal....");
-	TD x, y;
+	TD left, right;
 	int value;
-	x = 0;
-	y = 5;
-	assertGreaterThan(y,x);
+	left = 0;
+	right = 5;
+	assertGreaterThan(right,left);
 	contextFlags.resetFlags(INVALID_OPERATION);
-	y = TD.snan;
-	value = compare(x, y);
+	right = TD.snan;
+	value = compare(left, right);
 	assertTrue(contextFlags.getFlags(INVALID_OPERATION));
 	contextFlags.resetFlags(INVALID_OPERATION);
-	y = TD.nan;
-	value = compare(x, y);
+	right = TD.nan;
+	value = compare(left, right);
 	assertFalse(contextFlags.getFlags(INVALID_OPERATION));
 	contextFlags.set(INVALID_OPERATION, false);
-	y = TD.nan;
-	value = compareSignal(x, y);
+	right = TD.nan;
+	value = compareSignal(left, right);
 	assertTrue(contextFlags.getFlags(INVALID_OPERATION));
 	writeln("passed");
 }
@@ -925,7 +933,7 @@ unittest
  *  Implements the 'compare-total' function in the specification. (p. 42-43)
  *  Flags: NONE.
  */
-public int compareTotal(T)(in T left, in T right) if (isDecimal!T)
+public int compareTotal(D)(in D left, in D right) if (isDecimal!D)
 {
 	if (left.isFinite && right.isFinite
 		&& left.sign == right.sign
@@ -1002,8 +1010,8 @@ public int compareTotal(T)(in T left, in T right) if (isDecimal!T)
 
 	// we know the numbers have the same magnitude
 	// and that the exponents are not equal -- align the operands
- 	T lf = left.dup;
-	T rt = right.dup;
+ 	D lf = left.dup;
+	D rt = right.dup;
 	alignOps(lf, rt);	// the operands now have the same exponent.
 
 	// if equal after alignment, compare the original exponents
@@ -1016,7 +1024,7 @@ public int compareTotal(T)(in T left, in T right) if (isDecimal!T)
 
 unittest
 {	// compareTotal
-	static struct S { TD x; TD y; int expect; }
+	static struct S { TD left; TD right; int expect; }
 	S[] s =
 	[
 		{ " 12.30", " 12.3  ", -1},
@@ -1024,7 +1032,7 @@ unittest
 		{ " 12.3 ", " 12.300",  1},
 	];
 	auto f = FunctionTest!(S,int)("compTotal");
-	foreach (t; s) f.test(t, compareTotal(t.x, t.y));
+	foreach (t; s) f.test(t, compareTotal(t.left, t.right));
     writefln(f.report);
 }
 
@@ -1038,9 +1046,9 @@ unittest
  *  (p. 43)
  *  Flags: NONE.
  */
-int compareTotalMagnitude(T)(T x, T y) if (isDecimal!T)
+int compareTotalMagnitude(D)(D left, D right) if (isDecimal!D)
 {
-	return compareTotal(x.copyAbs, y.copyAbs);
+	return compareTotal(left.copyAbs, right.copyAbs);
 }
 
 /**
@@ -1051,20 +1059,20 @@ int compareTotalMagnitude(T)(T x, T y) if (isDecimal!T)
  *
  * Standards: Implements the 'same-quantum' function in the specification. (p. 48)
  */
-public bool sameQuantum(T)(in T x, in T y) if (isDecimal!T)
+public bool sameQuantum(D)(in D left, in D right) if (isDecimal!D)
 {
-	if (x.isNaN || y.isNaN) {
-		return x.isNaN && y.isNaN;
+	if (left.isNaN || right.isNaN) {
+		return left.isNaN && right.isNaN;
 	}
-	if (x.isInfinite || y.isInfinite) {
-		return x.isInfinite && y.isInfinite;
+	if (left.isInfinite || right.isInfinite) {
+		return left.isInfinite && right.isInfinite;
 	}
-	return x.expo == y.expo;
+	return left.expo == right.expo;
 }
 
 unittest
 {	// sameQuantum
-	static struct S { TD x; TD y; bool expect; }
+	static struct S { TD left; TD right; bool expect; }
 	S[] s =
 	[
 		{ "2.17", "0.001", false },
@@ -1072,7 +1080,7 @@ unittest
 		{ "2.17", "0.1  ", false },
 	];
 	auto f = FunctionTest!(S,bool)("sameQuant");
-	foreach (t; s) f.test(t, sameQuantum(t.x, t.y));
+	foreach (t; s) f.test(t, sameQuantum(t.left, t.right));
     writefln(f.report);
 }
 
@@ -1093,48 +1101,48 @@ unittest
  *  Flags: INVALID_OPERATION, ROUNDED.
  *
  */
-public T max(T)(in T x, in T y,	Context context = T.context)
-	if (isDecimal!T)
+public D max(D)(in D left, in D right,	Context context = D.context)
+	if (isDecimal!D)
 {
 	// if both are NaNs or either is an sNan, return NaN.
-	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
+	if (left.isNaN && right.isNaN || left.isSignaling || right.isSignaling) {
 		contextFlags.set(INVALID_OPERATION);
-		return T.nan;
+		return D.nan;
 	}
 	// if both are infinite, return the one with a positive sign
-	if (x.isInfinite && y.isInfinite) {
-		return x.isNegative ? y.dup : x.dup;
+	if (left.isInfinite && right.isInfinite) {
+		return left.isNegative ? right.dup : left.dup;
 	}
 
 	// result will be a finite number or infinity
-	// use x as default value
-	T result = x.dup;
+	// use left as default value
+	D result = left.dup;
 
 	// if one op is a quiet NaN return the other
-	if (x.isQuiet || y.isQuiet) {
-		if (x.isQuiet) result = y;
+	if (left.isQuiet || right.isQuiet) {
+		if (left.isQuiet) result = right;
 	}
 	// if the signs differ, return the unsigned operand
-	else if (x.sign != y.sign) {
-		if (x.sign) result = y;
+	else if (left.sign != right.sign) {
+		if (left.sign) result = right;
 	}
 	else {
 		// if not numerically equal, return the larger
-		int comp = compare!T(x, y, context);
+		int comp = compare!D(left, right, context);
 		if (comp != 0) {
-			if (comp < 0) result = y;
+			if (comp < 0) result = right;
 		}
 		// if they have the same exponent they are identical, return either
-		else if (x.expo == y.expo) {
+		else if (left.expo == right.expo) {
 			// no assignment -- use default value
 		}
 		// if they are non-negative, return the one with larger exponent.
-		else if (x.sign == 0) {
-			if (x.expo < y.expo) result = y;
+		else if (left.sign == 0) {
+			if (left.expo < right.expo) result = right;
 		}
 		else {
 			// they are negative; return the one with smaller exponent.
-			if (x.expo > y.expo) result = y;
+			if (left.expo > right.expo) result = right;
 		}
 	}
 	// result must be rounded
@@ -1143,14 +1151,14 @@ public T max(T)(in T x, in T y,	Context context = T.context)
 
 unittest
 {	// max -- depends on context
-	static struct S { TD x; TD y; TD expect; }
+	static struct S { TD left; TD right; TD expect; }
 	S[] s =
 	[
 		{   3, 2, 3 },
 		{ -10, 3, 3 },
 	];
 	auto f = FunctionTest!(S,TD)("max");
-	foreach (t; s) f.test(t, max(t.x, t.y));
+	foreach (t; s) f.test(t, max(t.left, t.right));
     writefln(f.report);
 }
 
@@ -1158,22 +1166,22 @@ unittest
 /// as the 'max' function if the signs of the operands are ignored.
 /// Implements the 'max-magnitude' function in the specification. (p. 32)
 /// Flags: NONE.
-public T maxMagnitude(T)(in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+public D maxMagnitude(D)(in D left, in D right,
+		Context context = D.context) if (isDecimal!D)
 {
-	if (x.copyAbs > y.copyAbs)
+	if (left.copyAbs > right.copyAbs)
 	{
-		return roundToPrecision(x, context);
+		return roundToPrecision(left, context);
 	}
 	else
 	{
-		return roundToPrecision(y, context);
+		return roundToPrecision(right, context);
 	}
 }
 
 unittest
 {	// maxMagnitude -- depends on context
-	static struct S { TD x; TD y; TD expect; }
+	static struct S { TD left; TD right; TD expect; }
 	S[] s =
 	[
 		{   -1, -2, -2 },
@@ -1182,7 +1190,7 @@ unittest
 		{   -1,  2,  2 },
 	];
 	auto f = FunctionTest!(S,TD)("maxMag");
-	foreach (t; s) f.test(t, maxMagnitude(t.x, t.y));
+	foreach (t; s) f.test(t, maxMagnitude(t.left, t.right));
     writefln(f.report);
 }
 
@@ -1197,46 +1205,46 @@ unittest
 /// 4. Otherwise, they are indistinguishable; the first is returned.
 /// Implements the 'min' function in the specification. (p. 32-33)
 /// Flags: INVALID_OPERATION, ROUNDED.
-public T min(T)(in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+public D min(D)(in D left, in D right,
+		Context context = D.context) if (isDecimal!D)
 {
 	// if both are NaNs or either is an sNan, return NaN.
-	if (x.isNaN && y.isNaN || x.isSignaling || y.isSignaling) {
+	if (left.isNaN && right.isNaN || left.isSignaling || right.isSignaling) {
 		contextFlags.set(INVALID_OPERATION);
-		return T.nan;
+		return D.nan;
 	}
 	// if both are infinite, return the one with a negative sign
-	if (x.isInfinite && y.isInfinite) {
-		return x.isNegative ? x.dup : y.dup;
+	if (left.isInfinite && right.isInfinite) {
+		return left.isNegative ? left.dup : right.dup;
 	}
 	// result will be a finite number or infinity
-	T min;
+	D min;
 
 	// if one op is a quiet NaN return the other
-	if (x.isQuiet || y.isQuiet) {
-		min = x.isQuiet? y : x;
+	if (left.isQuiet || right.isQuiet) {
+		min = left.isQuiet? right : left;
 	}
     // if the signs differ, return the negative operand
-	else if (x.sign != y.sign) {
-		min = x.sign ? x : y;
+	else if (left.sign != right.sign) {
+		min = left.sign ? left : right;
 	}
 	// if not numerically equal, return the lesser
 	else {
-		int comp = compare(x, y, context);
+		int comp = compare(left, right, context);
 		if (comp != 0) {
-			min = comp > 0 ? y : x;
+			min = comp > 0 ? right : left;
 		}
 		// if they have the same exponent they are identical, return either
-		else if (x.expo == y.expo) {
-			min = x;
+		else if (left.expo == right.expo) {
+			min = left;
 		}
 		// if they are non-negative, return the one with smaller exponent.
-		else if (x.sign == 0) {
-			min = x.expo > y.expo ? y : x;
+		else if (left.sign == 0) {
+			min = left.expo > right.expo ? right : left;
 		}
 		// else they are negative; return the one with larger exponent.
 		else {
-			min = x.expo > y.expo ? y : x;
+			min = left.expo > right.expo ? right : left;
 		}
 	}
 	// min must be rounded
@@ -1245,14 +1253,14 @@ public T min(T)(in T x, in T y,
 
 unittest
 {	// min -- depends on context
-	static struct S { TD x; TD y; TD expect; }
+	static struct S { TD left; TD right; TD expect; }
 	S[] s =
 	[
 		{   3, 2,   2 },
 		{ -10, 3, -10 },
 	];
 	auto f = FunctionTest!(S,TD)("min");
-	foreach (t; s) f.test(t, min(t.x, t.y));
+	foreach (t; s) f.test(t, min(t.left, t.right));
     writefln(f.report);
 }
 
@@ -1260,27 +1268,27 @@ unittest
 /// as the 'min' function if the signs of the operands are ignored.
 /// Implements the 'min-magnitude' function in the specification. (p. 33)
 /// Flags: INVALID_OPERATION, ROUNDED.
-public T minMagnitude(T)(in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+public D minMagnitude(D)(in D left, in D right,
+		Context context = D.context) if (isDecimal!D)
 {
-	if (x.copyAbs < y.copyAbs)
+	if (left.copyAbs < right.copyAbs)
 	{
-		return roundToPrecision(x, context);
+		return roundToPrecision(left, context);
 	}
 	else
 	{
-		return roundToPrecision(y, context);
+		return roundToPrecision(right, context);
 	}
 /*	// one of each
-	if (x.copyAbs > y.copyAbs) {
-		return roundToPrecision(y, context);
+	if (left.copyAbs > right.copyAbs) {
+		return roundToPrecision(right, context);
 	}
-	return roundToPrecision(x, context);*/
+	return roundToPrecision(left, context);*/
 }
 
 unittest
 {	// minMagnitude -- depends on context
-	static struct S { TD x; TD y; TD expect; }
+	static struct S { TD left; TD right; TD expect; }
 	S[] s =
 	[
 		{   -1, -2, -1 },
@@ -1289,7 +1297,7 @@ unittest
 		{   -1,  2, -1 },
 	];
 	auto f = FunctionTest!(S,TD)("minMag");
-	foreach (t; s) f.test(t, minMagnitude(t.x, t.y));
+	foreach (t; s) f.test(t, minMagnitude(t.left, t.right));
     writefln(f.report);
 }
 
@@ -2230,7 +2238,7 @@ unittest
 /// Implements the 'round-to-integral-exact' function
 /// in the specification. (p. 39)
 public T roundToIntegralExact(T)(in T x,
-		in Rounding mode = HALF_EVEN) if (isDecimal!T)
+		in Round mode = HALF_EVEN) if (isDecimal!T)
 {
 	T result = x.dup;
 	if (result.isSignaling) return invalidOperation!T;
