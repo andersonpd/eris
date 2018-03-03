@@ -9,7 +9,6 @@ import eris.decimal;
 import eris.decimal.conv;
 import eris.decimal.logical;
 import eris.decimal.arithmetic;
-import eris.decimal.asserts;
 import eris.decimal.test;
 
 version(unittest)
