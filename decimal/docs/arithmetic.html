@@ -1,0 +1,2729 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>eris.decimal.arithmetic</title>
+    <style type="text/css" media="screen">
+      html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p,
+      blockquote, pre, a, abbr, address, cite, code, del, dfn, em, figure,
+      img, ins, kbd, q, s, samp, small, strong, sub, sup, var, b, u, i, dl,
+      dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption,
+      tbody, tfoot, thead, tr, th, td {
+        background: transparent none repeat scroll 0 0;
+        border: 0 none;
+        font-size: 100%;
+        margin: 0;
+        outline: 0 none;
+        padding: 0;
+        vertical-align: baseline;
+      }
+
+      .color_red { color: #dc322f; }
+      .color_blue { color: #268bd2; }
+      .color_green { color: #859901; }
+      .color_yellow { color: #b58901; }
+      .color_black { color: black; }
+      .color_white { color: white; }
+
+      .font_big {
+        font-size: 1.2em;
+      }
+
+      .ddoc_section_h {
+        font-weight: bold;
+        font-size: 13px;
+        line-height: 19.5px;
+        margin-top: 11px;
+        display: block;
+      }
+
+      body.dlang .dlang {
+        display: inline-block;
+      }
+
+      body.dlang .declaration .dlang {
+          display: block;
+      }
+
+      body.dlang .ddoc_header_anchor a.dlang {
+        display: block;
+        color: rgba(0, 136, 204, 1);
+        text-decoration: none;
+      }
+
+      body.dlang .ddoc_header_anchor .code {
+        color: rgba(0, 136, 204, 1);
+      }
+
+      #ddoc_main .module {
+          border-color: currentColor rgba(233, 233, 233, 1) rgba(233, 233, 233, 1);
+          border-style: none solid solid;
+          border-width: 0 1px 1px;
+          overflow-x: hidden;
+          padding: 15px;
+      }
+
+      #ddoc_main .section .section {
+        margin-top: 0;
+      }
+
+      #ddoc_main .ddoc_module_members_section {
+          padding: 1px 0 0;
+          transition: transform 0.3s ease 0s;
+      }
+
+      #ddoc_main .ddoc_member, #ddoc_main .ddoc_module_members section.intro {
+          background: #fff none repeat scroll 0 0;
+          list-style-type: none;
+          width: 100%;
+      }
+
+      #ddoc_main .ddoc_header_anchor {
+          font-size: 1.4em;
+          transition: transform 0.3s ease 0s;
+      }
+
+      #ddoc_main .ddoc_header_anchor > .code {
+          display: inline-block;
+
+      }
+
+      #ddoc_main .ddoc_decl {
+        background-color: transparent;
+        height: 100%;
+        left: 0;
+        top: 0;
+        padding: 0;
+        padding-left: 15px;
+      }
+
+      #ddoc_main .ddoc_decl .section, #ddoc_main .section.ddoc_sections {
+        background: white none repeat scroll 0 0;
+        margin: 0;
+        padding: 5px;
+        position: relative;
+        border-radius: 5px;
+      }
+
+      #ddoc_main .ddoc_decl .section h4, #ddoc_main .section.ddoc_sections h4 {
+        font-size: 13px;
+        line-height: 1.5;
+        margin-top: 21px;
+      }
+
+      #ddoc_main .section .declaration {
+          margin-top: 21px;
+      }
+
+      #ddoc_main .section .declaration .code {
+          color: rgba(0, 0, 0, 1);
+          margin-bottom: 15px;
+          padding-bottom: 6px;
+      }
+
+      #ddoc_main .declaration div .para {
+          margin-bottom: 0;
+      }
+
+      #ddoc_main .ddoc_params .graybox tr td:first-of-type {
+        padding: 7px;
+        text-align: right;
+        vertical-align: top;
+        word-break: normal;
+        white-space: nowrap;
+      }
+
+      #ddoc_main .ddoc_params .graybox {
+        border: 0 none;
+      }
+
+      #ddoc_main .ddoc_params .graybox td {
+        border-color: rgba(214, 214, 214, 1);
+      }
+
+      #ddoc_main .ddoc_params .graybox tr:first-child > td {
+        border-top: 0 none;
+      }
+
+      #ddoc_main .ddoc_params .graybox tr:last-child > td {
+        border-bottom: 0 none;
+      }
+
+      #ddoc_main .ddoc_params .graybox tr > td:first-child {
+        border-left: 0 none;
+      }
+
+      #ddoc_main .ddoc_params .graybox tr > td:last-child {
+        border-right: 0 none;
+        width: 100%;
+      }
+
+      #ddoc_main em.term, #ddoc_main em.term .code {
+        color: rgba(65, 65, 65, 1);
+        font-size: 12px;
+        font-style: italic;
+        line-height: 1.5;
+      }
+
+      #ddoc_main .see-also {
+        cursor: pointer;
+        font-family: Menlo,monospace;
+      }
+
+      #ddoc_main .ddoc_decl .section > div:last-of-type {
+        margin-bottom: 15px;
+      }
+
+      #ddoc_main .ddoc_member, #ddoc_main .ddoc_module_members {
+          transition: transform 0.3s ease 0s;
+      }
+
+      #ddoc_main .code_sample {
+        background: inherit;
+      }
+
+      #ddoc_main .declaration .code-line {
+          display: block;
+          font: 1em Menlo,monospace;
+      }
+
+      #ddoc_main a[name] {
+        margin: -112px 0 0;
+        padding-top: 112px;
+      }
+
+      #ddoc_main .ddoc_decl td {
+        max-width: inherit;
+      }
+
+      #ddoc_main .declaration a {
+        color: inherit;
+      }
+
+      #ddoc_main .declaration a:hover {
+          color: rgba(0, 136, 204, 1);
+          text-decoration: underline;
+      }
+
+      body.ddoc {
+        background-color: transparent;
+        color: rgba(0, 0, 0, 1);
+        font-family: Helvetica,Arial,sans-serif;
+        font-size: 62.5%;
+        margin: 0;
+        border: 0;
+        left: 0;
+        top: 0;
+        padding: 0;
+      }
+
+      .ddoc a[name] {
+        display: block;
+        height: 0;
+        margin: -85px 0 0;
+        padding-top: 85px;
+        width: 0;
+      }
+
+      .ddoc .module {
+          border-color: transparent;
+          background-color: rgba(255, 255, 255, 1);
+          border-color: currentColor rgba(233, 233, 233, 1) rgba(233, 233, 233, 1);
+          border-image: none;
+          border-style: none solid solid;
+          border-width: 0 1px 1px;
+          box-shadow: 0 0 1px rgba(0, 0, 0, 0.07);
+          display: block;
+          margin-left: 0;
+          min-height: calc(100% - 173px);
+          overflow: auto;
+          padding-bottom: 100px;
+      }
+
+      .ddoc .content_wrapper {
+          background-color: rgba(242, 242, 242, 1);
+          margin: 0 auto;
+          max-width: 980px;
+      }
+
+      .ddoc .section {
+        padding: 15px 25px 30px;
+      }
+
+      .ddoc .section .section {
+        margin: 30px 0 0;
+        padding: 0;
+      }
+
+      .ddoc .para {
+        color: rgba(65, 65, 65, 1);
+        font-size: 1.4em;
+        line-height: 145%;
+        margin-bottom: 15px;
+      }
+
+      .ddoc .ddoc_examples .para {
+        margin-bottom: 0;
+      }
+
+      .ddoc .module_name {
+          color: rgba(0, 0, 0, 1);
+          display: block;
+          font-family: Helvetica;
+          font-size: 2.8em;
+          font-weight: 100;
+          margin-bottom: 0;
+          padding: 15px 0;
+      }
+
+      .ddoc .module a {
+          color: rgba(0, 136, 204, 1);
+          text-decoration: none;
+      }
+
+      .ddoc .code {
+        color: rgba(128, 128, 128, 1);
+        font-family: Menlo,monospace;
+        font-size: 0.85em;
+        word-wrap: break-word;
+      }
+
+      .ddoc .code i {
+        font-style: normal;
+      }
+
+      .ddoc .code .code {
+        font-size: 1em;
+      }
+
+      .ddoc .code_sample {
+        background-clip: padding-box;
+        margin: 1px 0;
+        text-align: left;
+      }
+
+      .ddoc .code_sample {
+        display: block;
+        font-size: 1.4em;
+        margin-left: 21px;
+      }
+
+      .ddoc ol .code_sample {
+        font-size: 1em;
+      }
+
+      .ddoc .code_lines {
+        counter-reset: li;
+        line-height: 1.6em;
+        list-style: outside none none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .ddoc .code_listing .code_sample div {
+        margin-left: 13px;
+        width: 93%;
+      }
+
+      .ddoc .code_listing .code_sample div .code_lines li {
+        list-style-type: none;
+        margin: 0;
+        padding-right: 10px;
+      }
+
+      .ddoc .code_sample div .code_lines li::before {
+        margin-left: -33px;
+        margin-right: 25px;
+      }
+
+      .ddoc .code_sample div .code_lines li:nth-child(n+10)::before {
+        margin-left: -39px;
+        margin-right: 25px;
+      }
+
+      .ddoc .code_sample div .code_lines li:nth-child(n+100)::before {
+        margin-left: -46px;
+        margin-right: 25px;
+      }
+
+      .ddoc .code_sample .code_lines .code {
+        color: #000;
+      }
+
+      .ddoc div.dlang {
+        margin: 10px 0 21px;
+        padding: 4px 0 2px 10px;
+      }
+
+      .ddoc div.dlang {
+          margin: 10px 0 21px;
+          padding: 4px 0 2px 10px;
+      }
+
+      .ddoc div.dlang {
+        border-left: 5px solid rgba(0, 155, 51, 0.2);
+      }
+
+      .ddoc .code_lines li::before {
+        color: rgba(128, 128, 128, 1);
+        content: counter(li, decimal);
+        counter-increment: li;
+        font-family: Menlo,monospace;
+        font-size: 0.9em;
+        margin-right: 16px;
+      }
+
+      .ddoc .code_lines li {
+        padding-left: 0;
+        white-space: pre-wrap;
+      }
+
+      .ddoc .code_lines li:only-of-type::before {
+        color: rgba(255, 255, 255, 1);
+        content: " ";
+      }
+
+      .ddoc .code_lines li:only-of-type {
+        color: rgba(255, 255, 255, 1);
+        content: " ";
+      }
+
+      .ddoc .code_lines li:nth-child(n+10) {
+        text-indent: -17px;
+      }
+
+      .ddoc .code_lines li:nth-child(n+10)::before {
+        margin-right: 12px;
+      }
+
+      .ddoc .graybox {
+        border: 1px solid rgba(233, 233, 233, 1);
+        border-collapse: collapse;
+        border-spacing: 0;
+        empty-cells: hide;
+        margin: 20px 0 36px;
+        text-align: left;
+      }
+
+      .ddoc .graybox p {
+        margin: 0;
+        min-width: 50px;
+      }
+
+      .ddoc td {
+        border: 1px solid rgba(233, 233, 233, 1);
+        margin: 0;
+        max-width: 260px;
+        padding: 5px 25px 5px 10px;
+        vertical-align: middle;
+      }
+
+      .punctuation {
+        color: rgba(0, 0, 0, 1);
+      }
+
+      .comment {
+        color: rgba(0, 131, 18, 1);
+      }
+
+      .operator {
+        color: #000;
+      }
+
+      .keyword {
+        color: rgba(170, 13, 145, 1);
+      }
+
+      .keyword_type {
+        color: rgba(170, 51, 145, 1);
+      }
+
+      .string_literal {
+        color: rgba(196, 26, 22, 1);
+      }
+
+      .ddoc_psuper_symbol {
+        color: rgba(92, 38, 153, 1);
+      }
+
+      .param {
+        color: rgba(0, 0, 0, 1);
+      }
+
+      .psymbol {
+        color: rgba(0, 0, 0, 1);
+      }
+
+      .ddoc_member_header .ddoc_header_anchor .code {
+        font-size: 1em;
+      }
+    </style>
+  </head>
+  <body id="ddoc_main" class="ddoc dlang">
+    <div class="content_wrapper">
+      <article class="module">
+        <h1 class="module_name">eris.decimal.arithmetic</h1>
+        <section id="module_content"><section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Floating-point decimal <code class="code">arithmetic</code>.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    An implementation of the
+ General Decimal Arithmetic Specification.
+
+
+  </p>
+</div>
+<div class="ddoc_authors">
+  <h4>Authors</h4>
+  <p class="para">
+    Paul D. Anderson
+
+
+  </p>
+</div>
+<div class="ddoc_license">
+  <h4>License</h4>
+  <p class="para">
+    <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>
+
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Conforms to the
+	General Decimal Arithmetic Specification,
+	Version 1.70, (25 March 2009).
+  </p>
+</div>
+</section>
+<section class="section ddoc_module_members_section">
+  <div class="ddoc_module_members">
+    <ul class="ddoc_members">
+  <li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#classify" id="classify"><code class="code">classify</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="classify"></span>string <code class="code">classify</code>(T)(in T <code class="code">x</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns a string indicating the class and sign of the argument.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    Classes are: sNaN, NaN, Infinity, Zero, Normal, and Subnormal.
+  The sign of any NaN values is ignored in the classification.
+  The argument is not rounded and no flags are changed.
+
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Implements the 'class' function in the specification. (p. 42)
+
+
+  </p>
+</div><div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+None
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#ilogb" id="ilogb"><code class="code">ilogb</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="ilogb"></span>int <code class="code">ilogb</code>(T)(in T <code class="code">x</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the truncated base 10 logarithm of the argument.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    "...The integer which is the exponent of the magnitude
+  of the most significant digit of the operand.
+  (As though the operand were truncated to a single digit
+  while maintaining the value of that digit and without
+  limiting the resulting exponent)". (p. 47)
+
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Implements the 'logb' function in the specification. (p. 47)
+
+
+  </p>
+</div><div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION, DIVISION_BY_ZERO.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#logb" id="logb"><code class="code">logb</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="logb"></span>T <code class="code">logb</code>(T)(in T <code class="code">x</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the truncated base 10 logarithm of the argument.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    "...The integer which is the exponent of the magnitude
+  of the most significant digit of the operand.
+  (As though the operand were truncated to a single digit
+  while maintaining the value of that digit and without
+  limiting the resulting exponent)". (p. 47)
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION, DIVISION_BY_ZERO
+<br><br>
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Standard:</span>
+Implements the '<code class="code">logb</code>' function in the specification. (p. 47)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#scaleb" id="scaleb"><code class="code">scaleb</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="scaleb"></span>T <code class="code">scaleb</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    If the first operand is infinite then that operand is returned,
+  otherwise the result is the first operand modified by
+  adding the value of the second operand to its exponent.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    The second operand must be a finite integer (&lt;= int.max &amp;&amp; &gt;= int.min)
+ 	with an exponent of zero.
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Remarks:</span>
+The result may overflow or underflow.
+
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Implements the '<code class="code">scaleb</code>' function in the specification. (p. 48)
+
+
+  </p>
+</div><div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION, UNDERFLOW, OVERFLOW.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#round" id="round"><code class="code">round</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="round"></span>D <code class="code">round</code>(D)(D <code class="code">x</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Rounds the argument to an integer using the specified rounding <code class="code">mode</code>.
+  The default rounding <code class="code">mode</code> is the current context <code class="code">mode</code>. //FIXTHIS
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#reduce" id="reduce"><code class="code">reduce</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="reduce"></span>T <code class="code">reduce</code>(T)(in T <code class="code">x</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the operand reduced to its simplest form.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    <code><code class="code">reduce</code></code> has the same semantics as the plus operation,
+  except that a finite result is
+  reduced to its simplest form, with all trailing
+  zeros removed and its sign preserved.
+<br><br>
+  zeros removed and its sign preserved.
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Standard:</span>
+Implements the '<code class="code">reduce</code>' function in the specification. (p. 37)
+  "This operation was called 'normalize' prior to
+  version 1.68 of the specification." (p. 37)
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#abs" id="abs"><code class="code">abs</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="abs"></span>D <code class="code">abs</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the absolute value of the argument.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    The result is equivalent to plus(<code class="code">arg</code>) for positive numbers
+  and to minus(<code class="code">arg</code>) for negative numbers.
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Note:</span>
+This operation rounds the result and may set flags.
+  To return the absolute value without rounding or setting flags
+  use the 'copyAbs' function.
+
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Implements the '<code class="code">abs</code>' function in the specification. (p. 26)
+
+
+  </p>
+</div><div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#sgn" id="sgn"><code class="code">sgn</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="sgn"></span>int <code class="code">sgn</code>(D)(in D <code class="code">arg</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns -1, 0, or 1 if the argument is
+  negative, zero, or positive, respectively.
+  The sign of zero is ignored: returns 0 for +0 or -0.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#plus" id="plus"><code class="code">plus</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="plus"></span>D <code class="code">plus</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns -1, 0, or 1
+  if the argument is negative, zero, or positive, respectively.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    Returns a copy of the argument with the same sign as the argument.
+  The result is equivalent to add('0', <code class="code">arg</code>).
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Note:</span>
+This operation rounds the result and may set flags.
+  To copy without rounding or setting flags use the 'copy' function.
+
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Implements the '<code class="code">plus</code>' function in the specification. (p. 33)
+
+
+  </p>
+</div><div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#minus" id="minus"><code class="code">minus</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="minus"></span>D <code class="code">minus</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns a copy of the argument with the opposite sign.
+  The result is equivalent to subtract('0', <code class="code">arg</code>).
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    This operation rounds the argument and may set flags.
+  To copy without rounding or setting flags use the 'copyNegate' function.
+<br><br>
+  Implements the '<code class="code">minus</code>' function in the specification. (p. 37)
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#nextPlus" id="nextPlus"><code class="code">nextPlus</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="nextPlus"></span>D <code class="code">nextPlus</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the smallest representable number that is larger than
+  the argument.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    Implements the 'next-plus' function in the specification. (p. 34)
+<br><br>
+  Note that the overflow flag is not set by this operation.
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#nextMinus" id="nextMinus"><code class="code">nextMinus</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="nextMinus"></span>D <code class="code">nextMinus</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the largest representable number that is smaller than
+  the argument.
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Implements the 'next-minus' function in the specification. (p. 34)
+
+
+  </p>
+</div><div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION.
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Note:</span>
+The overflow flag is not set by this operation.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#nextToward" id="nextToward"><code class="code">nextToward</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="nextToward"></span>D <code class="code">nextToward</code>(D)(in D <code class="code">arg</code>, in D <code class="code">toward</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the representable number that is closest to the first operand
+  in the direction of the second operand.
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    Implements the 'next-<code class="code">toward</code>' function in the specification. (p. 34-35)
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#compare" id="compare"><code class="code">compare</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="compare"></span>int <code class="code">compare</code>(T)(in T <code class="code">left</code>, in T <code class="code">right</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Compares two operands numerically to the current precision.
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Note:</span>
+The operands are rounded before they are compared.
+  This may result in unexpected results. For instance,
+  if both operands are too large (small) for the <code class="code">context</code>
+  they will both be rounded to infinity (zero) and the function will
+  return 0, indicating that they are equal, even though they are
+  numerically different before rounding.
+<br><br>
+  To <code class="code">compare</code> numbers without rounding, use compareTotal.
+
+
+  </p>
+</div>
+<div class="ddoc_returns">
+  <h4>Return Value</h4>
+  <p class="para">
+     -1, 0, or +1 if the second operand is, respectively,
+  less than, equal to, or greater than the first operand.
+
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Implements the '<code class="code">compare</code>' function in the specification. (p. 27)
+
+
+  </p>
+</div><div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#equals" id="equals"><code class="code">equals</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="equals"></span>bool <code class="code">equals</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns <code class="code">true</code> if the operands are equal to the <code class="code">context</code> precision.
+  Finite numbers are equal if they are numerically equal
+  to the <code class="code">context</code> precision.
+  Infinities are equal if they have the same sign.
+  Zeros are equal regardless of sign.
+  A NaN is not equal to any number, not even another NaN.
+  In particular, a decimal NaN is not equal to itself (this != this).
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Note:</span>
+The operands are rounded before they are compared.
+  This may result in unexpected results. For instance,
+  if both operands are too large (small) for the <code class="code">context</code>
+  they will both be rounded to infinity (zero) and the function will
+  return <code class="code">true</code>, indicating that they are equal, even though they are
+  numerically different before rounding.
+
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#precisionEquals" id="precisionEquals"><code class="code">precisionEquals</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="precisionEquals"></span>bool <code class="code">precisionEquals</code>(D)(D <code class="code">left</code>, D <code class="code">right</code>, int <code class="code">precision</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns <code class="code">true</code> if the operands are equal to the specified <code class="code">precision</code>. Special
+  values are handled as in the equals() function. This function allows
+  comparison at <code class="code">precision</code> values other than the context <code class="code">precision</code>.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#compareSignal" id="compareSignal"><code class="code">compareSignal</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="compareSignal"></span>int <code class="code">compareSignal</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Compares the numeric values of two numbers. CompareSignal is identical to
+  compare except that quiet NaNs are treated as if they were signaling.
+  This operation may set the invalid-operation flag.
+  Implements the 'compare-signal' function in the specification. (p. 27)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#compareTotal" id="compareTotal"><code class="code">compareTotal</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="compareTotal"></span>int <code class="code">compareTotal</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Takes two numbers and compares the operands using their
+ 	abstract representation rather than their numerical value.
+  Numbers (representations which are not NaNs) are ordered such that
+  a larger numerical value is higher in the ordering.
+  If two representations have the same numerical value
+  then the exponent is taken into account;
+  larger (more positive) exponents are higher in the ordering.
+  Returns -1 If the first operand is lower in the total ordering
+  and returns 1 if the first operand is higher in the total ordering.
+  Returns 0 only if the numbers are equal and have the same representation.
+  Implements the 'compare-total' function in the specification. (p. 42-43)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+NONE.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#compareTotalMagnitude" id="compareTotalMagnitude"><code class="code">compareTotalMagnitude</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="compareTotalMagnitude"></span>int <code class="code">compareTotalMagnitude</code>(D)(D <code class="code">left</code>, D <code class="code">right</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    compare-total-magnitude takes two numbers and compares them
+  using their abstract representation rather than their numerical value
+  with their sign ignored and assumed to be 0.
+  The result is identical to that obtained by using compare-total
+  on two operands which are the copy-abs copies of the operands.
+  Implements the 'compare-total-magnitude' function in the specification.
+  (p. 43)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+NONE.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#sameQuantum" id="sameQuantum"><code class="code">sameQuantum</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="sameQuantum"></span>bool <code class="code">sameQuantum</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns <code class="code">true</code> if the numbers have the same exponent.
+  If either operand is NaN or Infinity, returns <code class="code">true</code> if and only if
+  both operands are NaN or Infinity, respectively.
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+NONE
+
+
+  </p>
+</div>
+<div class="ddoc_standards">
+  <h4>Standards</h4>
+  <p class="para">
+    Implements the 'same-quantum' function in the specification. (p. 48)
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#max" id="max"><code class="code">max</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="max"></span>D <code class="code">max</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the maximum of the two operands (or NaN).
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    If either is a signaling NaN, or both are quiet NaNs, a NaN is returned.
+  Otherwise, any finite or infinite number is larger than a NaN.
+<br><br>
+  If they are not numerically equal, the larger is returned.
+  If they are numerically equal:
+  1. If the signs differ, the one with the positive sign is returned.
+  2. If they are positive, the one with the larger exponent is returned.
+  3. If they are negative, the one with the smaller exponent is returned.
+  4. Otherwise, they are indistinguishable; the first is returned.
+  The returned number will be rounded to the current <code class="code">context</code>.
+  Implements the '<code class="code">max</code>' function in the specification. (p. 32)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION, ROUNDED.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#maxMagnitude" id="maxMagnitude"><code class="code">maxMagnitude</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="maxMagnitude"></span>D <code class="code">maxMagnitude</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the larger of the two operands (or NaN). Returns the same result
+as the 'max' function if the signs of the operands are ignored.
+Implements the 'max-magnitude' function in the specification. (p. 32)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+NONE.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#min" id="min"><code class="code">min</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="min"></span>D <code class="code">min</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the minimum of the two operands (or NaN).
+If either is a signaling NaN, or both are quiet NaNs, a NaN is returned.
+Otherwise, Any (finite or infinite) number is smaller than a NaN.
+If they are not numerically equal, the smaller is returned.
+If they are numerically equal:
+1. If the signs differ, the one with the negative sign is returned.
+2. If they are negative, the one with the larger exponent is returned.
+3. If they are positive, the one with the smaller exponent is returned.
+4. Otherwise, they are indistinguishable; the first is returned.
+Implements the '<code class="code">min</code>' function in the specification. (p. 32-33)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION, ROUNDED.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#minMagnitude" id="minMagnitude"><code class="code">minMagnitude</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="minMagnitude"></span>D <code class="code">minMagnitude</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the smaller of the two operands (or NaN). Returns the same result
+as the 'min' function if the signs of the operands are ignored.
+Implements the 'min-magnitude' function in the specification. (p. 33)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION, ROUNDED.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#quantum" id="quantum"><code class="code">quantum</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="quantum"></span>T <code class="code">quantum</code>(T)(in T <code class="code">x</code>);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns a number with a coefficient of 1 and
+the same exponent as the argument.
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+NONE.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#shift" id="shift"><code class="code">shift</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="shift"></span>T <code class="code">shift</code>(T, U = T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Shifts the first operand by the specified number of DECIMAL digits.
+(NOT BINARY digits!) Positive values of the second operand <code class="code">shift</code> the
+first operand left (multiplying by tens). Negative values <code class="code">shift</code> right
+(dividing by tens). If the number is NaN, or if the <code class="code">shift</code> value is less
+than -precision or greater than precision, an INVALID_OPERATION is signaled.
+An infinite number is returned unchanged.
+Implements the '<code class="code">shift</code>' function in the specification. (p. 49)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#shift" id="shift"><code class="code">shift</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="shift.2"></span>T <code class="code">shift</code>(T, U : int)(in T <code class="code">arg</code>, U <code class="code">n</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Shifts the first operand by the specified number of DECIMAL digits.
+(NOT BINARY digits!) Positive values of the second operand <code class="code">shift</code> the
+first operand left (multiplying by tens). Negative values <code class="code">shift</code> right
+(dividing by tens). If the first operand is NaN, or if the <code class="code">shift</code> value is less
+than -precision or greater than precision, an INVALID_OPERATION is signaled.
+An infinite number is returned unchanged.
+Implements the '<code class="code">shift</code>' function in the specification. (p. 49)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#rotate" id="rotate"><code class="code">rotate</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="rotate"></span>T <code class="code">rotate</code>(T, U = T)(in T <code class="code">x</code>, in U <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Rotates the first operand by the specified number of decimal digits.
+(Not binary digits!) Positive values of the second operand <code class="code">rotate</code> the
+first operand left (multiplying by tens). Negative values <code class="code">rotate</code> right
+(divide by 10s). If the number is NaN, or if the <code class="code">rotate</code> value is less
+than -precision or greater than precision, an INVALID_OPERATION is signaled.
+An infinite number is returned unchanged.
+Implements the '<code class="code">rotate</code>' function in the specification. (p. 47-48)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#rotate" id="rotate"><code class="code">rotate</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="rotate.2"></span>T <code class="code">rotate</code>(T, U : int)(in T <code class="code">arg</code>, U <code class="code">n</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    (Not binary digits!) Positive values of the second operand <code class="code">rotate</code> the
+first operand left (multiplying by tens). Negative values <code class="code">rotate</code> right
+(divide by 10s). If the number is NaN, or if the <code class="code">rotate</code> value is less
+than -precision or greater than precision, an INVALID_OPERATION is signaled.
+An infinite number is returned unchanged.
+Implements the '<code class="code">rotate</code>' function in the specification. (p. 47-48)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#add" id="add"><code class="code">add</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="add"></span>T <code class="code">add</code>(T)(in T <code class="code">left</code>, in T <code class="code">right</code>, Context <code class="code">context</code> = T.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Adds the two operands.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the '<code class="code">add</code>' function in the specification. (p. 26)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION, OVERFLOW.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#add" id="add"><code class="code">add</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="add.2"></span>T <code class="code">add</code>(T, U)(in T <code class="code">left</code>, in U <code class="code">right</code>, Context <code class="code">context</code> = T.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!T &amp;&amp; isConvertible!U);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Adds the two operands.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the '<code class="code">add</code>' function in the specification. (p. 26)
+
+  </p>
+</div>
+<div class="ddoc_section">
+  <p class="para">
+    <span class="ddoc_section_h">Flags:</span>
+INVALID_OPERATION, OVERFLOW.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#sub" id="sub"><code class="code">sub</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="sub"></span>D <code class="code">sub</code>(D, U : D)(in D <code class="code">left</code>, in U <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Subtracts the second operand from the first operand.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the 'subtract' function in the specification. (p. 26)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#sub" id="sub"><code class="code">sub</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="sub.2"></span>T <code class="code">sub</code>(T, U)(in T <code class="code">x</code>, U <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!T &amp;&amp; isConvertible!U);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Subtracts the second operand from the first operand.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the 'subtract' function in the specification. (p. 26)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#mul" id="mul"><code class="code">mul</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="mul"></span>T <code class="code">mul</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Multiplies the two operands.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the 'multiply' function in the specification. (p. 33-34)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#mul" id="mul"><code class="code">mul</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="mul.2"></span>T <code class="code">mul</code>(T, U : long)(in T <code class="code">x</code>, in U <code class="code">n</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Multiplies a decimal number by a long integer.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Not a required function, but useful because it avoids
+an unnecessary conversion to a decimal when multiplying by an integer.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#mul" id="mul"><code class="code">mul</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="mul.3"></span>T <code class="code">mul</code>(T, U)(in T <code class="code">x</code>, in U <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T &amp;&amp; isConvertible!U);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Multiplies the two operands.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the 'multiply' function in the specification. (p. 33-34)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#sqr" id="sqr"><code class="code">sqr</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="sqr"></span>T <code class="code">sqr</code>(T)(in T <code class="code">arg</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Squares the argument and returns the result.
+The result may be rounded and <code class="code">context</code> flags may be set.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fma" id="fma"><code class="code">fma</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fma"></span>T <code class="code">fma</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, in T <code class="code">z</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Multiplies the first two operands and adds the third operand to the result.
+The result of the multiplication is not rounded prior to addition.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the 'fused-multiply-add' function in the specification. (p. 30)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#div" id="div"><code class="code">div</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="div"></span>T <code class="code">div</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Divides the first operand by the second operand and returns their quotient.
+Division by zero sets a flag and returns infinity.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the 'divide' function in the specification. (p. 27-29)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#div" id="div"><code class="code">div</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="div.2"></span>T <code class="code">div</code>(T, U : long)(in T <code class="code">x</code>, in U <code class="code">n</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Divides the first operand by the second operand and returns their quotient.
+Division by zero sets a flag and returns infinity.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the 'divide' function in the specification. (p. 27-29)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#div" id="div"><code class="code">div</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="div.3"></span>T <code class="code">div</code>(T, U)(in T <code class="code">x</code>, in U <code class="code">z</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T &amp;&amp; isConvertible!U);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Divides the first operand by the second operand and returns their quotient.
+Division by zero sets a flag and returns infinity.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the 'divide' function in the specification. (p. 27-29)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#divideInteger" id="divideInteger"><code class="code">divideInteger</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="divideInteger"></span>T <code class="code">divideInteger</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Divides the first operand by the second and returns the integer portion
+of the quotient.
+Division by zero sets a flag and returns infinity.
+The result may be rounded and context flags may be set.
+Implements the 'divide-integer' function in the specification. (p. 30)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#remQuo" id="remQuo"><code class="code">remQuo</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="remQuo"></span>T <code class="code">remQuo</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, out T <code class="code">quo</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Divides the first operand by the second and returns the integer portion
+of the quotient.
+Division by zero sets a flag and returns infinity.
+The result may be rounded and context flags may be set.
+Implements the 'divide-integer' function in the specification. (p. 30)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#remainder" id="remainder"><code class="code">remainder</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="remainder"></span>T <code class="code">remainder</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Divides the first operand by the second and returns the
+fractional <code class="code">remainder</code>.
+Division by zero sets a flag and returns infinity.
+The sign of the <code class="code">remainder</code> is the same as that of the first operand.
+The result may be rounded and <code class="code">context</code> flags may be set.
+Implements the '<code class="code">remainder</code>' function in the specification. (p. 37-38)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#remainderNear" id="remainderNear"><code class="code">remainderNear</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="remainderNear"></span>T <code class="code">remainderNear</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Divides the first operand by the second and returns the
+fractional remainder.
+Division by zero sets a flag and returns Infinity.
+The sign of the remainder is the same as that of the first operand.
+This function corresponds to the "remainder" function
+in the General Decimal Arithmetic Specification.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#quantize" id="quantize"><code class="code">quantize</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="quantize"></span>T <code class="code">quantize</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the number which is equal in value and sign
+to the first operand with the exponent of the second operand.
+The returned value is rounded to the current precision.
+This operation may set the invalid-operation flag.
+Implements the '<code class="code">quantize</code>' function in the specification. (p. 36-37)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#roundToIntegralExact" id="roundToIntegralExact"><code class="code">roundToIntegralExact</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="roundToIntegralExact"></span>T <code class="code">roundToIntegralExact</code>(T)(in T <code class="code">x</code>, in Round <code class="code">mode</code> = HALF_EVEN) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the nearest integer value to the argument.
+Context flags may be set.
+Implements the 'round-to-integral-exact' function
+in the specification. (p. 39)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#roundToIntegralValue" id="roundToIntegralValue"><code class="code">roundToIntegralValue</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="roundToIntegralValue"></span>T <code class="code">roundToIntegralValue</code>(T)(in T <code class="code">arg</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    The result may be rounded and context flags may be set.
+Implements the 'round-to-integral-value' function
+in the specification. (p. 39)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#invalidOperation" id="invalidOperation"><code class="code">invalidOperation</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="invalidOperation"></span>T <code class="code">invalidOperation</code>(T)(ushort <code class="code">payload</code> = 0) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Sets the invalid-operation flag and returns a quiet NaN.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#invalidOperand" id="invalidOperand"><code class="code">invalidOperand</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="invalidOperand"></span>T <code class="code">invalidOperand</code>(T)(in T <code class="code">x</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns a quiet NaN and sets the invalid-operation flag.
+"The result of any arithmetic operation which has an operand
+which is a NaN (a quiet NaN or a signaling NaN) is [s,qNaN]
+or [s,qNaN,d]. The sign and any diagnostic information is copied
+from the first operand which is a signaling NaN, or if neither is
+signaling then from the first operand which is a NaN."
+-- General Decimal Arithmetic Specification, p. 24
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#invalidOperand" id="invalidOperand"><code class="code">invalidOperand</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="invalidOperand.2"></span>T <code class="code">invalidOperand</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>) if (isDecimal!T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns a quiet NaN and sets the invalid-operation flag.
+"The result of any arithmetic operation which has an operand
+which is a NaN (a quiet NaN or a signaling NaN) is [s,qNaN]
+or [s,qNaN,d]. The sign and any diagnostic information is copied
+from the first operand which is a signaling NaN, or if neither is
+signaling then from the first operand which is a NaN."
+-- General Decimal Arithmetic Specification, p. 24
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li>
+</ul>
+  </div>
+</section>
+</section>
+      </article>
+    </div>
+  </body>
+</html>

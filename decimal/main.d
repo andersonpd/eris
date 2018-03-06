@@ -6,16 +6,17 @@ import std.traits;
 //import std.BigInt;
 
 import eris.decimal;
-import eris.decimal.conv;
+/*import eris.decimal.conv;*/
 import eris.decimal.logical;
-import eris.decimal.arithmetic;
-import eris.decimal.test;
+//import eris.decimal.arithmetic;
 
 version(unittest)
 {
+	import eris.decimal.test;
+
 	void main()
 	{
-		writeln("Hello, world!");
+		writefln("total     : %s tests (%s pass, %s fail)", totalTests, totalPass, totalFail);
 	}
 }
 else

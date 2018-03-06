@@ -30,6 +30,187 @@ version(unittest)
 	import eris.decimal;
 	import eris.decimal.arithmetic;
 
+public static bool initialized = false;
+public static int  totalTests;
+public static int  totalPass;
+public static int  totalFail;
+
+/*	package struct Totals()
+	{
+			string report()
+		{
+			string rep = format("%-11s: %s", name, tests(testCount));
+			if (failCount == 0)
+			{
+				rep ~= format(" (%2d pass)", passCount);
+			}
+			else
+			{
+				rep ~= format(" (%2d pass, %d fail).", passCount, failCount);
+				foreach (msg; messages)
+				{
+					rep ~= format("\n  %s", msg);
+				}
+			}
+			return rep;
+		}
+
+	}*/
+//-----------------------------
+// tests
+//-----------------------------
+
+	/**
+	 * S is a struct containing input data and the expected value
+	 * T is the return type of the function being tested
+	 * N is the number of inputs
+	 */
+	package struct FunctionTest(S,T,string fmt = "%s", int N = S.tupleof.length-1)
+	{
+		string name;
+		int testCount;
+		int passCount;
+		int failCount;
+		string[] messages;
+
+		@disable this();
+
+		this(string name)
+		{
+			this.name = name;
+		}
+
+		void test(S s, T actual, int precision = 0,
+			string file = __FILE__, int line = __LINE__)
+		{
+			testCount++;
+			totalTests++;
+			auto input = s.tupleof[0..$-1];
+			auto expect = s.tupleof[$-1];
+			bool passed = false;
+
+			static if (isDecimal!T)
+			{
+				if (precision > 0)
+				{
+//	if (!__ctfe) writefln("precision = %s", precision);
+				// must be equal at specified precision
+					passed = true; //precisionEquals!T(expect, actual, precision);
+				}
+				else
+				{
+					// equal at context precision
+					passed = (actual == expect);
+				}
+
+				if (!passed)	// check for NaN, NaN
+				{
+					passed = actual.isNaN && expect.isNaN;
+				}
+			}
+			else
+			{
+				passed = (actual == expect);
+			}
+			// end static if/else
+
+			if (passed)
+			{
+				passCount++;
+				totalPass++;
+			}
+			else
+			{
+				failCount++;
+				totalFail++;
+				string msg = format("failed at %s(%d)", baseName(file), line);
+				msg ~= format(", test %d", testCount);
+				string data = format(" should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.", expect, actual);
+
+				static if (N == 0)
+					msg ~= format(": <%s()> should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.",
+					name, expect, actual);
+				else static if (N == 1)
+				{
+					msg ~= format(": <%s(%s)>", name, input[0]);
+					msg ~= data;
+//					msg ~= format(": <%s(%s)> should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.",
+//					name, input[0], expect, actual);
+				}
+				else static if (N == 2)
+				{
+					msg ~= format(": <%s(%s,%s)>", name, input[0], input[1]);
+					msg ~= data;
+				}
+				else static if (N == 3)
+					msg ~= format(": <%s(%s,%s,%s)> should be <%s> not <%s>.",
+					name, input[0], input[1], input[2], expect, actual);
+				else
+					msg ~= format(": <%s(%s,%s,%s, ...)> should be <%s> not <%s>.",
+					name, input[0], input[1], input[2], expect, actual);
+				messages.length++;
+				messages[$-1] = msg;
+			}
+		}
+
+		string report()
+		{
+			string rep = format("%-11s: %s", name, tests(testCount));
+			if (failCount == 0)
+			{
+				rep ~= format(" (%2d pass)", passCount);
+			}
+			else
+			{
+				rep ~= format(" (%2d pass, %d fail).", passCount, failCount);
+				foreach (msg; messages)
+				{
+					rep ~= format("\n  %s", msg);
+				}
+			}
+			return rep;
+		}
+
+		string tests(int n)
+		{
+			if (n == 1) return " 1 test ";
+			else return format("%2d tests", n);
+		}
+	}
+
+/*	/// Returns true if the actual value equals the expected value to the specified precision.
+	/// Otherwise prints an error message and returns false.
+	public bool assertPrecisionEqual(T, U)(T actual, U expected, int precision,
+			string file = __FILE__, int line = __LINE__ ) if (isDecimal!T && isDecimal!U){
+	//	auto context = Context(precision);
+		if (precisionEquals!T(expected, actual, precision))	{
+			return true;
+		}
+		else {
+			writeln("failed at ", baseName(file), "(", line, "):",
+	        		" expected \"", expected, "\"",
+	        		" but found \"", actual, "\".");
+			return false;
+		}
+	}
+
+	/// Returns true if the actual value equals the expected value to the specified precision.
+	/// Otherwise prints an error message and returns false.
+	public bool assertPrecisionEqual(T, U:string)(T actual, U expected, int precision,
+			string file = __FILE__, int line = __LINE__ ) {
+		auto context = Context(precision, T.maxExpo, T.mode);
+		if (equals(T(expected), actual, context))	{
+			return true;
+		}
+		else {
+			writeln("failed at ", baseName(file), "(", line, "):",
+	        		" expected \"", expected, "\"",
+	        		" but found \"", actual, "\".");
+			return false;
+		}
+	}*/
+
+}
 //-----------------------------
 // asserts
 //-----------------------------
@@ -246,157 +427,4 @@ bool assertThrows(T:Throwable = Exception, E)(lazy E expression,
 	}
 }
 
-
-//-----------------------------
-// tests
-//-----------------------------
-
-	/**
-	 * S is a struct containing input data and the expected value
-	 * T is the return type of the function being tested
-	 * N is the number of inputs
-	 */
-	package struct FunctionTest(S,T,string fmt = "%s", int N = S.tupleof.length-1)
-	{
-		string name;
-		int testCount;
-		int passCount;
-		int failCount;
-		string[] messages;
-
-		@disable this();
-
-		this(string name)
-		{
-			this.name = name;
-		}
-
-		void test(S s, T actual, int precision = 0,
-			string file = __FILE__, int line = __LINE__)
-		{
-			testCount++;
-			auto input = s.tupleof[0..$-1];
-			auto expect = s.tupleof[$-1];
-			bool passed = false;
-
-			static if (isDecimal!T)
-			{
-				if (precision > 0)
-				{
-//	if (!__ctfe) writefln("precision = %s", precision);
-				// must be equal at specified precision
-					passed = true; //precisionEquals!T(expect, actual, precision);
-				}
-				else
-				{
-					// equal at context precision
-					passed = (actual == expect);
-				}
-
-				if (!passed)	// check for NaN, NaN
-				{
-					passed = actual.isNaN && expect.isNaN;
-				}
-			}
-			else
-			{
-				passed = (actual == expect);
-			}
-			// end static if/else
-
-			if (passed)
-			{
-				passCount++;
-			}
-			else
-			{
-				failCount++;
-				string msg = format("failed at %s(%d)", baseName(file), line);
-				msg ~= format(", test %d", testCount);
-				string data = format(" should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.", expect, actual);
-
-				static if (N == 0)
-					msg ~= format(": <%s()> should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.",
-					name, expect, actual);
-				else static if (N == 1)
-				{
-					msg ~= format(": <%s(%s)>", name, input[0]);
-					msg ~= data;
-//					msg ~= format(": <%s(%s)> should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.",
-//					name, input[0], expect, actual);
-				}
-				else static if (N == 2)
-				{
-					msg ~= format(": <%s(%s,%s)>", name, input[0], input[1]);
-					msg ~= data;
-				}
-				else static if (N == 3)
-					msg ~= format(": <%s(%s,%s,%s)> should be <%s> not <%s>.",
-					name, input[0], input[1], input[2], expect, actual);
-				else
-					msg ~= format(": <%s(%s,%s,%s, ...)> should be <%s> not <%s>.",
-					name, input[0], input[1], input[2], expect, actual);
-				messages.length++;
-				messages[$-1] = msg;
-			}
-		}
-
-		string report()
-		{
-			string rep = format("%-11s: %s", name, tests(testCount));
-			if (failCount == 0)
-			{
-				rep ~= format(" (%2d pass)", passCount);
-			}
-			else
-			{
-				rep ~= format(" (%2d pass, %d fail).", passCount, failCount);
-				foreach (msg; messages)
-				{
-					rep ~= format("\n  %s", msg);
-				}
-			}
-			return rep;
-		}
-
-		string tests(int n)
-		{
-			if (n == 1) return " 1 test ";
-			else return format("%2d tests", n);
-		}
-	}
-
-/*	/// Returns true if the actual value equals the expected value to the specified precision.
-	/// Otherwise prints an error message and returns false.
-	public bool assertPrecisionEqual(T, U)(T actual, U expected, int precision,
-			string file = __FILE__, int line = __LINE__ ) if (isDecimal!T && isDecimal!U){
-	//	auto context = Context(precision);
-		if (precisionEquals!T(expected, actual, precision))	{
-			return true;
-		}
-		else {
-			writeln("failed at ", baseName(file), "(", line, "):",
-	        		" expected \"", expected, "\"",
-	        		" but found \"", actual, "\".");
-			return false;
-		}
-	}
-
-	/// Returns true if the actual value equals the expected value to the specified precision.
-	/// Otherwise prints an error message and returns false.
-	public bool assertPrecisionEqual(T, U:string)(T actual, U expected, int precision,
-			string file = __FILE__, int line = __LINE__ ) {
-		auto context = Context(precision, T.maxExpo, T.mode);
-		if (equals(T(expected), actual, context))	{
-			return true;
-		}
-		else {
-			writeln("failed at ", baseName(file), "(", line, "):",
-	        		" expected \"", expected, "\"",
-	        		" but found \"", actual, "\".");
-			return false;
-		}
-	}*/
-
-}
 

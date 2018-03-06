@@ -1,10 +1,13 @@
 {
 	"fileVersion": 1,
 	"versions": {
+		"ddox": "0.16.8",
+		"hyphenate": "1.1.1",
 		"libasync": "0.7.9",
+		"libdparse": "0.7.1",
 		"libevent": "2.0.2+2.0.16",
 		"memutils": "0.4.8",
-		"openssl": "1.1.4+1.0.1g",
+		"openssl": "1.1.5+1.0.1g",
 		"vibe-d": "0.7.30"
 	}
 }
