@@ -437,7 +437,7 @@ static if (context == Bid64Context)
 	/// Returns the adjusted exponent of this number
 	@property
 	@safe
-	int adjustedExponent() const
+	int adjExpo() const
 	{
 		if (isSpecial) return 0;
 		return m_expo + m_digits - 1;
@@ -454,7 +454,7 @@ static if (context == Bid64Context)
 
 	@property
 	@safe
-	int digits(int count)
+	int digits(in int count)
 	{
 		if (isSpecial) return 0;
 		return this.m_digits = count;
@@ -1015,7 +1015,7 @@ static if (context == Bid64Context)
 	const bool isNormal(int minExponent = minExpo)
 	{
 		if (isFinite && !isZero) {
-			return adjustedExponent >= minExponent;
+			return adjExpo >= minExponent;
 		}
 		return false;
 	}
@@ -1024,10 +1024,10 @@ static if (context == Bid64Context)
 	@safe
 	const bool isSubnormal(int minExponent = minExpo)
 	{
-		int subExponent = minExponent - precision;
+//		int subExponent = minExponent - precision;
 		if (!isFinite) return false;
-		return adjustedExponent < minExponent
-			&& adjustedExponent >= subExponent;
+		return adjExpo < minExponent;
+//			&& adjExpo >= subExponent;
 	}
 
 static if (context == Bid64Context)
@@ -1057,7 +1057,7 @@ static if (context == Bid64Context)
 			{ "1.0E-368",	false },
 			{ "0.9E-368",	true },
 			{ "1.0E-384",	true },
-			{ "0.9E-384",	false },
+			{ "0.9E-384",	true },
 			{ "0.00",		false },
 			{ "-Inf",		false },
 			{ "NaN",		false },
@@ -1069,7 +1069,7 @@ static if (context == Bid64Context)
 }
 
 	/// Returns true if the number is an integer (the fractional part is zero).
-	const bool isIntegralValued()
+	bool isIntegralValued()
 	{
 		if (isSpecial) return false;
 		if (expo >= 0) return true;
@@ -1187,6 +1187,28 @@ static if (context == Bid64Context)
 		this.m_coff	 = that.m_coff;
 	}
 
+/*	/// Assigns a decimal number (makes a copy)
+	// COMPILER BUG?
+	void opAssign(T:decimal)(inout T that)
+	{
+		this.m_tag 	 = that.m_tag ;
+		this.m_digits  = that.m_digits;
+		this.m_sign  = that.m_sign;
+		this.m_expo	 = that.m_expo;
+		this.m_coff	 = that.m_coff;
+	}
+
+	/// Assigns a decimal number (makes a copy)
+	// COMPILER BUG?
+	void opAssign(T:decimal)(T that)
+	{
+		this.m_tag 	 = that.m_tag ;
+		this.m_digits  = that.m_digits;
+		this.m_sign  = that.m_sign;
+		this.m_expo	 = that.m_expo;
+		this.m_coff	 = that.m_coff;
+	}
+*/
 	///	Assigns an BigInt value.
 	void opAssign(T:BigInt)(T that)
 	{
@@ -1265,25 +1287,25 @@ static if (context == Bid64Context)
 	/// Converts a number to an abstract string representation.
 	public string toAbstract() const
 	{
-		return eris.decimal.conv.abstractForm(this);
+		return abstractForm(this);
 	}
 
 	/// Converts a number to a full string representation.
 	public string toFull() const
 	{
-		return eris.decimal.conv.fullForm(this);
+		return fullForm(this);
 	}
 
 	/// Converts a number to a "scientific notation" string representation.
 	public string toScientific() const
 	{
-		return eris.decimal.conv.sciForm(this);
+		return sciForm(this);
 	}
 
 	/// Converts a number to an "engineering notation" string representation.
 	public string toEngineering() const
 	{
-		return eris.decimal.conv.engForm(this);
+		return engForm(this);
 	}
 
 //--------------------------------
@@ -1725,8 +1747,10 @@ unittest {
 	writeln("==========================");
 }
 
-package BigInt pow10b(int n)
+package BigInt pow10b(uint n)
 {
+//if (!__ctfe) writefln("n = %s", n);
+
 	enum BigInt[19] tens =
 	[
 		BigInt(1),
@@ -1752,6 +1776,14 @@ package BigInt pow10b(int n)
 
 	if (n < 19) return tens[n];
 	return BigInt(10)^^n;
+}
+
+unittest
+{
+	for(uint n = 0; n < 19; n++)
+	{
+//if (!__ctfe) writefln("pow10b(n) = %s", pow10b(n));
+	}
 }
 
 //package BigInt pow10b(int n)

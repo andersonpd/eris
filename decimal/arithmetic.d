@@ -48,10 +48,10 @@ module eris.decimal.arithmetic;
 import eris.decimal;
 import std.string;
 import std.algorithm;
+	import std.stdio;
 
 unittest {
-	writeln("==========================");
-	writeln("decimal arithmetic...begin");
+	writeln("     arithmetic.tests     ");
 	writeln("==========================");
 }
 
@@ -263,8 +263,10 @@ unittest
  *  Rounds the argument to an integer using the specified rounding mode.
  *  The default rounding mode is the current context mode. //FIXTHIS
  */
-public D round(D)(D x, Round mode = D.mode) {
-	if (x.isNaN) {
+public D round(D)(D x, Round mode = D.mode)
+{
+	if (x.isNaN)
+    {
 		contextFlags.set(INVALID_OPERATION);
 		return D.nan;
 	}
@@ -306,7 +308,7 @@ public T reduce(T)(in T x,
 
 	int digits = reduced.digits;
 	auto temp = reduced.coff;
-	int zeros = trimZeros(temp, digits);
+	int zeros = clipZeros(temp, digits);
 	if (zeros)
 	{
 		reduced.coff = temp;
@@ -432,6 +434,7 @@ public D plus(D)(in D arg,
 		Context context = D.context) if (isDecimal!D)
 {
 	if (arg.isNaN) return invalidOperand(arg);
+//if (!__ctfe) writefln("arg = %s", arg);
 	return roundToPrecision(arg, context);
 }
 
@@ -547,7 +550,6 @@ unittest
 		{ "9.999999999999999E+369",	 "Infinity" },	// overflow flag should not be set!
 		{ "1E+371",	 "Infinity" },
 	];
-//if (!__ctfe) writefln("TD.max = %s", TD.max);
 	auto f = FunctionTest!(S,TD)("nextPlus");
 	foreach (t; s) f.test(t, nextPlus(t.arg));
     writefln(f.report);
@@ -1866,13 +1868,13 @@ public T div(T)(in T x, in T y,
 
 	int diff = dvnd.expo - dvsr.expo;
 	if (diff > 0) {
-		dvnd.coff = shiftLeft(dvnd.coff, diff);
+		dvnd.coff = shiftBig(dvnd.coff, diff);
 		dvnd.expo = dvnd.expo - diff;
 		dvnd.digits = dvnd.digits + diff;
 	}
 	int shift = 4 + context.precision + cast(int)dvsr.digits - cast(int)dvnd.digits;
 	if (shift > 0) {
-		dvnd.coff = shiftLeft(dvnd.coff, shift);
+		dvnd.coff = shiftBig(dvnd.coff, shift);
 		dvnd.expo = dvnd.expo - shift;
 		dvnd.digits = dvnd.digits + shift;
 	}
@@ -1905,13 +1907,13 @@ public T div(T, U : long)(in T x, in U n,
 
 	int diff = dvnd.expo;
 	if (diff > 0) {
-		dvnd.coff = shiftLeft(dvnd.coff, diff);
+		dvnd.coff = shiftBig(dvnd.coff, diff);
 		dvnd.expo = dvnd.expo - diff;
 		dvnd.digits = dvnd.digits + diff;
 	}
 	int shift = 4 + context.precision + countDigits(cast(uint)n) - dvnd.digits;
 	if (shift > 0) {
-		dvnd.coff = shiftLeft(dvnd.coff, shift);
+		dvnd.coff = shiftBig(dvnd.coff, shift);
 		dvnd.expo = dvnd.expo - shift;
 		dvnd.digits = dvnd.digits + shift;
 	}
@@ -1949,7 +1951,7 @@ private T reduceToIdeal(T)(T x, int ideal) if (isDecimal!T) {
 
 	int idealshift = ideal - x.expo;
 	int	canshift = idealshift > zeros ? zeros : idealshift;
-	x.coff = shiftRight(x.coff, canshift);
+	x.coff = shiftBig(x.coff, -canshift);
 	x.expo = x.expo + canshift;
 
 	if (x.coff == 0) {
@@ -2161,44 +2163,44 @@ unittest
 /// The returned value is rounded to the current precision.
 /// This operation may set the invalid-operation flag.
 /// Implements the 'quantize' function in the specification. (p. 36-37)
-public T quantize(T)(in T x, in T y,
-		Context context = T.context) if (isDecimal!T)
+public D quantize(D)(in D left, in D right,
+		Context context = D.context) if (isDecimal!D)
 {
-	if (x.isNaN || y.isNaN) return invalidOperand(x, y);
+	if (left.isNaN || right.isNaN) return invalidOperand(left, right);
 
 	// if one operand is infinite and the other is not...
-	if (x.isInfinite != y.isInfinite) {
-		return invalidOperation!T;
+	if (left.isInfinite != right.isInfinite) {
+		return invalidOperation!D;
 	}
 	// if both arguments are infinite
-	if (x.isInfinite && y.isInfinite) {
-		return x.dup;
+	if (left.isInfinite && right.isInfinite) {
+		return left.dup;
 	}
-	T z = x.dup;
-	int diff = x.expo - y.expo;
+	D result = left.dup;
+	int diff = left.expo - right.expo;
 
 	if (diff == 0) {
-		return z;
+		return result;
 	}
 
 	// TODO: (behavior) this shift can cause integer overflow for fixed size decimals
 	if (diff > 0) {
-		z.coff = shiftLeft(z.coff, diff/*, precision*/);
-		z.digits = z.digits + diff;
-		z.expo = y.expo;
-		if (z.digits > T.precision) {
-			z = T.nan;
+		result.coff = shiftBig(result.coff, diff/*, precision*/);
+		result.digits = result.digits + diff;
+		result.expo = right.expo;
+		if (result.digits > D.precision) {
+			result = D.nan;
 		}
-		return z;
+		return result;
 	}
 	else {
-		int precision = (-diff > x.digits) ? 0 : x.digits + diff;
-		z = roundToPrecision(z, precision, context.maxExpo, context.mode);
-		z.expo = y.expo;
-		if (z.isZero && x.isSigned) {
-			z.sign = true;
+		int precision = (-diff > left.digits) ? 0 : left.digits + diff;
+		result = roundToPrecision(result, precision, context.mode);
+		result.expo = right.expo;
+		if (result.isZero && left.isSigned) {
+			result.sign = true;
 		}
-		return z;
+		return result;
 	}
 }
 
@@ -2237,18 +2239,16 @@ unittest
 /// Context flags may be set.
 /// Implements the 'round-to-integral-exact' function
 /// in the specification. (p. 39)
-public T roundToIntegralExact(T)(in T x,
-		in Round mode = HALF_EVEN) if (isDecimal!T)
+public D roundToIntegralExact(D)(in D num,
+		in Round mode = HALF_EVEN) if (isDecimal!D)
 {
-	T result = x.dup;
-	if (result.isSignaling) return invalidOperation!T;
-	if (result.isSpecial) return result;
-	if (result.expo >= 0) return result;
+	if (num.isSignaling) return invalidOperation!D;
+	if (num.isSpecial) return num;
+	if (num.expo >= 0) return num;
 
 	// TODO: (behavior) need to prevent precision overrides
-	int precision = result.digits + result.expo;
-	result = roundToPrecision(result, precision, T.maxExpo, mode);
-	return result;
+	int precision = num.digits + num.expo;
+	return roundToPrecision(num, precision, mode); //, D.maxExpo);
 }
 
 unittest
@@ -2307,11 +2307,11 @@ private void alignOps(T, U)(ref T x, ref U y) if (isDecimal!T && isDecimal!U)
 {
 	int diff = x.expo - y.expo;
 	if (diff > 0) {
-		x.coff = shiftLeft(x.coff, diff);
+		x.coff = shiftBig(x.coff, diff);
 		x.expo = y.expo;
 	}
 	else if (diff < 0) {
-		y.coff = shiftLeft(y.coff, -diff);
+		y.coff = shiftBig(y.coff, -diff);
 		y.expo = x.expo;
 	}
 }
@@ -2327,11 +2327,11 @@ private void alignOps(T, U:long)(ref T x, U n) if (isDecimal!T)
 	if (x.expo == 0) return;
 
 	if (x.expo > 0) {
-		x.coff = shiftLeft(x.coff, x.expo);
+		x.coff = shiftBig(x.coff, x.expo);
 		x.expo = 0;
 	}
 	else if (diff < 0) {
-		y.coff = shiftLeft(y.coff, -diff);
+		y.coff = shiftBig(y.coff, -diff);
 		y.expo = x.expo;
 	}
 }
@@ -2454,8 +2454,6 @@ unittest {
 
 unittest
 {
-	writeln("==========================");
-	writeln("decimal arithmetic.....end");
 	writeln("==========================");
 }
 

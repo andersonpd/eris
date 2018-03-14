@@ -734,7 +734,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 	return roundToPrecision(a, inContext);
 }
 
-unittest
+/*unittest
 {	// invSqrt
 	static struct S { TD x; int n; TD expect; }
 	S[] s =
@@ -753,7 +753,7 @@ unittest
 	auto f = FunctionTest!(S,TD)("invSqt");
 	foreach (t; s) f.test(t, invSqrt(t.x,t.n));
     writefln(f.report);
-}
+}*/
 
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
@@ -794,7 +794,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 	return roundToPrecision(a, context);
 }
 
-unittest
+/*unittest
 {	// sqrt
 	static struct S { TD x; int p; TD expect; }
 	S[] s =
@@ -810,7 +810,7 @@ unittest
 	auto f = FunctionTest!(S,TD)("sqrt");
 	foreach (t; s) f.test(t, sqrt(t.x, t.p), t.p);
     writefln(f.report);
-}
+}*/
 
 //--------------------------------
 // EXPONENTIAL AND LOGARITHMIC FUNCTIONS

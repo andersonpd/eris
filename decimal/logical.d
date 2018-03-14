@@ -41,8 +41,7 @@ import std.math;
 import eris.decimal;
 
 unittest {
-	writeln("==========================");
-	writeln("decimal logic........begin");
+	writeln("      logical tests       ");
 	writeln("==========================");
 }
 
@@ -363,9 +362,8 @@ unittest
 }
 
 
-unittest {
-	writeln("==========================");
-	writeln("decimal logic..........end");
+unittest
+{
 	writeln("==========================");
 }
 

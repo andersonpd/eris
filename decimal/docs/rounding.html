@@ -467,16 +467,7 @@
         <section id="module_content"><section class="section ddoc_sections">
   <div class="ddoc_summary">
   <p class="para">
-    Round methods for floating-point decimal arithmetic.
-
-  </p>
-</div>
-<div class="ddoc_description">
-  <h4>Discussion</h4>
-  <p class="para">
-    An implementation of the
- General Decimal Arithmetic Specification.
-
+    Rounding methods for floating-point decimal arithmetic.
 
   </p>
 </div>
@@ -499,36 +490,8 @@
 <div class="ddoc_standards">
   <h4>Standards</h4>
   <p class="para">
-    Conforms to the
-	General Decimal Arithmetic Specification,
+    General Decimal Arithmetic Specification,
 	Version 1.70, (25 March 2009).
-  </p>
-</div><div class="ddoc_examples">
-  <h4>Examples</h4>
-  <p class="para">
-    =============================
-Summary of 484...
-<br><br>
-Description of 484...
-<br><br>
-Returns: result
-Params:
-arg = 	 T argument
-=============================
-
-<section class="code_listing">
-  <div class="code_sample">
-    <div class="dlang">
-      <ol class="code_lines">
-        <li><code class="code">writeln(<span class="string_literal">"=========================="</span>);
-writeln(<span class="string_literal">"decimal rounding.....begin"</span>);
-writeln(<span class="string_literal">"=========================="</span>);
-</code></li>
-      </ol>
-    </div>
-  </div>
-</section>
-
   </p>
 </div>
 </section>
@@ -628,7 +591,7 @@ SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="roundToPrecision"></span>D <code class="code">roundToPrecision</code>(D)(in D <code class="code">num</code>, int <code class="code">precision</code>, int <code class="code">maxExpo</code> = D.<code class="code">maxExpo</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
+            <span class="ddoc_anchor" id="roundToPrecision"></span>D <code class="code">roundToPrecision</code>(D)(in D <code class="code">num</code>, int <code class="code">precision</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>, int <code class="code">maxExpo</code> = D.<code class="code">maxExpo</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
 
           </code>
         </p>
@@ -765,9 +728,9 @@ The maximum number of decimal digits that fit in a long value.
     <div class="dlang">
       <ol class="code_lines">
         <li><code class="code"><span class="keyword">auto</span> big = BigInt(
-	<span class="string_literal">"1234567890_1234567890_1234567890_1234567890_1234567890"</span> ~
-	<span class="string_literal">"1234567890_1234567890_1234567890_1234567890_1234567890_1"</span>);
-	<span class="keyword">assert</span>(<span class="psymbol">countDigits</span>(big) == 101);
+    <span class="string_literal">"1234567890_1234567890_1234567890_1234567890_1234567890"</span> ~
+    <span class="string_literal">"1234567890_1234567890_1234567890_1234567890_1234567890_1"</span>);
+<span class="keyword">assert</span>(<span class="psymbol">countDigits</span>(big) == 101);
 </code></li>
       </ol>
     </div>
@@ -807,7 +770,28 @@ The maximum number of decimal digits that fit in a long value.
     returns the first decimal digit of the number
   </p>
 </div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">assert</span>(<span class="psymbol">firstDigit</span>(BigInt(<span class="string_literal">"8234567890123456789012345678901234567890123"</span>)) == 8);
+<span class="keyword">assert</span>(<span class="psymbol">firstDigit</span>(0U) == 0);
+<span class="keyword">assert</span>(<span class="psymbol">firstDigit</span>(7U) == 7);
+<span class="keyword">assert</span>(<span class="psymbol">firstDigit</span>(9999UL) == 9);
+<span class="keyword">assert</span>(<span class="psymbol">firstDigit</span>(<span class="keyword">uint</span>.max) == 4);
+<span class="keyword">assert</span>(<span class="psymbol">firstDigit</span>(<span class="keyword">ulong</span>.max) == 1);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
 
+  </p>
+</div>
 </section>
 
 </div>
@@ -815,7 +799,7 @@ The maximum number of decimal digits that fit in a long value.
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#shiftLeft" id="shiftLeft"><code class="code">shiftLeft</code></a>
+  <a href="#shiftBig" id="shiftBig"><code class="code">shiftBig</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -824,7 +808,7 @@ The maximum number of decimal digits that fit in a long value.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="shiftLeft"></span>BigInt <code class="code">shiftLeft</code>(BigInt <code class="code">num</code>, int <code class="code">n</code>);
+            <span class="ddoc_anchor" id="shiftBig"></span>BigInt <code class="code">shiftBig</code>(BigInt <code class="code">num</code>, int <code class="code">n</code>);
 
           </code>
         </p>
@@ -839,54 +823,47 @@ The maximum number of decimal digits that fit in a long value.
     Decimal shift left.
   Shifts the number left by the specified number of decimal digits.
   If <code class="code">n</code> == 0 the number is returned unchanged.
-  If <code class="code">n</code> &lt; 0 the number is shifted right.
+  If <code class="code">n</code> &lt; 0  the number is shifted right.
   </p>
 </div>
-
-</section>
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#shiftRight" id="shiftRight"><code class="code">shiftRight</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="shiftRight"></span>BigInt <code class="code">shiftRight</code>(BigInt <code class="code">num</code>, int <code class="code">n</code>);
-
-          </code>
-        </p>
-      </div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="comment">// shiftBig(BigInt)
+</span>BigInt big;
+<span class="keyword">int</span> <span class="param">n</span>;
+big = 12345;
+<span class="param">n</span> = 2;
+<span class="keyword">assert</span>(<span class="psymbol">shiftBig</span>(big, <span class="param">n</span>) == 1234500);
+big = 1234567890;
+<span class="param">n</span> = 7;
+<span class="keyword">assert</span>(<span class="psymbol">shiftBig</span>(big, <span class="param">n</span>) == BigInt(12345678900000000));
+big = 12;
+<span class="param">n</span> = 2;
+<span class="keyword">assert</span>(<span class="psymbol">shiftBig</span>(big, <span class="param">n</span>) == 1200);
+big = 12;
+<span class="param">n</span> = 4;
+<span class="keyword">assert</span>(<span class="psymbol">shiftBig</span>(big, <span class="param">n</span>) == 120000);
+BigInt res;
+big = BigInt(<span class="string_literal">"9223372036854775807"</span>);
+<span class="param">n</span> = -10;
+<span class="keyword">assert</span>(<span class="psymbol">shiftBig</span>(big, <span class="param">n</span>) == BigInt(<span class="string_literal">"922337203"</span>));
+big = BigInt(<span class="string_literal">"9223372036854775808"</span>);
+<span class="param">n</span> = -10;
+<span class="keyword">assert</span>(<span class="psymbol">shiftBig</span>(big, <span class="param">n</span>) == BigInt(<span class="string_literal">"922337203"</span>));
+</code></li>
+      </ol>
     </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  <section class="section ddoc_sections">
-  <div class="ddoc_summary">
-  <p class="para">
-    Shifts the number to the left by the specified number of decimal digits.
-  If <code class="code">n</code> == 0 the number is returned unchanged.
-  If <code class="code">n</code> &lt; 0 the number is shifted to the right.
+  </div>
+</section>
 
   </p>
 </div>
-<div class="ddoc_description">
-  <h4>Discussion</h4>
-  <p class="para">
-    Decimal shift right.
-  Shifts the number right the specified number of decimal digits.
-  If <code class="code">n</code> == 0 the number is returned unchanged.
-  If <code class="code">n</code> &lt; 0 the number is shifted left.
-  </p>
-</div>
-
 </section>
 
 </div>
@@ -894,7 +871,7 @@ The maximum number of decimal digits that fit in a long value.
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#lastDigit" id="lastDigit"><code class="code">lastDigit</code></a>
+  <a href="#lastBigDigit" id="lastBigDigit"><code class="code">lastBigDigit</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -903,7 +880,7 @@ The maximum number of decimal digits that fit in a long value.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="lastDigit"></span>int <code class="code">lastDigit</code>(in BigInt <code class="code">big</code>);
+            <span class="ddoc_anchor" id="lastBigDigit"></span>int <code class="code">lastBigDigit</code>(in BigInt <code class="code">big</code>);
 
           </code>
         </p>
@@ -935,7 +912,7 @@ The maximum number of decimal digits that fit in a long value.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="trailingZeros"></span>int <code class="code">trailingZeros</code>(BigInt <code class="code">n</code>, int <code class="code">digits</code>);
+            <span class="ddoc_anchor" id="trailingZeros"></span>uint <code class="code">trailingZeros</code>(BigInt <code class="code">n</code>, uint <code class="code">digits</code>);
 
           </code>
         </p>
@@ -950,7 +927,27 @@ The maximum number of decimal digits that fit in a long value.
     Returns the number of trailing zeros in the argument.
   </p>
 </div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">auto</span> big = BigInt(<span class="string_literal">"1234567890123456789012300000000000"</span>);
+<span class="keyword">auto</span> <span class="param">digits</span> = countDigits(big);
+<span class="keyword">assert</span>(<span class="param">digits</span> == 34);
+<span class="keyword">auto</span> zeros = <span class="psymbol">trailingZeros</span>(big, <span class="param">digits</span>);
+<span class="keyword">assert</span>(zeros == 11);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
 
+  </p>
+</div>
 </section>
 
 </div>
@@ -958,7 +955,7 @@ The maximum number of decimal digits that fit in a long value.
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#trimZeros" id="trimZeros"><code class="code">trimZeros</code></a>
+  <a href="#clipZeros" id="clipZeros"><code class="code">clipZeros</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -967,7 +964,7 @@ The maximum number of decimal digits that fit in a long value.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="trimZeros"></span>int <code class="code">trimZeros</code>(ref BigInt <code class="code">n</code>, int <code class="code">digits</code>);
+            <span class="ddoc_anchor" id="clipZeros"></span>int <code class="code">clipZeros</code>(ref BigInt <code class="code">n</code>, uint <code class="code">digits</code>);
 
           </code>
         </p>
@@ -982,7 +979,27 @@ The maximum number of decimal digits that fit in a long value.
     Trims any trailing zeros and returns the number of zeros trimmed.
   </p>
 </div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">auto</span> big = BigInt(<span class="string_literal">"123456789000000"</span>);
+<span class="keyword">auto</span> <span class="param">digits</span> = countDigits(big);
+<span class="keyword">assert</span>(<span class="param">digits</span> == 15);
+<span class="keyword">auto</span> zeros = <span class="psymbol">clipZeros</span>(big, <span class="param">digits</span>);
+<span class="keyword">assert</span>(zeros == 6);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
 
+  </p>
+</div>
 </section>
 
 </div>

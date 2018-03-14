@@ -20,8 +20,7 @@
 module eris.decimal.context;
 
 unittest {
-	writeln("==========================");
-	writeln("decimal context......begin");
+	writeln("      context tests       ");
 	writeln("==========================");
 }
 
@@ -347,9 +346,8 @@ class UnderflowException: DecimalException {
 	}
 };
 
-unittest {
-	writeln("==========================");
-	writeln("decimal context........end");
+unittest
+{
 	writeln("==========================");
 }
 

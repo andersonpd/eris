@@ -1,18 +1,15 @@
 // Written in the D programming language
 
 /**
- * Round methods for floating-point decimal arithmetic.
- *
- * An implementation of the
- * General Decimal Arithmetic Specification.
+ * Rounding methods for floating-point decimal arithmetic.
  *
  * Authors: Paul D. Anderson
  *
- * Copyright: Copyright 2009-2016 by Paul D. Anderson.
+ * Copyright: Copyright 2009-2017 by Paul D. Anderson.
  *
  * License: <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>
  *
- * Standards: Conforms to the
+ * Standards:
  *	General Decimal Arithmetic Specification,
  *	Version 1.70, (25 March 2009).
  */
@@ -20,28 +17,16 @@
 module eris.decimal.rounding;
 
 import eris.decimal;
+
 import std.conv;
 import std.string;
 import std.traits;
-
-///=============================
-/// Summary of 484...
-///
-/// Description of 484...
-///
-/// Returns: result
-/// Params:
-///		arg = 	 T argument
-///=============================
-
+import std.stdio;
 
 unittest {
-	writeln("==========================");
-	writeln("decimal rounding.....begin");
+	writeln("      rounding tests      ");
 	writeln("==========================");
 }
-
-//import std.stdio;
 
 version(unittest)
 {
@@ -50,8 +35,7 @@ version(unittest)
 }
 
 /**
- *  Rounds the number to its context precision.
- *  Returns the rounded number.
+ *  Returns the number rounded to its context precision.
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
 public D roundToPrecision(D)(in D num) if (isDecimal!D)
@@ -65,12 +49,11 @@ public D roundToPrecision(D)(in D num) if (isDecimal!D)
  *  Returns the rounded number.
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
-package D roundToPrecision(D)(
-		in D num, Context context = D.context, bool setFlags = true)
+package D roundToPrecision(D)(in D num, Context context = D.context, bool setFlags = true)
 	if (isDecimal!D)
 {
 	return roundToPrecision(num,
-		context.precision, context.maxExpo, context.mode, setFlags);
+		context.precision, context.mode, setFlags);
 }
 
 /**
@@ -79,57 +62,58 @@ package D roundToPrecision(D)(
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
 //@safe
-public D roundToPrecision(D)(in D num, int precision,
-		int maxExpo = D.maxExpo, Round mode = D.mode, bool setFlags = true)
+package D roundToPrecision(D)(in D num, int precision, Round mode = D.mode,
+		bool setFlags = true)
 	if (isDecimal!D)
 {
-	// check for overflow before rounding and copy the input
-	D copy = checkOverflow(num, mode, maxExpo, setFlags);
+    D copy = num;
+    // check for overflow before rounding and copy the input
+    copy = overflow(num, mode, setFlags);
 
-	// check rounding mode
-	if (mode == ROUND_NONE) return copy;
+    // check rounding mode
+    if (mode == ROUND_NONE) return copy;
 
-	// special values aren't rounded
-	if (!copy.isFinite) return copy;
+    // special values aren't rounded
+    if (!copy.isFinite) return copy;
 
-	// smallest normalized exponent
-	int minExpo = 1 - maxExpo;
-	// smallest non-normalized exponent
-	int tinyExpo = 1 - maxExpo - precision;
+    // handle subnormal numbers
+    if (!copy.isZero && copy.isSubnormal())
+    {
+	    if (setFlags) contextFlags.set(SUBNORMAL);
+	    int diff = copy.adjExpo - copy.tinyExpo;
+	    int subprecision = diff + 1; // - precision;
+	    // use the subnormal precision and round
+        if (precision < subprecision) subprecision = precision;
+	    if (copy.digits > subprecision) {
+		    copy = modeRound(copy, subprecision, mode, setFlags);
+	    }
+	    // if the result of rounding a subnormal is zero
+	    // the clamped flag is set. (Spec. p. 51)
+	    if (copy.adjExpo < copy.tinyExpo)
+        {
+		    copy.expo = copy.tinyExpo;
+		    if (setFlags) contextFlags.set(CLAMPED);
+	    }
+	    return copy;
+    }
+    // zero values aren't rounded, but they are checked for
+    // subnormal exponents.
+    if (copy.isZero)
+    {
+        if (copy.expo < copy.minExpo)
+        {
+            if (setFlags) contextFlags.set(SUBNORMAL);
+            if (copy.expo < copy.tinyExpo)
+            {
+                copy.expo = copy.tinyExpo;
+            }
+        }
+        return copy;
+    }
 
-	// zero values aren't rounded, but they are checked for
-	// subnormal and out of range exponents.
-	if (num.isZero) {
-		if (num.expo < minExpo) {
-			if (setFlags) contextFlags.set(SUBNORMAL);
-			if (num.expo < tinyExpo) {
-				int temp = tinyExpo;
-				copy.expo = tinyExpo;
-			}
-		}
-		return copy;
-	}
 
-	// handle subnormal numbers
-	if (num.isSubnormal()) {
-		if (setFlags) contextFlags.set(SUBNORMAL);
-		int diff = minExpo - cast(int)copy.adjustedExponent;
-		// use the subnormal precision and round
-		int subprecision = precision - diff;
-		if (copy.digits > subprecision) {
-			copy = roundByMode(copy, subprecision, mode, maxExpo, setFlags);
-		}
-		// if the result of rounding a subnormal is zero
-		// the clamped flag is set. (Spec. p. 51)
-		if (copy.isZero) {
-			copy.expo = tinyExpo;
-			if (setFlags) contextFlags.set(CLAMPED);
-		}
-		return copy;
-	}
-
-	// round the number
-	return roundByMode(copy, precision, mode, maxExpo, setFlags);
+    // round the number
+    return modeRound(copy, precision, mode, setFlags);
 
 } // end roundToPrecision()
 
@@ -149,43 +133,39 @@ unittest
 		{ "12359", 3, "1.24E+4" },
 		{ "1245",  3, "1.24E+3" },
 		{ "12459", 3, "1.25E+4" },
+        // subnormal numbers
+        { "1.234567890123456E-370", 16, "1.23456789012346E-370" },
+        { "1.234567890123456E-380", 12, "1.2346E-380" },
+        { "1.234567890123456E-381", 9,  "1.235E-381" },
+        { "1.234567890123456E-381", 3,  "1.23E-381" },
+        { "1.234567890123456E-382", 6,  "1.23E-382" },
+        { "1.234567899123456E-383", 3,  "1.2E-383" },
+        { "1.234567899123456E-384", 6,  "1E-384" },
+        { "1E-369", 3, "1E-369" },
+        { "1E-384", 3, "1E-384" },
+        { "1E-385", 3, "0E-384" },
+        { "0.1E-384", 3, "0E-384" },
+        { "1234E-385", 3, "1.23E-382" },
+        // extreme range zeros
+		{ "0E+369", 3, "0E-368" },
+		{ "0E+370", 3, "0E-368" },
+        // TODO: I don't think overrange zeros should have tinyExpo
+		{ "0E-368", 3, "0E-368" },
+		{ "0E-369", 3, "0E-369" },
+		{ "0E-384", 3, "0E-384" },
+		{ "0E-385", 3, "0E-384" },
 	];
 	auto f = FunctionTest!(S,D64)("roundPrec");
 	foreach (t; s) f.test(t, roundToPrecision!D64(t.x,t.n));
     writefln(f.report);
 }
 
-//unittest {	// roundToPrecision
-//	write("-- roundToPrecision.");
-//	BigInt test = "18690473486004564289165545643685440097";
-//	long  count = reduceDigits(test);
-//	roundToPrecision(test);
-		// TODO: (testing) test for subnormal as below...
-/*	Dec32 a = Dec32(0.1);
-	Dec32 b = Dec32.min * Dec32(8888888);
-	assert("[0,8888888,-101]" == b.abstractForm);
-	Dec32 c = a * b;
-	assert("[0,888889,-101]" == c.abstractForm);
-	Dec32 d = a * c;
-	assert("[0,88889,-101]" == d.abstractForm);
-	Dec32 e = a * d;
-	assert("[0,8889,-101]" == e.abstractForm);
-	Dec32 f = a * e;
-	assert("[0,889,-101]" == f.abstractForm);
-	Dec32 g = a * f;
-	assert("[0,89,-101]" == g.abstractForm);
-	Dec32 h = a * g;
-	assert("[0,9,-101]" == h.abstractForm);
-	Dec32 i = a * h;
-	assert("[0,1,-101]" == i.abstractForm);*/
-//	writeln("test missing");
-//}
-
 //--------------------------------
 // private methods
 //--------------------------------
 
 // TODO: needs unittests
+// TODO: return boolean value
 /**
  *  Returns true if the number is too large to be represented
  *  and adjusts the number according to the rounding mode.
@@ -194,122 +174,147 @@ unittest
  *  Precondition: number must be finite.
  */
 //@safe
-private D checkOverflow(D)(in D num, Round mode = D.mode,
-		int maxExpo = D.maxExpo, bool setFlags = true) if (isDecimal!D)
+private D overflow(D)(in D num, Round mode = D.mode,
+        bool setFlags = true)
+    if (isDecimal!D)
 {
-	if (num.adjustedExponent <= maxExpo) return num;
+    if (!num.isFinite) return num;
+    if (num.adjExpo <= D.maxExpo) return num;
 
-	// TODO: if the number has not been normalized will this work?
-	D copy = num.copy;
-	switch (mode)
-	{
-		case ROUND_NONE: 	// can this branch be reached? should it be?
-		case HALF_UP:
-		case HALF_EVEN:
-		case HALF_DOWN:
-		case ROUND_UP:
-			copy = D.infinity(num.sign);
-			break;
-		case ROUND_DOWN:
-			copy = num.sign ? D.max.copyNegate : D.max;
-			break;
-		case ROUND_CEILING:
-			copy = num.sign ? D.max.copyNegate : D.infinity;
-			break;
-		case ROUND_FLOOR:
-			copy = num.sign ? D.infinity(true) : D.max;
-			break;
-		default:
-			break;
-	}
-	if (setFlags) contextFlags.set(OVERFLOW | INEXACT | ROUNDED);
-	return copy;
+    if (setFlags) contextFlags.set(OVERFLOW | INEXACT | ROUNDED);
+
+    switch (mode)
+    {
+    case HALF_UP:
+    case HALF_EVEN:
+    case HALF_DOWN:
+    case ROUND_UP:
+        return D.infinity(num.sign);
+    case ROUND_DOWN:
+        return num.sign ? D.max.copyNegate : D.max;
+    case ROUND_CEILING:
+        return num.sign ? D.max.copyNegate : D.infinity;
+    case ROUND_FLOOR:
+        return num.sign ? D.infinity(true) : D.max;
+    default:
+        return num;
+    }
 }
 
-
-// TODO: needs unittests
-// Returns true if the rounding mode is half-even, half-up, or half-down.
-private bool halfRounding(Round mode) {
-	return (mode == HALF_EVEN ||
-	 		mode == HALF_UP ||
-	 		mode == HALF_DOWN);
-}
-
+// TODO: these tests aren't very useful
 unittest
-{
-	assert(halfRounding(HALF_UP));
-	assert(!halfRounding(ROUND_UP));
+{	// overflow
+    static struct S { D64 num; Round mode; D64 expect; }
+    S[] s =
+    [
+        { "1000",    HALF_EVEN,  "1000" },
+        { "1000000", HALF_EVEN,  "10000E+2" },
+        { "99999",   HALF_EVEN,  "99999" },
+//        { "1234550", HALF_EVEN,  "1.2346E+6" },
+//        { "1234550", ROUND_DOWN, "1.2345E+6" },
+//        { "1234550", ROUND_UP,   "1.2346E+6" },
+    ];
+    auto f = FunctionTest!(S,D64)("overflow");
+    foreach (t; s) f.test(t, overflow!D64(t.num,t.mode));
+    writefln(f.report);
 }
 
+
+// TODO: move this into roundToPrecision -- it's the only function that calls it.
 /**
  *  Rounds the number to the context precision
  *  using the specified rounding mode.
  */
-private D roundByMode(D)(D num, int precision,
-		Round mode = D.mode, int maxExpo = D.maxExpo, bool setFlags = true)
+private D modeRound(D)(D num, int precision, Round mode = D.mode,
+        bool setFlags = true)
 	if (isDecimal!D)
 {
-	D copy = checkOverflow(num, mode, maxExpo, setFlags);
+    // finite numbers only
+	if (!num.isFinite) return num;
+    // check rounding mode
+    if (mode == ROUND_NONE) return num;
+    // if the number is short enough, don't round
+    if (num.digits <= precision) return num;
 
-	// did it overflow to infinity?
-	if (copy.isSpecial) return copy;
-
-	if (mode == ROUND_NONE) return num;
+    D copy = overflow(num, mode, setFlags);
+	// did it overflow ?
+	if (!copy.isFinite) return copy;
 
 	// calculate the remainder
-	D remainder = getRemainder(num, precision);
+	D remainder = getRemainder(copy, precision);
 	// if the number wasn't rounded, return
-	if (remainder.isZero) return num;
+	if (remainder.isZero) return copy;
 
 	// check for deleted leading zeros in the remainder.
 	// makes a difference only in round-half modes.
-	if ((mode == HALF_EVEN || mode == HALF_UP || mode == HALF_DOWN) &&
-		countDigits(remainder.coff) != remainder.digits) {
-		return num.copy;
+	if (mode == HALF_EVEN || mode == HALF_UP || mode == HALF_DOWN)
+    {
+        if (countDigits(remainder.coff) != remainder.digits)
+        {
+    		return copy;
+        }
 	}
 
-	switch (mode) {
-		case ROUND_UP:
-			incrementAndRound(num);
-			break;
-		case ROUND_DOWN:
-			break;
-		case ROUND_CEILING:
-			if (!num.sign) incrementAndRound(num);
-			break;
-		case ROUND_FLOOR:
-			if (num.sign) incrementAndRound(num);
-			break;
-		case HALF_UP:
-			if (firstDigit(remainder.coff) >= 5)
-				incrementAndRound(num);
-			break;
-		case HALF_DOWN:
-			if (testFive(remainder.coff) > 0)
-				incrementAndRound(num);
-			break;
-		case HALF_EVEN:
-			switch (testFive(remainder.coff)) {
-				case -1:
-					break;
-				case 1:
-					incrementAndRound(num);
-					break;
-				default:
-					if (lastDigit(num.coff) & 1) {
-						incrementAndRound(num);
-					}
-					break;
-				}
-			break;
-		default:
-			break;
-	}	// end switch (mode)
-	return checkOverflow(num, mode, maxExpo, setFlags);
-}	// end roundByMode()
+    switch (mode) {
+    case ROUND_UP:
+        incrementAndRound(copy);
+        break;
+    case ROUND_DOWN:
+	    break;
+    case ROUND_CEILING:
+	    if (!num.sign) incrementAndRound(copy);
+	    break;
+    case ROUND_FLOOR:
+	    if (num.sign) incrementAndRound(copy);
+	    break;
+    case HALF_UP:
+	    if (firstDigit(remainder.coff) >= 5)
+		    incrementAndRound(copy);
+	    break;
+    case HALF_DOWN:
+	    if (testFive(remainder.coff) > 0)
+		    incrementAndRound(copy);
+	    break;
+    case HALF_EVEN:
+        switch (testFive(remainder.coff))
+        {
+        case -1:
+	        break;
+        case 1:
+	        incrementAndRound(copy);
+	        break;
+        case 0:
+	        if (lastDigit(copy.coff) & 1) {
+		        incrementAndRound(copy);
+	        }
+	        break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
+    }	// end switch (mode)
+    return overflow(copy, mode, setFlags);
+}  // end modeRound()
+
+///
+unittest
+{
+    auto d = D64("12345500");
+ if (!__ctfe) writefln("d = %s", d);
+ if (!__ctfe) writefln("modeRound(d, 5, ROUND_NONE) = %s", modeRound(d,5,ROUND_NONE));
+ if (!__ctfe) writefln("modeRound(d, 5, ROUND_UP) = %s", modeRound(d,5,ROUND_UP));
+ if (!__ctfe) writefln("modeRound(d, 5, ROUND_DOWN) = %s", modeRound(d,5,ROUND_DOWN));
+ if (!__ctfe) writefln("modeRound(d, 5, ROUND_CEILING) = %s", modeRound(d,5,ROUND_CEILING));
+ if (!__ctfe) writefln("modeRound(d, 5, ROUND_FLOOR) = %s", modeRound(d,5,ROUND_FLOOR));
+ if (!__ctfe) writefln("modeRound(d, 5, HALF_UP) = %s", modeRound(d,5,HALF_UP));
+ if (!__ctfe) writefln("modeRound(d, 5, HALF_EVEN) = %s", modeRound(d,5,HALF_EVEN));
+ if (!__ctfe) writefln("modeRound(d, 5, HALF_DOWN) = %s", modeRound(d,5,HALF_DOWN));
+}
 
 unittest
-{	// roundByMode
+{	// modeRound
 	static struct S { D64 x; int p; Round r; D64 expect; }
 	S[] s =
 	[
@@ -320,11 +325,12 @@ unittest
 		{ "1234550", 5, ROUND_DOWN, "1.2345E+6" },
 		{ "1234550", 5, ROUND_UP,   "1.2346E+6" },
 	];
-	auto f = FunctionTest!(S,D64)("roundByMode");
-	foreach (t; s) f.test(t, roundByMode!D64(t.x,t.p,t.r));
+	auto f = FunctionTest!(S,D64)("modeRound");
+	foreach (t; s) f.test(t, modeRound!D64(t.x,t.p,t.r));
     writefln(f.report);
 }
 
+// TODO: move this into overflow -- it's the only function that calls it.
 /**
  *  Shortens the coefficient of the number to the specified precision,
  *  adjusts the exponent, and returns the (unsigned) remainder.
@@ -334,41 +340,40 @@ unittest
  *  the inexact flag is also set.
  *  Flags: ROUNDED, INEXACT.
  */
-private D getRemainder(D) (ref D x, int precision) if (isDecimal!D)
+private D getRemainder(D) (ref D num, int precision) if (isDecimal!D)
 {
-	D remainder = D.zero;
-	int diff = x.digits - precision;
-	if (diff <= 0) {
-		return remainder;
-	}
-	contextFlags.set(ROUNDED);
-	BigInt divisor = pow10b(diff);
-	BigInt dividend = x.coff;
-	BigInt quotient = dividend/divisor;
-	auto cf = dividend - quotient*divisor;
-	if (cf != 0) {
-		remainder = D.zero;
-		remainder.digits = diff;
-		remainder.expo = x.expo;
-		remainder.coff = cf;
-		contextFlags.set(INEXACT);
-	}
-	x.coff = quotient;
-	x.digits = countDigits(quotient); //precision;
-	x.expo = x.expo + diff;
-	return remainder;
+    int diff = num.digits - precision;
+    if (diff <= 0) return D.zero;
+
+    D remainder = D.zero;//.dup;
+    contextFlags.set(ROUNDED);
+    BigInt divisor = pow10b(diff);
+    BigInt dividend = num.coff;
+    BigInt quotient = dividend/divisor;
+    auto cf = dividend - quotient*divisor;
+    if (cf != 0) {
+//        remainder = D.zero;
+        remainder.digits = diff;
+        remainder.expo = num.expo;
+        remainder.coff = cf;
+        contextFlags.set(INEXACT);
+    }
+    num.coff = quotient;
+    num.digits = countDigits(quotient); //precision;
+    num.expo = num.expo + diff;
+    return remainder;
 }
 
 unittest
 {	// getRemainder
-	static struct S { D64 x; int p; D64 expect; }
-	S[] s =
-	[
-		{ 1234567890123456L, 5, "67890123456" },
-	];
-	auto f = FunctionTest!(S,D64)("getRemainder");
-	foreach (t; s) f.test(t, getRemainder!D64(t.x,t.p));
-    writefln(f.report);
+    static struct S { D64 x; int p; D64 expect; }
+    S[] s =
+    [
+	    { 1234567890123456L, 5, "67890123456" },
+    ];
+    auto f = FunctionTest!(S,D64)("getRemainder");
+    foreach (t; s) f.test(t, getRemainder!D64(t.x,t.p));
+       writefln(f.report);
 }
 
 /**
@@ -434,6 +439,7 @@ private int testFive(in BigInt x)
 	int num = countDigits(x);
 	BigInt btens = pow10b(num - 1);
 	int first = cast(int)(x / btens);
+// writefln("first = %s", first);
 	if (first < 5) return -1;
 	if (first > 5) return +1;
 	BigInt zeros = x % btens;
@@ -471,22 +477,23 @@ private enum BigInt QUINTILLION  = BigInt(1_000_000_000_000_000_000);*/
 ///  The maximum decimal value that fits in an int.
 //public enum uint MAX_DECIMAL_INT = 999999999U;
 ///  The maximum number of decimal digits that fit in a long value.
-public enum int MAX_LONG_DIGITS = 18;
+//public enum int MAX_LONG_DIGITS = 18;
 ///  The maximum decimal value that fits in a long value.
-public enum ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
+//public enum ulong MAX_DECIMAL_LONG = 10UL^^MAX_LONG_DIGITS - 1;
 
 //-----------------------------
 // BigInt digit functions
 //-----------------------------
 
+private enum ten = 10UL;
 /**
  *  An array of unsigned long integers with values of
  *  powers of ten from 10^^0 to 10^^19
  */
-private enum ulong[20] pow10UL = [10UL^^0,
-		10UL^^1,  10UL^^2,  10UL^^3,  10UL^^4,  10UL^^5,  10UL^^6,
-		10UL^^7,  10UL^^8,  10UL^^9,  10UL^^10, 10UL^^11, 10UL^^12,
-		10UL^^13, 10UL^^14, 10UL^^15, 10UL^^16, 10UL^^17, 10UL^^18, 10UL^^19];
+private enum ulong[20] pow10UL = [ten^^0,
+		ten^^1,  ten^^2,  ten^^3,  ten^^4,  ten^^5,  ten^^6,
+		ten^^7,  ten^^8,  ten^^9,  ten^^10, ten^^11, ten^^12,
+		ten^^13, ten^^14, ten^^15, ten^^16, ten^^17, ten^^18, ten^^19];
 
 /**
  * Returns the number of decimal digits in a non-negative big integer
@@ -494,57 +501,56 @@ private enum ulong[20] pow10UL = [10UL^^0,
 public int countDigits(T)(in T m)
 	if (is(T == BigInt) || isUnsigned!T)
 {
-	if (m == 0)
-	{
-		return 0;
-	}
+    if (m == 0)
+    {
+	    return 0;
+    }
 
-	static if (is(T == BigInt))
-	{
-		if (m.ulongLength == 1)
-		{
-			return countDigits(m.getDigit(0));
-		}
+    static if (is(T == BigInt))
+    {
+	    if (m.ulongLength == 1)
+	    {
+		    return countDigits(m.getDigit(0));
+	    }
 
-		int count;
-		ulong n = clipDigits(m, count);
-		return count + countDigits(n);
-	}
-	else
-	{
-		auto n = cast(ulong)m;
-		// special cases:
-		if (n == 0) return 0;
-		if (n < 10) return 1;
-		if (n >= pow10UL[19]) return 20;
-		// use a binary search to count the digits
-		int min = 2;
-		int max = 19;
-		while (min <= max)
-		{
-			int mid = (min + max)/2;
-			if (n < pow10UL[mid])
-			{
-				max = mid - 1;
-			}
-			else
-			{
-				min = mid + 1;
-			}
-		}
-		return min;
-	}
+	    int count;
+	    ulong n = clipDigits(m, count);
+	    return count + countDigits(n);
+    }
+    else
+    {
+	    auto n = cast(ulong)m;
+	    // special cases:
+	    if (n == 0) return 0;
+	    if (n < 10) return 1;
+	    if (n >= pow10UL[19]) return 20;
+	    // use a binary search to count the digits
+	    int min = 2;
+	    int max = 19;
+	    while (min <= max)
+	    {
+		    int mid = (min + max)/2;
+		    if (n < pow10UL[mid])
+		    {
+			    max = mid - 1;
+		    }
+		    else
+		    {
+			    min = mid + 1;
+		    }
+	    }
+	    return min;
+    }
 }
 
 ///
 unittest // countDigits
 {
-	auto big = BigInt(
-		"1234567890_1234567890_1234567890_1234567890_1234567890" ~
-		"1234567890_1234567890_1234567890_1234567890_1234567890_1");
- 	assert(countDigits(big) == 101);
+    auto big = BigInt(
+        "1234567890_1234567890_1234567890_1234567890_1234567890" ~
+        "1234567890_1234567890_1234567890_1234567890_1234567890_1");
+    assert(countDigits(big) == 101);
 }
-
 
 unittest
 {	// countDigits
@@ -561,7 +567,7 @@ unittest
 }
 
 unittest
-{	// countDigits
+{  // countDigits
 	static struct S { ulong n; int expect; }
 	S[] s =
 	[
@@ -616,6 +622,8 @@ unittest // clipDigits
 public uint firstDigit(T)(T n)
 	if (is(T == BigInt) || isUnsigned!T)
 {
+	if (n == 0) return 0;
+	if (n < 10) return cast(int) n;
 	static if (is(T == BigInt))
 	{
 		int count;
@@ -623,13 +631,12 @@ public uint firstDigit(T)(T n)
 	}
 	else
 	{
-		if (n == 0) return 0;
-		if (n < 10) return cast(int) n;
 		int digits = countDigits(n);
 		return cast(uint)(n / pow10UL[digits-1]);
 	}
 }
 
+///
 unittest
 {
 	assert(firstDigit(BigInt("8234567890123456789012345678901234567890123")) == 8);
@@ -678,176 +685,47 @@ unittest
     writefln(f.report);
 }
 
-// TODO: move to arithmetic, templatize
 /**
  *  Decimal shift left.
  *  Shifts the number left by the specified number of decimal digits.
  *  If n == 0 the number is returned unchanged.
- *  If n < 0 the number is shifted right.
+ *  If n < 0  the number is shifted right.
  */
-public BigInt shiftLeft(BigInt num, int n)
+public BigInt shiftBig(BigInt num, int n)
 {
-	// NOTE: simply multiplies by 10^^n.
 	if (n > 0) {
 		num *= pow10b(n);
 	}
 	if (n < 0) {
-		num = shiftRight(num, -n);
+		num /= pow10b(-n);
 	}
 	return num;
 }
 
-
-/+unittest {	// shiftLeft(BigInt)
-	BigInt m;
+///
+unittest {	// shiftBig(BigInt)
+	BigInt big;
 	int n;
-	m = 12345;
+	big = 12345;
 	n = 2;
-	assert(shiftLeft(m, n/*, 100*/) == 1234500);
-	m = 1234567890;
+	assert(shiftBig(big, n) == 1234500);
+	big = 1234567890;
 	n = 7;
-	assert(shiftLeft(m, n/*, 100*/) == BigInt(12345678900000000));
-	m = 12;
+	assert(shiftBig(big, n) == BigInt(12345678900000000));
+	big = 12;
 	n = 2;
-	assert(shiftLeft(m, n/*, 100*/) == 1200);
-	m = 12;
+	assert(shiftBig(big, n) == 1200);
+	big = 12;
 	n = 4;
-	assert(shiftLeft(m, n/*, 100*/) == 120000);
-	uint k;
-/*	k = 12345;
-	n = 2;
-	assert(1234500 == cast(uint)shiftLeft(k, n, 9));
-	k = 1234567890;
-	n = 7;
-	assert(900000000 == cast(uint)shiftLeft(k, n, 9));
-	k = 12;
-	n = 2;
-	assert(1200 == cast(uint)shiftLeft(k, n, 9));
-	k = 12;
-	n = 4;
-	assert(120000 == cast(uint)shiftLeft(k, n, 9));*/
-}+/
-
-/**
- *  Shifts the number to the left by the specified number of decimal digits.
- *  If n == 0 the number is returned unchanged.
- *  If n < 0 the number is shifted to the right.
- */
-/*public ulong shiftLeft(ulong num, const int n,
-		const int precision = MAX_LONG_DIGITS) {
-	if (n > precision) return 0;
-	if (n > 0) {
-		// may need to clipDigits before shifting
-		int m = countDigits(num);
-		int diff = precision - m - n;
-		if (diff < 0 ) {
-			num %= cast(ulong)ltens[m + diff];
-		}
-		ulong scale = cast(ulong)ltens[n];
-		num *= scale;
-	}
-	if (n < 0) {
-		num = shiftRight(num, -n, precision);
-	}
-	return num;
-}*/
-
-/**
- *  Decimal shift right.
- *  Shifts the number right the specified number of decimal digits.
- *  If n == 0 the number is returned unchanged.
- *  If n < 0 the number is shifted left.
- */
-public BigInt shiftRight(BigInt num, int n)
-{
-	// NOTE: simply divides by 10^^n.
-	if (n > 0)
-	{
-		num /= pow10b(n);
-	}
-	if (n < 0) {
-		num = shiftLeft(num, -n);
-	}
-	return num;
-}
-
-/*unittest {
-	write("shiftRight...");
-	BigInt num;
+	assert(shiftBig(big, n) == 120000);
 	BigInt res;
-	num = BigInt("9223372036854775807");
-	res = shiftRight(num, 10);
-	assertEqual!BigInt(res, BigInt("922337203"));
-
-	num = BigInt("9223372036854775808");
-	res = shiftRight(num, 10);
-	assertEqual!BigInt(res, BigInt("922337203"));
-	writeln("passed");
-}*/
-
-
-/+
- *  Rotates the number to the left by the specified number of decimal digits.
- *  If n == 0 the number is returned unchanged.
- *  If n < 0 the number is rotated to the right.
-public ulong rotateLeft(ulong num, const int n, const int precision) {
-	if (n > precision) return 0;
-	if (n > 0) {
-		int m = precision - n;
-		ulong rem = num / ltens[m];
-		num %= ltens[m];
-		num *= ltens[n];
-		num += rem;
-	}
-	if (n < 0) {
-		num = rotateRight(num, precision, -n);
-	}
-	return num;
+	big = BigInt("9223372036854775807");
+	n = -10;
+	assert(shiftBig(big, n) == BigInt("922337203"));
+	big = BigInt("9223372036854775808");
+	n = -10;
+	assert(shiftBig(big, n) == BigInt("922337203"));
 }
-
-unittest {
-	writeln("rotateLeft...");
-	ulong num = 1234567;
-writeln("num = ", num);
-	ulong rot = rotateLeft(num, 7, 2);
-writeln("rot = ", rot);
-	writeln("test missing");
-}
-
- *  Rotates the number to the right by the specified number of decimal digits.
- *  If n == 0 the number is returned unchanged.
- *  If n < 0 the number is rotated to the left. // TODO: (behavior) should throw.
-public ulong rotateRight(ulong num, const int n, const int precision) {
-	if (n > precision) return 0;
-	if (n == precision) return num;
-	if (n > 0) {
-		int m = precision - n;
-		ulong rem = num / ltens[n];
-		num %= ltens[n];
-		num *= ltens[m];
-		num += rem;
-	}
-	if (n < 0) {
-		num = rotateLeft(num, precision, -n);
-	}
-	return num;
-}
-
-unittest {
-	writeln("rotateRight...");
-	ulong num = 1234567;
-writeln("num = ", num);
-	ulong rot = rotateRight(num, 7, 2);
-writeln("rot = ", rot);
-	 rot = rotateRight(num, 9, 2);
-writeln("rot = ", rot);
-	 rot = rotateRight(num, 7, -2);
-writeln("rot = ", rot);
-	 rot = rotateRight(num, 7, 7);
-writeln("rot = ", rot);
-	writeln("test missing");
-}
-+/
 
 // TODO: split into BigInt, ulong?
 ///  Returns the last digit of the argument.
@@ -882,15 +760,15 @@ unittest
 }
 
 ///  Returns the number of trailing zeros in the argument.
-public int trailingZeros(BigInt n, int digits)
+public uint trailingZeros(BigInt n, uint digits)
 {
 	// shortcuts for frequent values
 	if (n ==  0) return 0;
 	if (n %  10) return 0;
 	if (n % 100) return 1;
 	// find by binary search
-	int min = 3;
-	int max =  digits - 1;
+	uint min = 3;
+	uint max = digits - 1;
 	while (min <= max) {
 		int mid = (min + max)/2;
 		if (n % pow10b(mid) != 0)
@@ -904,19 +782,37 @@ public int trailingZeros(BigInt n, int digits)
 	}
 	return max;
 }
+///
+unittest
+{
+	auto big = BigInt("1234567890123456789012300000000000");
+	auto digits = countDigits(big);
+	assert(digits == 34);
+	auto zeros = trailingZeros(big, digits);
+	assert(zeros == 11);
+}
+
 
 ///  Trims any trailing zeros and returns the number of zeros trimmed.
-public int trimZeros(ref BigInt n, int digits)
+public int clipZeros(ref BigInt n, uint digits)
 {
-	int zeros = trailingZeros(n, digits);
+	if (digits <= 0) return 0;
+	auto zeros = trailingZeros(n, digits);
 	if (zeros == 0) return 0;
 	n /= pow10b(zeros);
 	return zeros;
 }
 
+///
 unittest {
-	writeln("==========================");
-	writeln("decimal rounding.......end");
+	auto big = BigInt("123456789000000");
+	auto digits = countDigits(big);
+	assert(digits == 15);
+	auto zeros = clipZeros(big, digits);
+	assert(zeros == 6);
+}
+
+unittest {
 	writeln("==========================");
 }
 

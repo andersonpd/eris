@@ -33,8 +33,7 @@ static import std.math;
 import eris.decimal;
 
 unittest {
-	writeln("==========================");
-	writeln("decimal conversion...begin");
+	writeln("     conversion tests     ");
 	writeln("==========================");
 }
 
@@ -94,7 +93,7 @@ public string toString(T)(in T num, string fmStr = "%s") if (isDecimal!T)
 	return str;
 }
 
-unittest
+/*unittest
 {	// toString
 	static struct S { TD num; string fmt; string str; }
 	S[] s =
@@ -127,7 +126,7 @@ unittest
 		{ "12.34567",	"%12.4G",	"  1.2346E+01" },
 		{ "12.345",		"%12G",	"   12.345000" },
 		// flags
-		{ "12.34567",	"% G",		" 1.234567E+01"},
+		{ "12.34567",	"%G",		" 1.234567E+01"},
 		{ "12.345",		"%+G",		"+12.345000"   },
 		{ "12.345",		"%-12G",	"12.345000   " },
 		{ "12.34567",	"%-12.4G",	"1.2346E+01  " },
@@ -146,7 +145,7 @@ unittest
 	auto f = FunctionTest!(S,string)("toString");
 	foreach (t; s) f.test(t, toString(t.num, t.fmt));
     writefln(f.report);
-}
+}*/
 
 /*    void toString(T)(
 		scope void delegate(const(char)[]) sink,
@@ -164,45 +163,48 @@ unittest
  */
 public string sciForm(T)(in T num) if (isDecimal!T)
 {
-	if (num.isSpecial) {
+	if (num.isSpecial)
+    {
 		return specialForm(num);
 	}
 
-	char[] cof = to!string(num.coff).dup;
+	char[] str = to!string(num.coff).dup;
 	int  expo = num.expo;
 	bool signed = num.isSigned;
 
-	int adjx = expo + cast(int)cof.length - 1;
+	int adjx = expo + cast(int)str.length - 1;
 	// if the exponent is small use decimal notation
-	if (expo <= 0 && adjx >= -6) {
+	if (expo <= 0 && adjx >= -6)
+    {
 		// if the exponent is not zero, insert a decimal point
 		if (expo != 0) {
 			int point = std.math.abs(expo);
 			// if the coefficient is too small, pad with zeroes
-			if (point > cof.length) {
-				cof = rightJustify(cof, point, '0');
+			if (point > str.length) {
+				str = rightJustify(str, point, '0');
 			}
 			// if no chars precede the decimal point, prefix a zero
-			if (point == cof.length) {
-				cof = "0." ~ cof;
+			if (point == str.length) {
+				str = "0." ~ str;
 			}
 			// otherwise insert the decimal point into the string
 			else {
-				insertInPlace(cof, cof.length - point, ".");
+				insertInPlace(str, str.length - point, ".");
 			}
 		}
-		return signed ? ("-" ~ cof).dup : cof.dup;
+		return signed ? ("-" ~ str).dup : str.dup;
 	}
 	// if the exponent is large enough use exponential notation
-	if (cof.length > 1) {
-		insertInPlace(cof, 1, ".");
+	if (str.length > 1) {
+		insertInPlace(str, 1, ".");
 	}
+
 	string expStr = to!string(adjx);
 	if (adjx >= 0) {
 		expStr = "+" ~ expStr;
 	}
-	string str = (cof ~ "E" ~ expStr).dup;
-	return signed ? "-" ~ str : str;
+	string s = (str ~ "E" ~ expStr).dup;
+	return signed ? "-" ~ s : s;
 };  // end sciForm
 
 unittest
@@ -1376,7 +1378,5 @@ public D fromBinary(D,U)(in U bin)
 }
 
 unittest {
-	writeln("==========================");
-	writeln("decimal conversion.....end");
 	writeln("==========================");
 }
