@@ -522,8 +522,7 @@
   <section class="section ddoc_sections">
   <div class="ddoc_summary">
   <p class="para">
-    Rounds the number to its context precision.
-  Returns the rounded number.
+    Returns the number rounded to its context precision.
 
   </p>
 </div>
@@ -591,7 +590,7 @@ SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="roundToPrecision"></span>D <code class="code">roundToPrecision</code>(D)(in D <code class="code">num</code>, int <code class="code">precision</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>, int <code class="code">maxExpo</code> = D.<code class="code">maxExpo</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
+            <span class="ddoc_anchor" id="roundToPrecision"></span>D <code class="code">roundToPrecision</code>(D)(in D <code class="code">num</code>, int <code class="code">precision</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
 
           </code>
         </p>
@@ -612,79 +611,6 @@ SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
   <p class="para">
     <span class="ddoc_section_h">Flags:</span>
 SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
-  </p>
-</div>
-
-</section>
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#MAX_LONG_DIGITS" id="MAX_LONG_DIGITS"><code class="code">MAX_LONG_DIGITS</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="MAX_LONG_DIGITS"></span>enum int <code class="code">MAX_LONG_DIGITS</code>;
-
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  <section class="section ddoc_sections">
-  <div class="ddoc_summary">
-  <p class="para">
-    The maximum number of decimal digits that fit in an int value.
-
-  </p>
-</div>
-<div class="ddoc_description">
-  <h4>Discussion</h4>
-  <p class="para">
-    The maximum decimal value that fits in an int.
-<br><br>
-The maximum number of decimal digits that fit in a long value.
-  </p>
-</div>
-
-</section>
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#MAX_DECIMAL_LONG" id="MAX_DECIMAL_LONG"><code class="code">MAX_DECIMAL_LONG</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="MAX_DECIMAL_LONG"></span>enum ulong <code class="code">MAX_DECIMAL_LONG</code>;
-
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  <section class="section ddoc_sections">
-  <div class="ddoc_summary">
-  <p class="para">
-    The maximum decimal value that fits in a long value.
   </p>
 </div>
 
@@ -871,7 +797,7 @@ big = BigInt(<span class="string_literal">"9223372036854775808"</span>);
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#lastBigDigit" id="lastBigDigit"><code class="code">lastBigDigit</code></a>
+  <a href="#lastDigit" id="lastDigit"><code class="code">lastDigit</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -880,7 +806,7 @@ big = BigInt(<span class="string_literal">"9223372036854775808"</span>);
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="lastBigDigit"></span>int <code class="code">lastBigDigit</code>(in BigInt <code class="code">big</code>);
+            <span class="ddoc_anchor" id="lastDigit"></span>int <code class="code">lastDigit</code>(in BigInt <code class="code">big</code>);
 
           </code>
         </p>

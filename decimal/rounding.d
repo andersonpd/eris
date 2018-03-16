@@ -80,8 +80,8 @@ package D roundToPrecision(D)(in D num, int precision, Round mode = D.mode,
     if (!copy.isZero && copy.isSubnormal())
     {
 	    if (setFlags) contextFlags.set(SUBNORMAL);
-	    int diff = copy.adjExpo - copy.tinyExpo;
-	    int subprecision = diff + 1; // - precision;
+//	    int diff = copy.adjExpo - copy.tinyExpo;
+	    int subprecision = copy.adjExpo - copy.tinyExpo + 1;
 	    // use the subnormal precision and round
         if (precision < subprecision) subprecision = precision;
 	    if (copy.digits > subprecision) {

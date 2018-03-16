@@ -2517,7 +2517,7 @@ in the General Decimal Arithmetic Specification.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="quantize"></span>T <code class="code">quantize</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="quantize"></span>D <code class="code">quantize</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2553,7 +2553,7 @@ Implements the '<code class="code">quantize</code>' function in the specificatio
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="roundToIntegralExact"></span>T <code class="code">roundToIntegralExact</code>(T)(in T <code class="code">x</code>, in Round <code class="code">mode</code> = HALF_EVEN) if (isDecimal!T);
+            <span class="ddoc_anchor" id="roundToIntegralExact"></span>D <code class="code">roundToIntegralExact</code>(D)(in D <code class="code">num</code>, in Round <code class="code">mode</code> = HALF_EVEN) if (isDecimal!D);
 
           </code>
         </p>

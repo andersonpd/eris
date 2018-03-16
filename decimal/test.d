@@ -125,31 +125,30 @@ public static int  totalFail;
 				totalFail++;
 				string msg = format("failed at %s(%d)", baseName(file), line);
 				msg ~= format(", test %d", testCount);
-				string data = format(" should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.", expect, actual);
+				string description = format(" should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.", expect, actual);
 
 				static if (N == 0)
-					msg ~= format(": <%s()> should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.",
-					name, expect, actual);
+                {
+					msg ~= format(": <%s()>", name);
+                }
 				else static if (N == 1)
 				{
 					msg ~= format(": <%s(%s)>", name, input[0]);
-					msg ~= data;
-//					msg ~= format(": <%s(%s)> should be <" ~ fmt ~ "> not <" ~ fmt ~ ">.",
-//					name, input[0], expect, actual);
 				}
 				else static if (N == 2)
 				{
-					msg ~= format(": <%s(%s,%s)>", name, input[0], input[1]);
-					msg ~= data;
+                    msg ~= format(": <%s(%s,%s)>", name, input[0], input[1]);
 				}
 				else static if (N == 3)
-					msg ~= format(": <%s(%s,%s,%s)> should be <%s> not <%s>.",
-					name, input[0], input[1], input[2], expect, actual);
+                {
+					msg ~= format(": <%s(%s,%s,%s)>", name, input[0], input[1], input[2]);
+                }
 				else
-					msg ~= format(": <%s(%s,%s,%s, ...)> should be <%s> not <%s>.",
-					name, input[0], input[1], input[2], expect, actual);
+                {
+					msg ~= format(": <%s(%s,%s,%s, ...)>", name, input[0], input[1], input[2]);
+                }
 				messages.length++;
-				messages[$-1] = msg;
+				messages[$-1] = msg ~ description;
 			}
 		}
 
@@ -165,7 +164,9 @@ public static int  totalFail;
 				rep ~= format(" (%2d pass, %d fail).", passCount, failCount);
 				foreach (msg; messages)
 				{
-					rep ~= format("\n  %s", msg);
+                    // escape any formatting
+                    msg = msg.replace("%","%%");
+                    rep ~= format("\n  %s", msg);
 				}
 			}
 			return rep;

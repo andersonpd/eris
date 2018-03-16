@@ -552,7 +552,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="toString"></span>string <code class="code">toString</code>(T)(in T <code class="code">num</code>, string <code class="code">fmStr</code> = "%s") if (isDecimal!T);
+            <span class="ddoc_anchor" id="toString"></span>string <code class="code">toString</code>(D)(in D <code class="code">num</code>, string <code class="code">fmStr</code> = "%s") if (isDecimal!D);
 
           </code>
         </p>
@@ -585,7 +585,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="sciForm"></span>string <code class="code">sciForm</code>(T)(in T <code class="code">num</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="sciForm"></span>string <code class="code">sciForm</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -618,7 +618,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="engForm"></span>string <code class="code">engForm</code>(T)(in T <code class="code">num</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="engForm"></span>string <code class="code">engForm</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -651,7 +651,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="abstractForm"></span>string <code class="code">abstractForm</code>(T)(in T <code class="code">num</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="abstractForm"></span>string <code class="code">abstractForm</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -684,7 +684,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="fullForm"></span>string <code class="code">fullForm</code>(T)(in T <code class="code">num</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="fullForm"></span>string <code class="code">fullForm</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -717,7 +717,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="fromString"></span>T <code class="code">fromString</code>(T)(string <code class="code">inStr</code>, bool <code class="code">round</code> = true) if (isDecimal!T);
+            <span class="ddoc_anchor" id="fromString"></span>D <code class="code">fromString</code>(D)(string <code class="code">inStr</code>, bool <code class="code">round</code> = true) if (isDecimal!D);
 
           </code>
         </p>
@@ -752,7 +752,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="toBid"></span>U <code class="code">toBid</code>(T, U = ulong)(const T <code class="code">num</code>) if (isDecimal!T &amp;&amp; (is(U == ulong) || is(U == uint)));
+            <span class="ddoc_anchor" id="toBid"></span>U <code class="code">toBid</code>(D, U = ulong)(const D <code class="code">num</code>) if (isDecimal!D &amp;&amp; (is(U == ulong) || is(U == uint)));
 
           </code>
         </p>
