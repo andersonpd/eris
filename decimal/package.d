@@ -770,7 +770,7 @@ static if (context == Bid64Context)
 static if (context == Bid64Context)
 {
 	unittest
-	{	// isNaN, isQuiet, isSignaling
+	{	// isNaN, isQuiet, isSignal
 		static struct S { string str; bool expect; }
 
 		S[] s1 =
@@ -830,7 +830,7 @@ static if (context == Bid64Context)
 
 	/// Returns true if this number is a signaling NaN.
 	@safe
-	const bool isSignaling()
+	const bool isSignal()
 	{
 		return this.m_tag  == Tag.SNAN;
 	}
@@ -845,7 +845,7 @@ static if (context == Bid64Context)
 static if (context == Bid64Context)
 {
 	unittest
-	{	// isNaN, isQuiet, isSignaling
+	{	// isNaN, isQuiet, isSignal
 		static struct S { string str; bool expect; }
 
 		S[] s1 =
@@ -874,8 +874,8 @@ static if (context == Bid64Context)
 			{ "NaN",	false },
 			{ "sNaN",	true },
 		];
-		auto f3 = FunctionTest!(S, bool)("isSignaling");
-		foreach (t; s3) f3.test(t, TD(t.str).isSignaling);
+		auto f3 = FunctionTest!(S, bool)("isSignal");
+		foreach (t; s3) f3.test(t, TD(t.str).isSignal);
     	writefln(f3.report);
 	}
 }

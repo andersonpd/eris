@@ -87,7 +87,7 @@ public string classify(D)(in D num) if (isDecimal!D)
     if (num.isSubnormal) { return num.sign ? "-Subnormal" : "+Subnormal"; }
   }
   if (num.isInfinite)  { return num.sign ? "-Infinity" : "+Infinity"; }
-  if (num.isSignaling) { return "sNaN"; }
+  if (num.isSignal) { return "sNaN"; }
   return "NaN";
 }
 
@@ -106,7 +106,7 @@ unittest
   ];
   auto f = FunctionTest!(S,string)("classify");
   foreach (t; s) f.test(t, classify(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -151,7 +151,7 @@ unittest
   ];
   auto f = FunctionTest!(S,int)("ilogb");
   foreach (t; s) f.test(t, ilogb(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -196,7 +196,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("logb");
   foreach (t; s) f.test(t, logb(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -253,7 +253,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("scaleb");
   foreach (t; s) f.test(t, scaleb(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 //--------------------------------
@@ -354,7 +354,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("reduce");
   foreach (t; s) f.test(t, reduce(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -426,7 +426,7 @@ unittest
  *  Returns -1, 0, or 1
  *  if the argument is negative, zero, or positive, respectively.
  */
-/*public int sgn(T:BigInt)(T arg) {
+/*public int sgn(D:BigInt)(D arg) {
   if (arg < 0) return -1;
   if (arg > 0) return 1;
   return 0;
@@ -462,7 +462,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("plus");
   foreach (t; s) f.test(t, plus(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -496,7 +496,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("minus");
   foreach (t; s) f.test(t, minus(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 //-----------------------------------
@@ -565,7 +565,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("nextPlus");
   foreach (t; s) f.test(t, nextPlus(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -614,7 +614,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("nextMinus");
   foreach (t; s) f.test(t, nextMinus(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -652,7 +652,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("nextToward");
   foreach (t; s) f.test(t, nextToward(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 //--------------------------------
@@ -679,15 +679,15 @@ unittest
  *  Flags: INVALID_OPERATION
  *
  */
-public int compare(T)(in T left, in T right, Context context = T.context)
-    if (isDecimal!T)
+public int compare(D)(in D left, in D right, Context context = D.context)
+    if (isDecimal!D)
 {
   // any operation with a signaling NaN is invalid.
   // if both are signaling, return as if left > right.
-  if (left.isSignaling || right.isSignaling)
+  if (left.isSignal || right.isSignal)
   {
     contextFlags.set(INVALID_OPERATION);
-    return left.isSignaling ? 1 : -1;
+    return left.isSignal ? 1 : -1;
   }
 
   // if both are NaN, return as if left > right.
@@ -697,7 +697,8 @@ public int compare(T)(in T left, in T right, Context context = T.context)
   }
 
   // if either is zero...
-  if (left.isZero) {
+  if (left.isZero)
+  {
     if (right.isZero) return 0;
     return right.isNegative ? 1 : -1;
   }
@@ -721,8 +722,8 @@ public int compare(T)(in T left, in T right, Context context = T.context)
     return left.isInfinite ? 1 : -1;
   }
 
-  T lf = left.dup;
-  T rt = right.dup;
+  D lf = left.dup;
+  D rt = right.dup;
 
   // TODO: (testing) test compare at precision limits.
   // restrict operands to current precision
@@ -785,7 +786,7 @@ unittest
   ];
   auto f = FunctionTest!(S,int)("compare");
   foreach (t; s) f.test(t, compare(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -810,7 +811,8 @@ public bool equals(D)(in D left, in D right, Context context = D.context)
     if (isDecimal!D)
 {
   // any operation with a signaling NaN is invalid.
-  if (left.isSignaling || right.isSignaling) {
+  if (left.isSignal || right.isSignal)
+  {
     contextFlags.set(INVALID_OPERATION);
     return false;
   }
@@ -822,7 +824,8 @@ public bool equals(D)(in D left, in D right, Context context = D.context)
   if (left is right) return true;
 
   // if either is zero...
-  if (left.isZero || right.isZero) {
+  if (left.isZero || right.isZero)
+  {
     // ...they are equal if both are zero (regardless of sign)
     return (left.isZero && right.isZero);
   }
@@ -832,24 +835,25 @@ public bool equals(D)(in D left, in D right, Context context = D.context)
 
   // if either is infinite...
   if (left.isInfinite || right.isInfinite) {
-    // ...they are equal only if both are infinite with the same sign
+    // ...they are equal only if both are infinite (with the same sign)
     return (left.isInfinite && right.isInfinite);
   }
 
   // if they have the same representation, they are equal
-  if (left.expo == right.expo && left.coff == right.coff) {
+  if (left.expo == right.expo && left.coff == right.coff)
+  {
     return true;
   }
 
-  // restrict operands to the context precision
-  D lf, rt;
-  lf = roundToPrecision(left, context);
-  rt = roundToPrecision(right, context);
+  // round operands to the context precision
+  auto lf = roundToPrecision(left, context);
+  auto rt = roundToPrecision(right, context);
 
   // if they are not of the same magnitude they are not equal
   if (lf.expo + lf.digits != rt.expo + rt.digits) return false;
   // align the operands
   alignOps(lf, rt);
+  // they are equal if their coefficients are equal
   return lf.coff == rt.coff;
 }
 
@@ -867,7 +871,7 @@ unittest
   ];
   auto f = FunctionTest!(S,bool)("equals");
   foreach (t; s) f.test(t, equals(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -881,6 +885,22 @@ public bool precisionEquals(D)(D left, D right, int precision) if (isDecimal!D)
   return (equals(left, right, context));
 }
 
+unittest
+{  // precisionEquals -- depends on context
+  static struct S { TD left; TD right; int prec; bool expect; }
+  S[] s =
+  [
+/*    { " 123.4567     ", " 123.4568   ", false},
+    { " 123.4567     ", " 123.4567   ", true },
+    { " 234123.4567121236 ", " 234123.45671212356", true }, // equals to precision
+    { " 1000000E-8   ", " 1E-2       ", true },
+    { "+100000000E-08", "+1E+00      ", true },
+    { "-1.00000000   ", "-1          ", true },*/
+  ];
+  auto f = FunctionTest!(S,bool)("precisionEquals");
+  foreach (t; s) f.test(t, precisionEquals(t.left, t.right, t.prec));
+  writefln(f.report);
+}
 /**
  *  Compares the numeric values of two numbers. CompareSignal is identical to
  *  compare except that quiet NaNs are treated as if they were signaling.
@@ -918,7 +938,7 @@ unittest
   ];
   auto f = FunctionTest!(S,int)("compSignal");
   foreach (t; s) f.test(t, compareSignal(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 unittest
@@ -1012,14 +1032,14 @@ public int compareTotal(D)(in D left, in D right) if (isDecimal!D)
   }
 
   // if either is signaling...
-  if (left.isSignaling || right.isSignaling) {
+  if (left.isSignal || right.isSignal) {
     // if both are signaling compare payloads.
-    if (left.isSignaling && right.isSignaling) {
+    if (left.isSignal && right.isSignal) {
       auto result = left.coff - right.coff;
       if (result == 0) return 0;
       return (result > 0) ? ret1 : ret2;
     }
-    return left.isSignaling ? ret1 : ret2;
+    return left.isSignal ? ret1 : ret2;
   }
 
   // if both exponents are equal, any difference is in the coefficient
@@ -1059,7 +1079,7 @@ unittest
   ];
   auto f = FunctionTest!(S,int)("compTotal");
   foreach (t; s) f.test(t, compareTotal(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -1087,10 +1107,12 @@ int compareTotalMagnitude(D)(D left, D right) if (isDecimal!D)
  */
 public bool sameQuantum(D)(in D left, in D right) if (isDecimal!D)
 {
-  if (left.isNaN || right.isNaN) {
+  if (left.isNaN || right.isNaN)
+  {
     return left.isNaN && right.isNaN;
   }
-  if (left.isInfinite || right.isInfinite) {
+  if (left.isInfinite || right.isInfinite)
+  {
     return left.isInfinite && right.isInfinite;
   }
   return left.expo == right.expo;
@@ -1107,7 +1129,7 @@ unittest
   ];
   auto f = FunctionTest!(S,bool)("sameQuant");
   foreach (t; s) f.test(t, sameQuantum(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -1131,7 +1153,7 @@ public D max(D)(in D left, in D right,  Context context = D.context)
   if (isDecimal!D)
 {
   // if both are NaNs or either is an sNan, return NaN.
-  if (left.isNaN && right.isNaN || left.isSignaling || right.isSignaling) {
+  if (left.isNaN && right.isNaN || left.isSignal || right.isSignal) {
     contextFlags.set(INVALID_OPERATION);
     return D.nan;
   }
@@ -1185,7 +1207,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("max");
   foreach (t; s) f.test(t, max(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Returns the larger of the two operands (or NaN). Returns the same result
@@ -1217,7 +1239,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("maxMag");
   foreach (t; s) f.test(t, maxMagnitude(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Returns the minimum of the two operands (or NaN).
@@ -1235,7 +1257,7 @@ public D min(D)(in D left, in D right,
     Context context = D.context) if (isDecimal!D)
 {
   // if both are NaNs or either is an sNan, return NaN.
-  if (left.isNaN && right.isNaN || left.isSignaling || right.isSignaling) {
+  if (left.isNaN && right.isNaN || left.isSignal || right.isSignal) {
     contextFlags.set(INVALID_OPERATION);
     return D.nan;
   }
@@ -1287,7 +1309,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("min");
   foreach (t; s) f.test(t, min(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Returns the smaller of the two operands (or NaN). Returns the same result
@@ -1324,14 +1346,14 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("minMag");
   foreach (t; s) f.test(t, minMagnitude(t.left, t.right));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Returns a number with a coefficient of 1 and
 /// the same exponent as the argument.
 /// Flags: NONE.
-public T quantum(T)(in T x)  {
-  return T(1, x.expo);
+public D quantum(D)(in D x)  {
+  return D(1, x.expo);
 }
 
 unittest
@@ -1343,7 +1365,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("quantum");
   foreach (t; s) f.test(t, quantum(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 //--------------------------------
@@ -1357,8 +1379,8 @@ unittest
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T, U=T)(in T x, in T y,
-    Context context = T.context) if (isDecimal!T)
+public D shift(D, U=D)(in D x, in D y,
+    Context context = D.context) if (isDecimal!D)
 {
   // check for NaN
   if (x.isNaN || y.isNaN) return invalidOperand(x, y);
@@ -1377,8 +1399,8 @@ public T shift(T, U=T)(in T x, in T y,
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'shift' function in the specification. (p. 49)
-public T shift(T, U:int)(in T arg, U n,
-    Context context = T.context) if (isDecimal!T)
+public D shift(D, U:int)(in D arg, U n,
+    Context context = D.context) if (isDecimal!D)
 {
 
   // check for NaN
@@ -1395,7 +1417,7 @@ public T shift(T, U:int)(in T arg, U n,
   // shifting by more than precision is invalid.
   if (n < -precision || n > precision)
   {
-    return invalidOperation!T;
+    return invalidOperation!D;
   }
 
   auto copy = arg.dup;
@@ -1439,7 +1461,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("shift");
   foreach (t; s) f.test(t, shift(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Rotates the first operand by the specified number of decimal digits.
@@ -1449,8 +1471,8 @@ unittest
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T, U=T)(in T x, in U y,
-    Context context = T.context) if (isDecimal!T)
+public D rotate(D, U=D)(in D x, in U y,
+    Context context = D.context) if (isDecimal!D)
 {
   if (x.isNaN) return invalidOperand(x);
   if (y.isNaN) return invalidOperand(y);
@@ -1469,8 +1491,8 @@ public T rotate(T, U=T)(in T x, in U y,
 /// than -precision or greater than precision, an INVALID_OPERATION is signaled.
 /// An infinite number is returned unchanged.
 /// Implements the 'rotate' function in the specification. (p. 47-48)
-public T rotate(T, U:int)(in T arg, U n,
-    Context context = T.context) if (isDecimal!T)
+public D rotate(D, U:int)(in D arg, U n,
+    Context context = D.context) if (isDecimal!D)
 {
 
   // check for NaN
@@ -1486,7 +1508,7 @@ public T rotate(T, U:int)(in T arg, U n,
 
   // shifting by more than precision is invalid.
   if (n < -precision || n > precision) {
-    return invalidOperation!T;
+    return invalidOperation!D;
   }
 
   auto copy = arg.dup;
@@ -1550,7 +1572,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("rotate");
   foreach (t; s) f.test(t, rotate(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 //------------------------------------------
@@ -1561,8 +1583,8 @@ unittest
 /// The result may be rounded and context flags may be set.
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T add(T)(in T left, in T right,
-    Context context = T.context, bool setFlags = true) if (isDecimal!T)
+public D add(D)(in D left, in D right,
+    Context context = D.context, bool setFlags = true) if (isDecimal!D)
 {
   if (left.isNaN || right.isNaN) return invalidOperand(left, right);
 
@@ -1570,7 +1592,7 @@ public T add(T)(in T left, in T right,
   if (left.isInfinite && right.isInfinite) {
     // if the signs differ return NaN and set invalid operation flag
     if (left.sign != right.sign) {
-      return invalidOperation!T;
+      return invalidOperation!D;
     }
     // both infinite with same sign, return the first
     return left.dup;
@@ -1584,7 +1606,7 @@ public T add(T)(in T left, in T right,
     return right.dup;
   }
 
-  T sum = T.zero;
+  D sum = D.zero;
   // add(0, 0)
   if (left.isZero && right.isZero) {
     sum = left;
@@ -1631,11 +1653,11 @@ public T add(T)(in T left, in T right,
 /// The result may be rounded and context flags may be set.
 /// Implements the 'add' function in the specification. (p. 26)
 /// Flags: INVALID_OPERATION, OVERFLOW.
-public T add(T, U)(in T left, in U right,
-    Context context = T.context, bool setFlags = true)
-    if (isDecimal!T && isConvertible!U)
+public D add(D, U)(in D left, in U right,
+    Context context = D.context, bool setFlags = true)
+    if (isDecimal!D && isConvertible!U)
 {
-  return add(left, T(right), context, setFlags);
+  return add(left, D(right), context, setFlags);
 }
 
 unittest
@@ -1651,7 +1673,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("add");
   foreach (t; s) f.test(t, add(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Subtracts the second operand from the first operand.
@@ -1668,11 +1690,11 @@ public D sub(D, U:D) (in D left, in U right,
 /// Subtracts the second operand from the first operand.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'subtract' function in the specification. (p. 26)
-public T sub(T, U)(in T x, U y,
-    Context context = T.context, bool setFlags = true)
-    if (isDecimal!T && isConvertible!U)
+public D sub(D, U)(in D x, U y,
+    Context context = D.context, bool setFlags = true)
+    if (isDecimal!D && isConvertible!U)
 {
-  return add(x, T(y).copyNegate, context, setFlags);
+  return add(x, D(y).copyNegate, context, setFlags);
 }  // end sub(x, y)
 
 unittest
@@ -1687,17 +1709,17 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("sub");
   foreach (t; s) f.test(t, sub(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 ///
 /// Multiplies the two operands.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'multiply' function in the specification. (p. 33-34)
-public T mul(T)(in T x, in T y, Context context = T.context)
-    if (isDecimal!T)
-//public T mul(T)(in T x, in T y,
-//    Context context = T.context) if (isDecimal!T)
+public D mul(D)(in D x, in D y, Context context = D.context)
+    if (isDecimal!D)
+//public D mul(D)(in D x, in D y,
+//    Context context = D.context) if (isDecimal!D)
 {
   // if invalid, return NaN
   if (x.isNaN || y.isNaN) return invalidOperand(x,y);
@@ -1708,22 +1730,22 @@ public T mul(T)(in T x, in T y, Context context = T.context)
   }
   // if either operand is infinite, return infinity
   if (x.isInfinite || y.isInfinite) {
-    return T.infinity(x.sign ^ y.sign);
+    return D.infinity(x.sign ^ y.sign);
   }
 
   // mul(0,f) or (f,0)
   if (x.isZero || y.isZero) {
-    T z = T.zero;
+    D z = D.zero;
     // TODO: (behavior) is the exponent really the sum of the operand exponents? (how about just use the larger?
-    z.expo = std.algorithm.min(T.maxExpo, x.expo + y.expo);
+    z.expo = std.algorithm.min(D.maxExpo, x.expo + y.expo);
     z.sign = x.sign ^ y.sign;
     return (z);
   }
 
   // at this point the product is a finite, non-zero number
-  T product = T.zero.dup;
+  D product = D.zero.dup;
   product.coff = x.coff * y.coff;
-  product.expo = std.algorithm.min(T.maxExpo, x.expo + y.expo);
+  product.expo = std.algorithm.min(D.maxExpo, x.expo + y.expo);
   product.sign = x.sign ^ y.sign;
   product.digits = countDigits(product.coff);
 
@@ -1734,10 +1756,10 @@ public T mul(T)(in T x, in T y, Context context = T.context)
 /// The result may be rounded and context flags may be set.
 /// Not a required function, but useful because it avoids
 /// an unnecessary conversion to a decimal when multiplying by an integer.
-public T mul(T, U : long)(in T x, in U n, Context context = T.context)
-//    if (isDecimal!T && isIntegral!U)
-//public T mul(T)(in T x, long n, Context context = T.context)
-    if (isDecimal!T)
+public D mul(D, U : long)(in D x, in U n, Context context = D.context)
+//    if (isDecimal!D && isIntegral!U)
+//public D mul(D)(in D x, long n, Context context = D.context)
+    if (isDecimal!D)
 {
   // if invalid, return NaN
   if (x.isNaN) return invalidOperand(x);
@@ -1748,19 +1770,19 @@ public T mul(T, U : long)(in T x, in U n, Context context = T.context)
   }
   // if decimal operand is infinite, return infinity
   if (x.isInfinite) {
-    return T.infinity(x.sign ^ (n < 0));
+    return D.infinity(x.sign ^ (n < 0));
   }
 
   // mul(0,f) or (f,0)
   if (x.isZero || n == 0) {
-    T z = T.zero;
+    D z = D.zero;
     z.expo = x.expo;
     z.sign = x.sign ^ (n < 0);
     return (z);
   }
 
   // at this point the product is a finite, non-zero number
-  T product = T.zero;
+  D product = D.zero;
   product.coff = x.coff * n;
   product.expo = x.expo;
   product.sign = x.sign ^ (n < 0);
@@ -1771,10 +1793,10 @@ public T mul(T, U : long)(in T x, in U n, Context context = T.context)
 /// Multiplies the two operands.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'multiply' function in the specification. (p. 33-34)
-public T mul(T, U)(in T x, in U y, Context context = T.context)
-    if (isDecimal!T && isConvertible!U)
+public D mul(D, U)(in D x, in U y, Context context = D.context)
+    if (isDecimal!D && isConvertible!U)
 {
-  return mul(x, T(y), context);
+  return mul(x, D(y), context);
 }  // end mul(x, y)
 
 unittest
@@ -1790,12 +1812,12 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("mul");
   foreach (t; s) f.test(t, mul(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Squares the argument and returns the result.
 /// The result may be rounded and context flags may be set.
-public T sqr(T)(in T arg, Context context = T.context) if (isDecimal!T)
+public D sqr(D)(in D arg, Context context = D.context) if (isDecimal!D)
 {
   // if operand is invalid, return NaN
   if (arg.isNaN) {
@@ -1803,15 +1825,15 @@ public T sqr(T)(in T arg, Context context = T.context) if (isDecimal!T)
   }
   // if operand is infinite, return infinity
   if (arg.isInfinite) {
-    return T.infinity;
+    return D.infinity;
   }
   // if operand is zero, return zero
   if (arg.isZero) {
-    return T.zero;
+    return D.zero;
   }
 
   // product is non-zero
-  T copy = arg.copy;
+  D copy = arg.copy;
   copy.coff = copy.coff * copy.coff;
 // TODO : why does this fail ("not an lvalue")
 //  copy.expo *= 2; //copy.expo * 2;
@@ -1836,7 +1858,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("sqr");
   foreach (t; s) f.test(t, sqr(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 //TODO: need to test high-precision numbers. Requires
@@ -1850,10 +1872,10 @@ unittest
 /// The result of the multiplication is not rounded prior to addition.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'fused-multiply-add' function in the specification. (p. 30)
-public T fma(T)(in T x, in T y, in T z,
-    Context context = T.context) if (isDecimal!T)
+public D fma(D)(in D x, in D y, in D z,
+    Context context = D.context) if (isDecimal!D)
 {
-  T xy = mul(x, y, Context(context.precision, T.maxExpo, ROUND_NONE));
+  D xy = mul(x, y, Context(context.precision, D.maxExpo, ROUND_NONE));
   return add(xy, z, context);
 }
 
@@ -1871,15 +1893,15 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("fma");
   foreach (t; s) f.test(t, fma(t.x, t.y, t.z));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Divides the first operand by the second operand and returns their quotient.
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T)(in T x, in T y,
-    Context context = T.context) if (isDecimal!T)
+public D div(D)(in D x, in D y,
+    Context context = D.context) if (isDecimal!D)
 {
   // check for NaN and division by zero
   if (x.isNaN || y.isNaN) return invalidOperand(x, y);
@@ -1888,7 +1910,7 @@ public T div(T)(in T x, in T y,
   // copy the arguments
   auto dvnd = x.dup;
   auto dvsr = y.dup;
-  auto quo = T.zero;
+  auto quo = D.zero;
 
   int diff = dvnd.expo - dvsr.expo;
   if (diff > 0) {
@@ -1919,15 +1941,15 @@ public T div(T)(in T x, in T y,
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T, U : long)(in T x, in U n,
-    Context context = T.context) if (isDecimal!T)
+public D div(D, U : long)(in D x, in U n,
+    Context context = D.context) if (isDecimal!D)
 {
   // check for NaN and division by zero
   if (x.isNaN) return invalidOperand(x);
   if (n == 0) return divisionByZero(x, n);
 
   auto dvnd = x.dup;
-  auto quo = T.zero;
+  auto quo = D.zero;
 
   int diff = dvnd.expo;
   if (diff > 0) {
@@ -1955,10 +1977,10 @@ public T div(T, U : long)(in T x, in U n,
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide' function in the specification. (p. 27-29)
-public T div(T, U)(in T x, in U z, Context context = T.context)
-    if (isDecimal!T && isConvertible!U)
+public D div(D, U)(in D x, in U z, Context context = D.context)
+    if (isDecimal!D && isConvertible!U)
 {
-  return div(x, T(z), context);
+  return div(x, D(z), context);
 }  // end div(x, z)
 
 /**
@@ -1967,7 +1989,7 @@ public T div(T, U)(in T x, in U z, Context context = T.context)
  */
  // TODO: (behavior) has non-standard flag setting
 // NOTE: flags only
-private T reduceToIdeal(T)(T x, int ideal) if (isDecimal!T) {
+private D reduceToIdeal(D)(D x, int ideal) if (isDecimal!D) {
   if (!x.isFinite()) {
     return x;
   }
@@ -1979,7 +2001,7 @@ private T reduceToIdeal(T)(T x, int ideal) if (isDecimal!T) {
   x.expo = x.expo + canshift;
 
   if (x.coff == 0) {
-    x = T.zero;
+    x = D.zero;
   }
   x.digits = countDigits(x.coff);
   return x;
@@ -2005,16 +2027,16 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("div");
   foreach (t; s) f.test(t, div(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
-/*public T integerPart(T)(T x) if (isDecimal!T)
+/*public D integerPart(D)(D x) if (isDecimal!D)
 {
   int exp = x.expo;
   int digits = x.digits;
   if (exp >= 0) return x;
   exp = -exp;
-  if (exp >= digits) return T.zero(x.sign);  // TODO: review conditions for -0
+  if (exp >= digits) return D.zero(x.sign);  // TODO: review conditions for -0
 
 
 }*/
@@ -2025,8 +2047,8 @@ unittest
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
-public T divideInteger(T)(in T x, in T y)  {
-  T quo;
+public D divideInteger(D)(in D x, in D y)  {
+  D quo;
   remQuo(x,y,quo);
   return quo;
 }
@@ -2037,7 +2059,7 @@ public T divideInteger(T)(in T x, in T y)  {
 /// Division by zero sets a flag and returns infinity.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'divide-integer' function in the specification. (p. 30)
-public T remQuo(T)(in T x, in T y, out T quo) if (isDecimal!T)
+public D remQuo(D)(in D x, in D y, out D quo) if (isDecimal!D)
 {
   // check for NaN and division by zero
   if (x.isNaN || y.isNaN) return invalidOperand(x, y);
@@ -2047,23 +2069,23 @@ public T remQuo(T)(in T x, in T y, out T quo) if (isDecimal!T)
   auto dvsr  = y.dup;
   quo.sign = dividend.sign ^ dvsr.sign;
   if (x.isZero) {
-    quo = T.zero(quo.sign);
+    quo = D.zero(quo.sign);
     return quo.dup;
   }
-//    auto rem = T.zero;
+//    auto rem = D.zero;
 
   // align the operands
   alignOps(dividend, dvsr);
 
   BigInt div, mod;
   divMod(dividend.coff, dvsr.coff, div, mod);
-  quo = T(div);
-  T rem = T(mod);
+  quo = D(div);
+  D rem = D(mod);
   // number of digits cannot exceed precision
   int digits = countDigits(quo.coff);
-  if (digits > T.precision) {
-    rem = T.nan;
-    return invalidOperation!T;
+  if (digits > D.precision) {
+    rem = D.nan;
+    return invalidOperation!D;
   }
   quo.digits = digits;
   rem.digits = countDigits(rem.coff);
@@ -2094,7 +2116,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("divInt");
   foreach (t; s) f.test(t, divideInteger(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Divides the first operand by the second and returns the
@@ -2104,15 +2126,15 @@ unittest
 /// The result may be rounded and context flags may be set.
 /// Implements the 'remainder' function in the specification. (p. 37-38)
 // TODO: (behavior) do we need a context version??
-public T remainder(T)(in T x, in T y,
-    Context context = T.context) if (isDecimal!T)
+public D remainder(D)(in D x, in D y,
+    Context context = D.context) if (isDecimal!D)
 {
   // check for NaN and division by zero
   if (x.isNaN || y.isNaN) return invalidOperand(x, y);
   if (y.isZero) return divisionByZero(x, y);
 
-  T quo = divideInteger!T(x, y,);
-  T rem = x - (y * quo);
+  D quo = divideInteger!D(x, y,);
+  D rem = x - (y * quo);
   return rem;
 }
 
@@ -2139,7 +2161,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("remainder");
   foreach (t; s) f.test(t, remainder(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Divides the first operand by the second and returns the
@@ -2148,14 +2170,14 @@ unittest
 /// The sign of the remainder is the same as that of the first operand.
 /// This function corresponds to the "remainder" function
 /// in the General Decimal Arithmetic Specification.
-public T remainderNear(T)(in T x, in T y) if (isDecimal!T)
+public D remainderNear(D)(in D x, in D y) if (isDecimal!D)
 {
   // check for NaN and division by zero
   if (x.isNaN || y.isNaN) return invalidOperand(x, y);
   if (y.isZero) return divisionByZero(x, y);
-  T quo = x/y;
+  D quo = x/y;
   // TODO: (behavior) roundToIntegralValue?
-  T rem = x - y * roundToIntegralExact(quo);
+  D rem = x - y * roundToIntegralExact(quo);
   return rem;
 }
 
@@ -2175,7 +2197,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("remNear");
   foreach (t; s) f.test(t, remainderNear(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 //--------------------------------
@@ -2256,7 +2278,7 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("quantize");
   foreach (t; s) f.test(t, quantize(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Returns the nearest integer value to the argument.
@@ -2266,7 +2288,7 @@ unittest
 public D roundToIntegralExact(D)(in D num,
     in Round mode = HALF_EVEN) if (isDecimal!D)
 {
-  if (num.isSignaling) return invalidOperation!D;
+  if (num.isSignal) return invalidOperation!D;
   if (num.isSpecial) return num;
   if (num.expo >= 0) return num;
 
@@ -2291,17 +2313,17 @@ unittest
   ];
   auto f = FunctionTest!(S,TD)("roundIntEx");
   foreach (t; s) f.test(t, roundToIntegralExact(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 // TODO: (behavior) need to re-implement this so no flags are set.
 /// The result may be rounded and context flags may be set.
 /// Implements the 'round-to-integral-value' function
 /// in the specification. (p. 39)
-public T roundToIntegralValue(T)(in T arg) if (isDecimal!T)
+public D roundToIntegralValue(D)(in D arg) if (isDecimal!D)
 {
-  T result = arg.dup;
-  if (result.isSignaling) return invalidOperation!T;
+  D result = arg.dup;
+  if (result.isSignal) return invalidOperation!D;
   if (result.isSpecial) return result;
   if (result.expo >= 0) return result;
 
@@ -2319,7 +2341,7 @@ public T roundToIntegralValue(T)(in T arg) if (isDecimal!T)
   ];
   auto f = FunctionTest!(S,TD)("roundIntVal");
   foreach (t; s) f.test(t, roundToIntegralValue(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 /// Aligns the two operands by raising the smaller exponent
@@ -2327,7 +2349,7 @@ public T roundToIntegralValue(T)(in T arg) if (isDecimal!T)
 /// coefficient so the value remains the same.
 /// Both operands will have the same exponent on their return.
 /// No flags are set and the result is not rounded.
-private void alignOps(T, U)(ref T x, ref U y) if (isDecimal!T && isDecimal!U)
+private void alignOps(D, U)(ref D x, ref U y) if (isDecimal!D && isDecimal!U)
 {
   int diff = x.expo - y.expo;
   if (diff > 0) {
@@ -2345,7 +2367,7 @@ private void alignOps(T, U)(ref T x, ref U y) if (isDecimal!T && isDecimal!U)
 /// coefficient so the value remains the same.
 /// Both operands will have the same exponent on their return.
 /// No flags are set and the result is not rounded.
-private void alignOps(T, U:long)(ref T x, U n) if (isDecimal!T)
+private void alignOps(D, U:long)(ref D x, U n) if (isDecimal!D)
 {
   int diff = x.expo;
   if (x.expo == 0) return;
@@ -2377,11 +2399,11 @@ unittest { // alignOps
 
 /// Sets the invalid-operation flag and returns a quiet NaN.
 // TODO: combine this with invalidOperand?
-package T invalidOperation(T)(ushort payload = 0)
-    if (isDecimal!T)
+package D invalidOperation(D)(ushort payload = 0)
+    if (isDecimal!D)
 {
   contextFlags.set(INVALID_OPERATION);
-  return T.nan(payload);
+  return D.nan(payload);
 }
 
 unittest {  // invalidOperation
@@ -2403,17 +2425,17 @@ unittest {  // invalidOperation
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package T invalidOperand(T)(in T x) if (isDecimal!T)
+package D invalidOperand(D)(in D x) if (isDecimal!D)
 {
   // flag the invalid operation
   contextFlags.set(INVALID_OPERATION);
   // if the operand is a quiet NaN return it.
   if (x.isQuiet) return x.dup;
   // Otherwise change the signalling NaN to a quiet NaN.
-  if (x.isSignaling) return T.nan(cast(ushort)x.coff);
+  if (x.isSignal) return D.nan(cast(ushort)x.coff);
   // if the operand is neither quiet nor signaling something else is wrong
   // so return NaN.
-  return T.nan.dup;
+  return D.nan.dup;
 }
 
 /// Returns a quiet NaN and sets the invalid-operation flag.
@@ -2424,20 +2446,20 @@ package T invalidOperand(T)(in T x) if (isDecimal!T)
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package T invalidOperand(T)(in T x, in T y) if (isDecimal!T)
+package D invalidOperand(D)(in D x, in D y) if (isDecimal!D)
 {
   // flag the invalid operation
   contextFlags.set(INVALID_OPERATION);
   // if either operand is signaling return a quiet NaN.
   // NOTE: sign is ignored.
-  if (x.isSignaling) return T.nan(cast(ushort)x.coff);
-  if (y.isSignaling) return T.nan(cast(ushort)y.coff);
+  if (x.isSignal) return D.nan(cast(ushort)x.coff);
+  if (y.isSignal) return D.nan(cast(ushort)y.coff);
   // if the operand is a quiet NaN return it.
   if (x.isQuiet) return x.dup;
   if (y.isQuiet) return y.dup;
   // if neither of the operands is quiet or signaling,
   // the operands are invalid for some reason. return a quiet NaN.
-  return T.nan;
+  return D.nan;
 }
 
 /// Checks for invalid operands and division by zero.
@@ -2446,13 +2468,13 @@ package T invalidOperand(T)(in T x, in T y) if (isDecimal!T)
 /// This is a helper function implementing checks for division by zero
 /// and invalid operation in the specification. (p. 51-52)
 // precondition: divisor is zero.
-private T divisionByZero(T)(in T dividend, in T divisor) if (isDecimal!T)
+private D divisionByZero(D)(in D dividend, in D divisor) if (isDecimal!D)
 {
   // division of zero by zero is undefined
-  if (dividend.isZero) return invalidOperation!T;
+  if (dividend.isZero) return invalidOperation!D;
   // set flag and return signed infinity
   contextFlags.set(DIVISION_BY_ZERO);
-  return T.infinity(dividend.sign ^ divisor.sign);
+  return D.infinity(dividend.sign ^ divisor.sign);
 }
 
 /// Checks for invalid operands and division by zero.
@@ -2461,14 +2483,14 @@ private T divisionByZero(T)(in T dividend, in T divisor) if (isDecimal!T)
 /// This is a helper function implementing checks for division by zero
 /// and invalid operation in the specification. (p. 51-52)
 // precondition: divisor is zero.
-private T divisionByZero(T, U:long)(in T dividend, U divisor)
-    if (isDecimal!T)
+private D divisionByZero(D, U:long)(in D dividend, U divisor)
+    if (isDecimal!D)
 {
   // division of zero by zero is undefined
-  if (dividend.isZero) return invalidOperation!T;
+  if (dividend.isZero) return invalidOperation!D;
   // set flag and return signed infinity
   contextFlags.set(DIVISION_BY_ZERO);
-  return T.infinity(dividend.sign ^ (divisor < 0));
+  return D.infinity(dividend.sign ^ (divisor < 0));
 }
 
 unittest {

@@ -337,7 +337,7 @@ private string specialForm(D)(in D num, bool shortForm = false) if (isDecimal!D)
 	}
 	else if (num.isNaN)
 	{
-		str ~= num.isSignaling ? "sNaN" : "NaN";
+		str ~= num.isSignal ? "sNaN" : "NaN";
 		if (num.coff)
 		{
 			str ~= to!string(num.coff);
@@ -591,7 +591,7 @@ public string abstractForm(D)(in D num) if (isDecimal!D)
 		}
 		return format("[%d,%s]", num.sign ? 1 : 0, "qNaN");
 	}
-	if (num.isSignaling) {
+	if (num.isSignal) {
 		if (num.coff) {
 			return format("[%d,%s%d]", num.sign ? 1 : 0, "sNaN", num.coff);
 		}
@@ -636,7 +636,7 @@ public string fullForm(D)(in D num) if (isDecimal!D)
 		}
 		return format("%s%s", num.sign ? "-" : "+", "NaN");
 	}
-	if (num.isSignaling) {
+	if (num.isSignal) {
 		if (num.coff) {
 			return format("%s%s%d", num.sign ? "-" : "+", "sNaN", num.coff);
 		}
