@@ -62,14 +62,14 @@ public enum Round {
     ceiling,
 }
 
-alias ROUND_NONE     = Round.none;
-alias HALF_EVEN      = Round.halfEven;
-alias HALF_DOWN      = Round.halfDown;
-alias HALF_UP        = Round.halfUp;
-alias ROUND_DOWN     = Round.down;
-alias ROUND_UP       = Round.up;
-alias ROUND_FLOOR    = Round.floor;
-alias ROUND_CEILING  = Round.ceiling;
+alias ROUND_NONE = Round.none;
+alias HALF_EVEN  = Round.halfEven;
+alias HALF_DOWN  = Round.halfDown;
+alias HALF_UP    = Round.halfUp;
+alias ROUND_DOWN = Round.down;
+alias ROUND_UP   = Round.up;
+alias FLOOR      = Round.floor;
+alias CEILING    = Round.ceiling;
 
 /**
  *  Flags: The available flags and trap-enablers.
@@ -161,7 +161,7 @@ public struct ContextFlags {
 	// Checks the state of the flags. If a flag is set and its
 	// trap-enabler is set, an exception is thrown.
 	@safe
-	 public void checkFlags(ubyte flags) {
+    public void checkFlags(ubyte flags) {
 		if (flags & INVALID_OPERATION && traps & INVALID_OPERATION) {
 			throw new InvalidOperationException("InvalidOperation");
 		}

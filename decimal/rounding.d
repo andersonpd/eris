@@ -10,8 +10,8 @@
  * License: <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>
  *
  * Standards:
- *	General Decimal Arithmetic Specification,
- *	Version 1.70, (25 March 2009).
+ *    General Decimal Arithmetic Specification,
+ *    Version 1.70, (25 March 2009).
  */
 
 module eris.decimal.rounding;
@@ -24,14 +24,14 @@ import std.traits;
 import std.stdio;
 
 unittest {
-	writeln("      rounding tests      ");
-	writeln("==========================");
+    writeln("      rounding tests      ");
+    writeln("==========================");
 }
 
 version(unittest)
 {
-	import std.stdio;
-	import eris.decimal.test;
+    import std.stdio;
+    import eris.decimal.test;
 }
 
 /**
@@ -40,7 +40,7 @@ version(unittest)
  */
 public D roundToPrecision(D)(in D num) if (isDecimal!D)
 {
-	return roundToPrecision(num, D.context);
+    return roundToPrecision(num, D.context);
 }
 
 /**
@@ -50,10 +50,10 @@ public D roundToPrecision(D)(in D num) if (isDecimal!D)
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
 package D roundToPrecision(D)(in D num, Context context = D.context, bool setFlags = true)
-	if (isDecimal!D)
+    if (isDecimal!D)
 {
-	return roundToPrecision(num,
-		context.precision, context.mode, setFlags);
+    return roundToPrecision(num,
+        context.precision, context.mode, setFlags);
 }
 
 /**
@@ -63,8 +63,8 @@ package D roundToPrecision(D)(in D num, Context context = D.context, bool setFla
  */
 //@safe
 package D roundToPrecision(D)(in D num, int precision, Round mode = D.mode,
-		bool setFlags = true)
-	if (isDecimal!D)
+        bool setFlags = true)
+    if (isDecimal!D)
 {
     D copy = num;
     // check for overflow before rounding and copy the input
@@ -79,22 +79,22 @@ package D roundToPrecision(D)(in D num, int precision, Round mode = D.mode,
     // handle subnormal numbers
     if (!copy.isZero && copy.isSubnormal())
     {
-	    if (setFlags) contextFlags.set(SUBNORMAL);
-//	    int diff = copy.adjExpo - copy.tinyExpo;
-	    int subprecision = copy.adjExpo - copy.tinyExpo + 1;
-	    // use the subnormal precision and round
+        if (setFlags) contextFlags.set(SUBNORMAL);
+//        int diff = copy.adjExpo - copy.tinyExpo;
+        int subprecision = copy.adjExpo - copy.tinyExpo + 1;
+        // use the subnormal precision and round
         if (precision < subprecision) subprecision = precision;
-	    if (copy.digits > subprecision) {
-		    copy = modeRound(copy, subprecision, mode, setFlags);
-	    }
-	    // if the result of rounding a subnormal is zero
-	    // the clamped flag is set. (Spec. p. 51)
-	    if (copy.adjExpo < copy.tinyExpo)
+        if (copy.digits > subprecision) {
+            copy = modeRound(copy, subprecision, mode, setFlags);
+        }
+        // if the result of rounding a subnormal is zero
+        // the clamped flag is set. (Spec. p. 51)
+        if (copy.adjExpo < copy.tinyExpo)
         {
-		    copy.expo = copy.tinyExpo;
-		    if (setFlags) contextFlags.set(CLAMPED);
-	    }
-	    return copy;
+            copy.expo = copy.tinyExpo;
+            if (setFlags) contextFlags.set(CLAMPED);
+        }
+        return copy;
     }
     // zero values aren't rounded, but they are checked for
     // subnormal exponents.
@@ -118,21 +118,21 @@ package D roundToPrecision(D)(in D num, int precision, Round mode = D.mode,
 } // end roundToPrecision()
 
 unittest
-{	// roundToPrecision
-	static struct S { D64 x; int n; D64 expect; }
-	S[] s =
-	[
-		{ "9999", 3, "1.00E+4" },
-		{ "1234567890", 3, "1.23E+9" },
-		{ "1234567890", 4, "1.235E+9" },
-		{ "1234567890", 5, "1.2346E+9" },
-		{ "1234567890", 6, "1.23457E+9" },
-		{ "1234567890", 7, "1.234568E+9" },
-		{ "1234567890", 8, "1.2345679E+9" },
-		{ "1235",  3, "1.24E+3" },
-		{ "12359", 3, "1.24E+4" },
-		{ "1245",  3, "1.24E+3" },
-		{ "12459", 3, "1.25E+4" },
+{    // roundToPrecision
+    static struct S { D64 x; int n; D64 expect; }
+    S[] s =
+    [
+        { "9999", 3, "1.00E+4" },
+        { "1234567890", 3, "1.23E+9" },
+        { "1234567890", 4, "1.235E+9" },
+        { "1234567890", 5, "1.2346E+9" },
+        { "1234567890", 6, "1.23457E+9" },
+        { "1234567890", 7, "1.234568E+9" },
+        { "1234567890", 8, "1.2345679E+9" },
+        { "1235",  3, "1.24E+3" },
+        { "12359", 3, "1.24E+4" },
+        { "1245",  3, "1.24E+3" },
+        { "12459", 3, "1.25E+4" },
         // subnormal numbers
         { "1.234567890123456E-370", 16, "1.23456789012346E-370" },
         { "1.234567890123456E-380", 12, "1.2346E-380" },
@@ -147,16 +147,16 @@ unittest
         { "0.1E-384", 3, "0E-384" },
         { "1234E-385", 3, "1.23E-382" },
         // extreme range zeros
-		{ "0E+369", 3, "0E-368" },
-		{ "0E+370", 3, "0E-368" },
+        { "0E+369", 3, "0E-368" },
+        { "0E+370", 3, "0E-368" },
         // TODO: I don't think overrange zeros should have tinyExpo
-		{ "0E-368", 3, "0E-368" },
-		{ "0E-369", 3, "0E-369" },
-		{ "0E-384", 3, "0E-384" },
-		{ "0E-385", 3, "0E-384" },
-	];
-	auto f = FunctionTest!(S,D64)("roundPrec");
-	foreach (t; s) f.test(t, roundToPrecision!D64(t.x,t.n));
+        { "0E-368", 3, "0E-368" },
+        { "0E-369", 3, "0E-369" },
+        { "0E-384", 3, "0E-384" },
+        { "0E-385", 3, "0E-384" },
+    ];
+    auto f = FunctionTest!(S,D64)("roundPrec");
+    foreach (t; s) f.test(t, roundToPrecision!D64(t.x,t.n));
     writefln(f.report);
 }
 
@@ -192,9 +192,9 @@ private D overflow(D)(in D num, Round mode = D.mode,
         return D.infinity(num.sign);
     case ROUND_DOWN:
         return num.sign ? D.max.copyNegate : D.max;
-    case ROUND_CEILING:
+    case CEILING:
         return num.sign ? D.max.copyNegate : D.infinity;
-    case ROUND_FLOOR:
+    case FLOOR:
         return num.sign ? D.infinity(true) : D.max;
     default:
         return num;
@@ -203,7 +203,7 @@ private D overflow(D)(in D num, Round mode = D.mode,
 
 // TODO: these tests aren't very useful
 unittest
-{	// overflow
+{    // overflow
     static struct S { D64 num; Round mode; D64 expect; }
     S[] s =
     [
@@ -227,110 +227,104 @@ unittest
  */
 private D modeRound(D)(D num, int precision, Round mode = D.mode,
         bool setFlags = true)
-	if (isDecimal!D)
+    if (isDecimal!D)
 {
     // finite numbers only
-	if (!num.isFinite) return num;
+    if (!num.isFinite) return num;
     // check rounding mode
     if (mode == ROUND_NONE) return num;
     // if the number is short enough, don't round
     if (num.digits <= precision) return num;
 
     D copy = overflow(num, mode, setFlags);
-	// did it overflow ?
-	if (!copy.isFinite) return copy;
+    // did it overflow ?
+    if (!copy.isFinite) return copy;
 
-	// calculate the remainder
-	D remainder = getRemainder(copy, precision);
-	// if the number wasn't rounded, return
-	if (remainder.isZero) return copy;
+    // calculate the remainder
+    D remainder = getRemainder(copy, precision);
+    // if the number wasn't rounded, return
+    if (remainder.isZero) return copy;
 
-	// check for deleted leading zeros in the remainder.
-	// makes a difference only in round-half modes.
-	if (mode == HALF_EVEN || mode == HALF_UP || mode == HALF_DOWN)
+    // check for deleted leading zeros in the remainder.
+    // makes a difference only in round-half modes.
+    if (mode == HALF_EVEN || mode == HALF_UP || mode == HALF_DOWN)
     {
         if (countDigits(remainder.coff) != remainder.digits)
         {
-    		return copy;
+            return copy;
         }
-	}
+    }
 
     switch (mode) {
     case ROUND_UP:
         incrementAndRound(copy);
         break;
     case ROUND_DOWN:
-	    break;
-    case ROUND_CEILING:
-	    if (!num.sign) incrementAndRound(copy);
-	    break;
-    case ROUND_FLOOR:
-	    if (num.sign) incrementAndRound(copy);
-	    break;
+        break;
+    case CEILING:
+        if (!num.sign) incrementAndRound(copy);
+        break;
+    case FLOOR:
+        if (num.sign) incrementAndRound(copy);
+        break;
     case HALF_UP:
-	    if (firstDigit(remainder.coff) >= 5)
-		    incrementAndRound(copy);
-	    break;
+        if (firstDigit(remainder.coff) >= 5)
+            incrementAndRound(copy);
+        break;
     case HALF_DOWN:
-	    if (testFive(remainder.coff) > 0)
-		    incrementAndRound(copy);
-	    break;
+        if (testFive(remainder.coff) > 0)
+            incrementAndRound(copy);
+        break;
     case HALF_EVEN:
         switch (testFive(remainder.coff))
         {
         case -1:
-	        break;
+            break;
         case 1:
-	        incrementAndRound(copy);
-	        break;
+            incrementAndRound(copy);
+            break;
         case 0:
-	        if (lastDigit(copy.coff) & 1) {
-		        incrementAndRound(copy);
-	        }
-	        break;
+            if (lastDigit(copy.coff) & 1) {
+                incrementAndRound(copy);
+            }
+            break;
         default:
             break;
         }
         break;
     default:
         break;
-    }	// end switch (mode)
+    }    // end switch (mode)
     return overflow(copy, mode, setFlags);
 }  // end modeRound()
 
 ///
 unittest
 {
-    auto d = D64("12345500");
- if (!__ctfe) writefln("d = %s", d);
- if (!__ctfe) writefln("modeRound(d, 5, ROUND_NONE) = %s", modeRound(d,5,ROUND_NONE));
- if (!__ctfe) writefln("modeRound(d, 5, ROUND_UP) = %s", modeRound(d,5,ROUND_UP));
- if (!__ctfe) writefln("modeRound(d, 5, ROUND_DOWN) = %s", modeRound(d,5,ROUND_DOWN));
- if (!__ctfe) writefln("modeRound(d, 5, ROUND_CEILING) = %s", modeRound(d,5,ROUND_CEILING));
- if (!__ctfe) writefln("modeRound(d, 5, ROUND_FLOOR) = %s", modeRound(d,5,ROUND_FLOOR));
- if (!__ctfe) writefln("modeRound(d, 5, HALF_UP) = %s", modeRound(d,5,HALF_UP));
- if (!__ctfe) writefln("modeRound(d, 5, HALF_EVEN) = %s", modeRound(d,5,HALF_EVEN));
- if (!__ctfe) writefln("modeRound(d, 5, HALF_DOWN) = %s", modeRound(d,5,HALF_DOWN));
 }
 
 unittest
-{	// modeRound
-	static struct S { D64 x; int p; Round r; D64 expect; }
-	S[] s =
-	[
-		{ "1000",    5, HALF_EVEN,  "1000" },
-		{ "1000000", 5, HALF_EVEN,  "10000E+2" },
-		{ "99999",   5, HALF_EVEN,  "99999" },
-		{ "1234550", 5, HALF_EVEN,  "1.2346E+6" },
-		{ "1234550", 5, ROUND_DOWN, "1.2345E+6" },
-		{ "1234550", 5, ROUND_UP,   "1.2346E+6" },
-	];
-	auto f = FunctionTest!(S,D64)("modeRound");
-	foreach (t; s) f.test(t, modeRound!D64(t.x,t.p,t.r));
+{    // modeRound
+    static struct S { D64 x; int p; Round r; D64 expect; }
+    S[] s =
+    [
+        { "1000",    5, HALF_EVEN,  "1000" },
+        { "1000000", 5, HALF_EVEN,  "10000E+2" },
+        { "99999",   5, HALF_EVEN,  "99999" },
+        { "1234550", 5, ROUND_NONE, "1234550" },
+        { "1234550", 5, ROUND_UP,   "1.2346E+6" },
+        { "1234550", 5, ROUND_DOWN, "1.2345E+6" },
+        { "1234550", 5, HALF_UP,    "1.2346E+6" },
+        { "1234550", 5, HALF_EVEN,  "1.2346E+6" },
+        { "1234550", 5, HALF_DOWN,  "1.2345E+6" },
+        { "1234550", 5, FLOOR,      "1.2345E+6" },
+        { "1234550", 5, CEILING,    "1.2346E+6" },
+    ];
+    auto f = FunctionTest!(S,D64)("modeRound");
+    foreach (t; s) f.test(t, modeRound!D64(t.x,t.p,t.r));
     writefln(f.report);
 }
 
-// TODO: move this into overflow -- it's the only function that calls it.
 /**
  *  Shortens the coefficient of the number to the specified precision,
  *  adjusts the exponent, and returns the (unsigned) remainder.
@@ -365,13 +359,13 @@ private D getRemainder(D) (ref D num, int precision) if (isDecimal!D)
 }
 
 unittest
-{	// getRemainder
+{    // getRemainder
     static struct S { D64 x; int p; D64 expect; }
     S[] s =
     [
-	    { 1234567890123456L, 5, "67890123456" },
+        { 1234567890123456L, 5, "67890123456" },
     ];
-    auto f = FunctionTest!(S,D64)("getRemainder");
+    auto f = FunctionTest!(S,D64)("remainder");
     foreach (t; s) f.test(t, getRemainder!D64(t.x,t.p));
        writefln(f.report);
 }
@@ -383,51 +377,59 @@ unittest
  */
 private void incrementAndRound(D)(ref D num) if (isDecimal!D)
 {
-	// if num is zero
-	if (num.digits == 0) {
-		num.coff = 1;
-		num.digits = 1;
-		return;
-	}
-	num.coff = num.coff + 1;
-	// TODO: (efficiency) is there a less expensive test?
-	if (lastDigit(num.coff) == 0) {
-		if (num.coff / pow10b(num.digits) > 0) {
-			num.coff = num.coff / 10;
-			num.expo = num.expo + 1;
-		}
-	}
+    // if num is zero
+    if (num.digits == 0) {
+        num.coff = 1;
+        num.digits = 1;
+        return;
+    }
+    num.coff = num.coff + 1;
+    // TODO: (efficiency) is there a less expensive test?
+    if (lastDigit(num.coff) == 0) {
+        if (num.coff / pow10b(num.digits) > 0) {
+            num.coff = num.coff / 10;
+            num.expo = num.expo + 1;
+        }
+    }
 }
 
-/*unittest
-{	// incrementAndRound
-	static struct S { D64 x; int p; D64 expect; }
-	S[] s =
-	[
-		{ 1234567890123456L, 5, "67890123456" },
-	];
-	auto f = FunctionTest!(S,D64)("incrementAndRound");
-	foreach (t; s) f.test(t, incrementAndRound!D64(t.x,t.p));
+unittest
+{    // incrementAndRound
+    D64 incr(D64 num)
+    {
+        incrementAndRound(num);
+        return num;
+    }
+
+    static struct S { D64 num; D64 expect; }
+    S[] s =
+    [
+        {  10, 11 },
+        {  19, 20 },
+        { 999, "1.00E+3" },
+    ];
+    auto f = FunctionTest!(S,D64)("increment");
+    foreach (t; s) f.test(t, incr(t.num));
     writefln(f.report);
-}*/
-
-unittest {	// increment
-	write("-- increment&round..");
-	D64 actual, expect;
-	actual = 10;
-	expect = 11;
-	incrementAndRound(actual);
-	assertEqual(actual, expect);
-	actual = 19;
-	expect = 20;
-	incrementAndRound(actual);
-	assertEqual(actual, expect);
-	actual = 999;
-	expect = "1.00E+3";
-	incrementAndRound(actual);
-	assertEqual(actual, expect);
-	writeln("passed");
 }
+
+/*unittest {    // increment
+    write("-- increment&round..");
+    D64 actual, expect;
+    actual = 10;
+    expect = 11;
+    incrementAndRound(actual);
+    assertEqual(actual, expect);
+    actual = 19;
+    expect = 20;
+    incrementAndRound(actual);
+    assertEqual(actual, expect);
+    actual = 999;
+    expect = "1.00E+3";
+    incrementAndRound(actual);
+    assertEqual(actual, expect);
+    writeln("passed");
+}*/
 
 /**
  *  Returns -1, 1, or 0 if the remainder is less than, more than,
@@ -436,27 +438,26 @@ unittest {	// increment
  */
 private int testFive(in BigInt x)
 {
-	int num = countDigits(x);
-	BigInt btens = pow10b(num - 1);
-	int first = cast(int)(x / btens);
-// writefln("first = %s", first);
-	if (first < 5) return -1;
-	if (first > 5) return +1;
-	BigInt zeros = x % btens;
-	return zeros ? 1 : 0;
+    int num = countDigits(x);
+    BigInt btens = pow10b(num - 1);
+    int first = cast(int)(x / btens);
+    if (first < 5) return -1;
+    if (first > 5) return +1;
+    BigInt zeros = x % btens;
+    return zeros ? 1 : 0;
 }
 
 unittest
-{	// testFive
-	static struct S { BigInt x; int expect; }
-	S[] s =
-	[
-		{ "5000000000000000000000",  0 },
-		{ "4999999999999999999999", -1 },
-		{ "50000000000000000000000000000000000000000000000001", 1 },
-	];
-	auto f = FunctionTest!(S,int)("testFive");
-	foreach (t; s) f.test(t, testFive(t.x));
+{    // testFive
+    static struct S { BigInt x; int expect; }
+    S[] s =
+    [
+        { "5000000000000000000000",  0 },
+        { "4999999999999999999999", -1 },
+        { "50000000000000000000000000000000000000000000000001", 1 },
+    ];
+    auto f = FunctionTest!(S,int)("testFive");
+    foreach (t; s) f.test(t, testFive(t.x));
     writefln(f.report);
 }
 
@@ -491,55 +492,55 @@ private enum ten = 10UL;
  *  powers of ten from 10^^0 to 10^^19
  */
 private enum ulong[20] pow10UL = [ten^^0,
-		ten^^1,  ten^^2,  ten^^3,  ten^^4,  ten^^5,  ten^^6,
-		ten^^7,  ten^^8,  ten^^9,  ten^^10, ten^^11, ten^^12,
-		ten^^13, ten^^14, ten^^15, ten^^16, ten^^17, ten^^18, ten^^19];
+        ten^^1,  ten^^2,  ten^^3,  ten^^4,  ten^^5,  ten^^6,
+        ten^^7,  ten^^8,  ten^^9,  ten^^10, ten^^11, ten^^12,
+        ten^^13, ten^^14, ten^^15, ten^^16, ten^^17, ten^^18, ten^^19];
 
 /**
  * Returns the number of decimal digits in a non-negative big integer
  */
 public int countDigits(T)(in T m)
-	if (is(T == BigInt) || isUnsigned!T)
+    if (is(T == BigInt) || isUnsigned!T)
 {
     if (m == 0)
     {
-	    return 0;
+        return 0;
     }
 
     static if (is(T == BigInt))
     {
-	    if (m.ulongLength == 1)
-	    {
-		    return countDigits(m.getDigit(0));
-	    }
+        if (m.ulongLength == 1)
+        {
+            return countDigits(m.getDigit(0));
+        }
 
-	    int count;
-	    ulong n = clipDigits(m, count);
-	    return count + countDigits(n);
+        int count;
+        ulong n = clipDigits(m, count);
+        return count + countDigits(n);
     }
     else
     {
-	    auto n = cast(ulong)m;
-	    // special cases:
-	    if (n == 0) return 0;
-	    if (n < 10) return 1;
-	    if (n >= pow10UL[19]) return 20;
-	    // use a binary search to count the digits
-	    int min = 2;
-	    int max = 19;
-	    while (min <= max)
-	    {
-		    int mid = (min + max)/2;
-		    if (n < pow10UL[mid])
-		    {
-			    max = mid - 1;
-		    }
-		    else
-		    {
-			    min = mid + 1;
-		    }
-	    }
-	    return min;
+        auto n = cast(ulong)m;
+        // special cases:
+        if (n == 0) return 0;
+        if (n < 10) return 1;
+        if (n >= pow10UL[19]) return 20;
+        // use a binary search to count the digits
+        int min = 2;
+        int max = 19;
+        while (min <= max)
+        {
+            int mid = (min + max)/2;
+            if (n < pow10UL[mid])
+            {
+                max = mid - 1;
+            }
+            else
+            {
+                min = mid + 1;
+            }
+        }
+        return min;
     }
 }
 
@@ -553,41 +554,41 @@ unittest // countDigits
 }
 
 unittest
-{	// countDigits
-	static struct S { BigInt n; int expect; }
-	S[] s =
-	[
-		{ "123456", 6 },
-		{ "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901", 101 },
-		{ "1234567890123456789012345678901234567890123456789012", 52 },
-	];
-	auto f = FunctionTest!(S,int)("countDigits");
-	foreach (t; s) f.test(t, countDigits(t.n));
+{    // countDigits
+    static struct S { BigInt n; int expect; }
+    S[] s =
+    [
+        { "123456", 6 },
+        { "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901", 101 },
+        { "1234567890123456789012345678901234567890123456789012", 52 },
+    ];
+    auto f = FunctionTest!(S,int)("countDigits");
+    foreach (t; s) f.test(t, countDigits(t.n));
     writefln(f.report);
 }
 
 unittest
 {  // countDigits
-	static struct S { ulong n; int expect; }
-	S[] s =
-	[
-		{				  7,  1 },
-		{				 13,  2 },
-		{				999,  3 },
-		{			   9999,  4 },
-		{			  25978,  5 },
-		{			2008617,  7 },
-		{		 1234567890, 10 },
-		{		10000000000, 11 },
-		{	123456789012345, 15 },
-		{  1234567890123456, 16 },
-		{123456789012345678, 18 },
-		{		   long.max, 19 },
-		{		  ulong.max, 20 },
-		{		  ulong.min,  0 },
-	];
-	auto f = FunctionTest!(S,int)("countDigits");
-	foreach (t; s) f.test(t, countDigits(t.n));
+    static struct S { ulong n; int expect; }
+    S[] s =
+    [
+        {                  7,  1 },
+        {                 13,  2 },
+        {                999,  3 },
+        {               9999,  4 },
+        {              25978,  5 },
+        {            2008617,  7 },
+        {         1234567890, 10 },
+        {        10000000000, 11 },
+        {    123456789012345, 15 },
+        {  1234567890123456, 16 },
+        {123456789012345678, 18 },
+        {           long.max, 19 },
+        {          ulong.max, 20 },
+        {          ulong.min,  0 },
+    ];
+    auto f = FunctionTest!(S,int)("countDigits");
+    foreach (t; s) f.test(t, countDigits(t.n));
     writefln(f.report);
 }
 
@@ -595,93 +596,93 @@ unittest
 /// Clips decimal digits until a single ulong digit is left.
 private ulong clipDigits(in BigInt big, out int count)
 {
-	if (big <= ulong.max) return cast(ulong)big;
+    if (big <= ulong.max) return cast(ulong)big;
 
-	enum BigInt tenQuint = 10UL^^19;
-	count = 0;
-	BigInt quotient = big;
-	while (quotient > tenQuint) {
-		quotient /= tenQuint;
-		count += 19;
-	}
-	return cast(ulong)quotient;
+    enum BigInt tenQuint = 10UL^^19;
+    count = 0;
+    BigInt quotient = big;
+    while (quotient > tenQuint) {
+        quotient /= tenQuint;
+        count += 19;
+    }
+    return cast(ulong)quotient;
 }
 
 unittest // clipDigits
 {
-	int count;
-	BigInt big;
-	big = BigInt("123456");
-	assert(clipDigits(big, count) == 123456);
-	assert(clipDigits(BigInt(ulong.max), count) == ulong.max);
-	big = BigInt("1234567890_1234567890_1234567890_1234567890_1234567890");
-	assert(clipDigits(big, count) == 123456789012);
+    int count;
+    BigInt big;
+    big = BigInt("123456");
+    assert(clipDigits(big, count) == 123456);
+    assert(clipDigits(BigInt(ulong.max), count) == ulong.max);
+    big = BigInt("1234567890_1234567890_1234567890_1234567890_1234567890");
+    assert(clipDigits(big, count) == 123456789012);
 }
 
 /// returns the first decimal digit of the number
 public uint firstDigit(T)(T n)
-	if (is(T == BigInt) || isUnsigned!T)
+    if (is(T == BigInt) || isUnsigned!T)
 {
-	if (n == 0) return 0;
-	if (n < 10) return cast(int) n;
-	static if (is(T == BigInt))
-	{
-		int count;
-		return firstDigit(clipDigits(n,count));
-	}
-	else
-	{
-		int digits = countDigits(n);
-		return cast(uint)(n / pow10UL[digits-1]);
-	}
+    if (n == 0) return 0;
+    if (n < 10) return cast(int) n;
+    static if (is(T == BigInt))
+    {
+        int count;
+        return firstDigit(clipDigits(n,count));
+    }
+    else
+    {
+        int digits = countDigits(n);
+        return cast(uint)(n / pow10UL[digits-1]);
+    }
 }
 
 ///
 unittest
 {
-	assert(firstDigit(BigInt("8234567890123456789012345678901234567890123")) == 8);
-	assert(firstDigit(0U) == 0);
-	assert(firstDigit(7U) == 7);
-	assert(firstDigit(9999UL) == 9);
-	assert(firstDigit(uint.max) == 4);
-	assert(firstDigit(ulong.max) == 1);
+    assert(firstDigit(BigInt("8234567890123456789012345678901234567890123")) == 8);
+    assert(firstDigit(0U) == 0);
+    assert(firstDigit(7U) == 7);
+    assert(firstDigit(9999UL) == 9);
+    assert(firstDigit(uint.max) == 4);
+    assert(firstDigit(ulong.max) == 1);
 }
 
-unittest	// move to regression testing
-{	// firstDigit(BigInt)
-	static struct S { BigInt n; uint expect; }
-	S[] s =
-	[
-		{ "5000000000000000000000", 5 },
-		{ "45500000001209854300023400000000000000", 4 },
-		{ "82345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905", 8 },
-	];
-	auto f = FunctionTest!(S,uint)("1stDigit(b)");
-	foreach (t; s) f.test(t, firstDigit(t.n));
+unittest    // move to regression testing
+{    // firstDigit(BigInt)
+    static struct S { BigInt n; uint expect; }
+    S[] s =
+    [
+        { "5000000000000000000000", 5 },
+        { "45500000001209854300023400000000000000", 4 },
+        { "82345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678905", 8 },
+    ];
+    auto f = FunctionTest!(S,uint)("1stDigit(b)");
+    foreach (t; s) f.test(t, firstDigit(t.n));
     writefln(f.report);
 }
 
 unittest
-{	// firstDigit(ulong)
-	static struct S { ulong n; uint expect; }
-	S[] s =
-	[
-		{ 0, 0 },
-		{ 7, 7 },
-		{ 13, 1 },
-		{ 999, 9 },
-		{ 9999, 9 },
-		{ 25987, 2 },
-		{ 5008617, 5 },
-		{ 3234567890, 3 },
-		{ 10000000000, 1 },
-		{ 823456789012345, 8 },
-		{ 4234567890123456, 4 },
-		{ 623456789012345678, 6 },
-		{long.max, 9 }
-	];
-	auto f = FunctionTest!(S,uint)("1stDigit(u)");
-	foreach (t; s) f.test(t, firstDigit(t.n));
+{    // firstDigit(ulong)
+    static struct S { ulong n; uint expect; }
+    S[] s =
+    [
+        { 0, 0 },
+        { 7, 7 },
+        { 13, 1 },
+        { 999, 9 },
+        { 9999, 9 },
+        { 25987, 2 },
+        { 5008617, 5 },
+        { 3234567890, 3 },
+        { 10000000000, 1 },
+        { 823456789012345, 8 },
+        { 4234567890123456, 4 },
+        { 623456789012345678, 6 },
+        {long.max, 9 }
+    ];
+    auto f = FunctionTest!(S,uint)("1stDigit(u)");
+    foreach (t; s) f.test(t, firstDigit(t.n));
     writefln(f.report);
 }
 
@@ -693,126 +694,125 @@ unittest
  */
 public BigInt shiftBig(BigInt num, int n)
 {
-	if (n > 0) {
-		num *= pow10b(n);
-	}
-	if (n < 0) {
-		num /= pow10b(-n);
-	}
-	return num;
+    if (n > 0) {
+        num *= pow10b(n);
+    }
+    if (n < 0) {
+        num /= pow10b(-n);
+    }
+    return num;
 }
 
 ///
-unittest {	// shiftBig(BigInt)
-	BigInt big;
-	int n;
-	big = 12345;
-	n = 2;
-	assert(shiftBig(big, n) == 1234500);
-	big = 1234567890;
-	n = 7;
-	assert(shiftBig(big, n) == BigInt(12345678900000000));
-	big = 12;
-	n = 2;
-	assert(shiftBig(big, n) == 1200);
-	big = 12;
-	n = 4;
-	assert(shiftBig(big, n) == 120000);
-	BigInt res;
-	big = BigInt("9223372036854775807");
-	n = -10;
-	assert(shiftBig(big, n) == BigInt("922337203"));
-	big = BigInt("9223372036854775808");
-	n = -10;
-	assert(shiftBig(big, n) == BigInt("922337203"));
+unittest {    // shiftBig(BigInt)
+    BigInt big;
+    int n;
+    big = 12345;
+    n = 2;
+    assert(shiftBig(big, n) == 1234500);
+    big = 1234567890;
+    n = 7;
+    assert(shiftBig(big, n) == BigInt(12345678900000000));
+    big = 12;
+    n = 2;
+    assert(shiftBig(big, n) == 1200);
+    big = 12;
+    n = 4;
+    assert(shiftBig(big, n) == 120000);
+    BigInt res;
+    big = BigInt("9223372036854775807");
+    n = -10;
+    assert(shiftBig(big, n) == BigInt("922337203"));
+    big = BigInt("9223372036854775808");
+    n = -10;
+    assert(shiftBig(big, n) == BigInt("922337203"));
 }
 
-// TODO: split into BigInt, ulong?
 ///  Returns the last digit of the argument.
 public int lastDigit(in BigInt big)
 {
-	auto digit = big % BigInt(10);
-	if (digit < 0) digit = -digit;
-	return digit.toInt;
+    auto digit = big % BigInt(10);
+    if (digit < 0) digit = -digit;
+    return digit.toInt;
 }
 
 unittest
-{	// lastDigit
-	static struct S { BigInt n; int expect; }
-	S[] s =
-	[
-		{  7, 7 },
-		{ -13, 3 },
-		{  999, 9 },
-		{ -9999, 9 },
-		{  25987, 7 },
-		{ -5008615, 5 },
-		{  3234567893, 3 },
-		{ -10000000000, 0 },
-		{  823456789012348, 8 },
-		{  4234567890123456, 6 },
-		{  623456789012345674, 4 },
-		{  long.max, 7 },
-	];
-	auto f = FunctionTest!(S,int)("lastDigit");
-	foreach (t; s) f.test(t, lastDigit(t.n));
+{    // lastDigit
+    static struct S { BigInt n; int expect; }
+    S[] s =
+    [
+        {  7, 7 },
+        { -13, 3 },
+        {  999, 9 },
+        { -9999, 9 },
+        {  25987, 7 },
+        { -5008615, 5 },
+        {  3234567893, 3 },
+        { -10000000000, 0 },
+        {  823456789012348, 8 },
+        {  4234567890123456, 6 },
+        {  623456789012345674, 4 },
+        {  long.max, 7 },
+    ];
+    auto f = FunctionTest!(S,int)("lastDigit");
+    foreach (t; s) f.test(t, lastDigit(t.n));
     writefln(f.report);
 }
 
 ///  Returns the number of trailing zeros in the argument.
 public uint trailingZeros(BigInt n, uint digits)
 {
-	// shortcuts for frequent values
-	if (n ==  0) return 0;
-	if (n %  10) return 0;
-	if (n % 100) return 1;
-	// find by binary search
-	uint min = 3;
-	uint max = digits - 1;
-	while (min <= max) {
-		int mid = (min + max)/2;
-		if (n % pow10b(mid) != 0)
-		{
-			max = mid - 1;
-		}
-		else
-		{
-			min = mid + 1;
-		}
-	}
-	return max;
+    // shortcuts for frequent values
+    if (n ==  0) return 0;
+    if (n %  10) return 0;
+    if (n % 100) return 1;
+    // find by binary search
+    uint min = 3;
+    uint max = digits - 1;
+    while (min <= max) {
+        int mid = (min + max)/2;
+        if (n % pow10b(mid) != 0)
+        {
+            max = mid - 1;
+        }
+        else
+        {
+            min = mid + 1;
+        }
+    }
+    return max;
 }
 ///
 unittest
 {
-	auto big = BigInt("1234567890123456789012300000000000");
-	auto digits = countDigits(big);
-	assert(digits == 34);
-	auto zeros = trailingZeros(big, digits);
-	assert(zeros == 11);
+    auto big = BigInt("1234567890123456789012300000000000");
+    auto digits = countDigits(big);
+    assert(digits == 34);
+    auto zeros = trailingZeros(big, digits);
+    assert(zeros == 11);
 }
 
 
 ///  Trims any trailing zeros and returns the number of zeros trimmed.
 public int clipZeros(ref BigInt n, uint digits)
 {
-	if (digits <= 0) return 0;
-	auto zeros = trailingZeros(n, digits);
-	if (zeros == 0) return 0;
-	n /= pow10b(zeros);
-	return zeros;
+    if (digits <= 0) return 0;
+    auto zeros = trailingZeros(n, digits);
+    if (zeros == 0) return 0;
+    n /= pow10b(zeros);
+    return zeros;
 }
 
 ///
 unittest {
-	auto big = BigInt("123456789000000");
-	auto digits = countDigits(big);
-	assert(digits == 15);
-	auto zeros = clipZeros(big, digits);
-	assert(zeros == 6);
+    auto big = BigInt("123456789000000");
+    auto digits = countDigits(big);
+    assert(digits == 15);
+    auto zeros = clipZeros(big, digits);
+    assert(zeros == 6);
 }
 
 unittest {
-	writeln("==========================");
+    writeln("==========================");
 }
 

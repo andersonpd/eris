@@ -119,14 +119,13 @@ unittest
 		{ "12.34567",	"%F",	"12.345670" },
 		{ "12.345",		"%F",	"12.345000" },
 		// decimal or exponential. note change in meaning of precision
-		{ "12.3456789",	"%G",	"1.2344568E+01" },
+		{ "12.3456789",	"%G",	"1.234568E+01" },
 		{ "12.34567",	"%G",	"1.234567E+01" },
 		{ "12.345",		"%G",	"12.345000"    },
 		// width
 		{ "12.34567",	"%12.4G",	"  1.2346E+01" },
 		{ "12.345",		"%12G",	"   12.345000" },
 		// flags
-//		{ "12.34567",	"%G",	"1.224567E+01" },
 		{ "12.34567",	"%G",	"1.234567E+01"},
 		{ "12.345",		"%+G",		"+12.345000"   },
 		{ "12.345",		"%-12G",	"12.345000   " },
@@ -792,7 +791,6 @@ public D fromString(D)(string inStr, bool round = true) if (isDecimal!D)
 	{
 		num.expo = 0;
 	}
-//if (!__ctfe) writefln("num.exponent = %s", num.exponent);
 
 	// remove trailing decimal point
 	if (endsWith(str, "."))
@@ -1099,33 +1097,33 @@ public U toBid(D, U = ulong)(const D num)
 
 unittest
 {	// toBid
-	static struct S { TD num; ulong bid; }
-	S[] s =
-	[
-		{ "NaN",		0x7C00000000000000 },
-		{ "-NaN",		0x7C00000000000000 },
-		{ "0.0",		0x31A0000000000000 },
-		{ "0.0E1",		0x31C0000000000000 },	// NOTE: 0E3 caused a linking error
-		{ "0.0E2",		0x31E0000000000000 },	// NOTE: 0E3 caused a linking error
-		{ "0.0E3",		0x3200000000000000 },	// NOTE: 0E3 caused a linking error
-		{ "sNaN",		0x7E00000000000000 },
-		{ "-sNaN",		0x7E00000000000000 },
-		{ "Inf",		0x7800000000000000 },
-		{ "-Inf",		0xF800000000000000 },
-		{ "0",			0x31C0000000000000 },
-		{ "1",			0x31C0000000000001 },
-		{ "2",			0x31C0000000000002 },
-		{ ".1",			0x31A0000000000001 },
-		{ "-1",			0xB1C0000000000001 },
-		{ "2.0E3",		0x3200000000000014 },
-		{ "2E3",		0x3220000000000002 },
-		{ "20E2",		0x3200000000000014 },
-		{ TD.PI, 		0x2FEB29430A256D21 },
-		{ 9007199254740991, 		0x31DFFFFFFFFFFFFF },
-		{ 9007199254740992, 		0x6C70000000000000 },
-	];
-	auto f = FunctionTest!(S, ulong, "%016X")("toBid");
-	foreach (t; s) f.test(t, toBid!(TD,ulong)(t.num));
+    static struct S { TD num; ulong bid; }
+    S[] s =
+    [
+        { "NaN",	0x7C00000000000000 },
+        { "-NaN",	0x7C00000000000000 },
+        { "0.0",	0x31A0000000000000 },
+        { "0.0E1",	0x31C0000000000000 },
+        { "0.0E2",	0x31E0000000000000 },
+        { "0.0E3",	0x3200000000000000 },
+        { "sNaN",	0x7E00000000000000 },
+        { "-sNaN",	0x7E00000000000000 },
+        { "Inf",	0x7800000000000000 },
+        { "-Inf",	0xF800000000000000 },
+        { "0",		0x31C0000000000000 },
+        { "1",		0x31C0000000000001 },
+        { "2",		0x31C0000000000002 },
+        { ".1",		0x31A0000000000001 },
+        { "-1",		0xB1C0000000000001 },
+        { "2.0E3",	0x3200000000000014 },
+        { "2E3",	0x3220000000000002 },
+        { "20E2",	0x3200000000000014 },
+        { TD.PI, 	0x2FEB29430A256D21 },
+        { 9007199254740991, 0x31DFFFFFFFFFFFFF },
+        { 9007199254740992, 0x6C70000000000000 },
+    ];
+    auto f = FunctionTest!(S, ulong, "%016X")("toBid");
+    foreach (t; s) f.test(t, toBid!(TD,ulong)(t.num));
     writefln(f.report);
 }
 
@@ -1138,9 +1136,9 @@ unittest
 		{ "-NaN",		0x7C000000 },
 		{ "0",			0x32800000 },
 		{ "0.0",		0x32000000 },
-		{ "0E1",		0x33000000 },	// NOTE: 0E3 caused a linking error
-		{ "0E2",		0x33800000 },	// NOTE: 0E3 caused a linking error
-		{ "0.0E3",		0x33800000 },	// NOTE: 0E3 caused a linking error
+		{ "0E1",		0x33000000 },
+		{ "0E2",		0x33800000 },
+		{ "0.0E3",		0x33800000 },
 		{ "sNaN",		0x7E000000 },
 		{ "-sNaN",		0x7E000000 },
 		{ "Inf",		0x78000000 },
@@ -1253,21 +1251,6 @@ unittest
     writefln(f.report);
 }
 
-/*public D fromDouble(D)(double dbl) if (isDecimal!D)
-{
-	return fromBinary!(D,double)(dbl);
-}*/
-
-/*public D fromFloat(D)(float flt) if (isDecimal!D)
-{
-	return fromBinary!(D,float)(flt);
-}
-
-public D fromReal(D)(real bin)	if (isDecimal!D)
-{
-	return fromBinary!(D,real)(bin);
-}*/
-
 unittest
 {
 	real r = 123.456E2;
@@ -1342,8 +1325,6 @@ public D fromBinary(D,U)(in U bin)
    		expo = rep.exponent - rep.bias - rep.fractionBits;
 	}
 
-//   	int expo = rep.exponent - rep.bias - rep.fractionBits;
-
 	bool divide = expo < 0;
 	if (divide) {
 		expo = -expo;
@@ -1354,7 +1335,6 @@ public D fromBinary(D,U)(in U bin)
 	if (expo > 127)
 	{
 		string str = std.format.format!"%.18G"(bin);
-//		return num = fromString!T(str);
 		return fromString!D(str);
 	}
 	auto mult = BigInt(1) << expo;
@@ -1362,10 +1342,7 @@ public D fromBinary(D,U)(in U bin)
 
     static if (is(U == real))
     {
-//if (!__ctfe) writefln("num = %s", num);
 		num = reduce(num, RealContext);
-//if (!__ctfe) writefln("num = %s", num);
-//if (!__ctfe) writefln("real.dig = %s", real.dig);
 	}
 	else if (is(U == double))
     {

@@ -16,7 +16,7 @@ version(unittest)
 
 	void main()
 	{
-		writefln("total     : %s tests (%s pass, %s fail)", totalTests, totalPass, totalFail);
+		writefln("total     : %s tests (%s passed, %s failed)", totalTests, totalPass, totalFail);
 	}
 }
 else

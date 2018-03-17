@@ -565,8 +565,8 @@ unittest
  *
  *  Note: The overflow flag is not set by this operation.
  */
-public D nextMinus(D)(in D arg,
-		Context context = D.context) if (isDecimal!D)
+public D nextMinus(D)(in D arg,	Context context = D.context)
+    if (isDecimal!D)
 {
 	if (arg.isNaN) return invalidOperand(arg);
 
@@ -581,7 +581,7 @@ public D nextMinus(D)(in D arg,
 	}
 
 	D increment = D(1, adjustedExpo);
-	D next = sub!D(arg, increment, context);
+	D next = sub(arg, increment, context);
 	if (next < D.max.copyNegate) {
 		next = D.infinity.copyNegate;
 	}

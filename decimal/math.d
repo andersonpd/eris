@@ -94,7 +94,7 @@ unittest
  *  Rounds toward negative infinity.
  */
 public T floor(T)(T x) {
-	return round(x, ROUND_FLOOR);
+	return round(x, FLOOR);
 }
 
 unittest
@@ -120,7 +120,7 @@ unittest
  *  Rounds toward positive infinity.
  */
 public T ceil(T)(T x) {
-	return round(x, ROUND_CEILING);
+	return round(x, CEILING);
 }
 
 unittest
