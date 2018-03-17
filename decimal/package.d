@@ -1828,6 +1828,19 @@ unittest {
 /// Returns true if the parameter is a decimal number.
 public enum bool isDecimal(D) = hasMember!(D, "IsDecimal");
 //public enum bool isDecimal(D) = is(D:decimal);
+unittest
+{	// constants
+	static struct S { bool x; bool expect; }
+	S[] s =
+	[
+		{ isDecimal!TD, true },
+		{ isDecimal!int, true },
+	];
+	auto f = FunctionTest!(S,bool)("isDecimal");
+	foreach (t; s) f.test(t, t.x);
+	writefln(f.report);
+}
+
 unittest {
 	write("-- isDecimal........");
 	TD dummy;
@@ -1838,6 +1851,7 @@ unittest {
 }
 
 
+// TODO: move these to math
 //--------------------------------
 // decimal constant templates
 //--------------------------------
@@ -1929,11 +1943,6 @@ public string roundString(string str, int precision)
 
 	// strip out any underscores
 	copy = copy.replace("_", "");
-//	copy = copy.replaceAll(regex("_"), "");
-
-//	if (indexOf(copy, '_') >= 0) {
-//				copy = removechars(copy.idup, "_").dup;
-//	}
 
 	// ignore leading zeros
 	size_t index = 0;

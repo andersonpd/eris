@@ -565,23 +565,23 @@ unittest
  *
  *  Note: The overflow flag is not set by this operation.
  */
-public D nextMinus(D)(in D arg,	Context context = D.context)
+public D nextMinus(D)(in D num,	Context context = D.context)
     if (isDecimal!D)
 {
-	if (arg.isNaN) return invalidOperand(arg);
+	if (num.isNaN) return invalidOperand(num);
 
-	if (arg.isInfinite) {
-		return arg.sign ? arg : D.max;
+	if (num.isInfinite) {
+		return num.sign ? num : D.max;
 	}
 
-	int adjustedExpo = arg.expo + arg.digits - context.precision;
-	if (arg.coff == 1) adjustedExpo--;
+	int adjustedExpo = num.expo + num.digits - context.precision;
+	if (num.coff == 1) adjustedExpo--;
 	if (adjustedExpo < D.tinyExpo) {
 		return D(0, D.tinyExpo);
 	}
 
 	D increment = D(1, adjustedExpo);
-	D next = sub(arg, increment, context);
+	D next = sub(num, increment, context);
 	if (next < D.max.copyNegate) {
 		next = D.infinity.copyNegate;
 	}
@@ -593,11 +593,11 @@ unittest
 	static struct S { TD arg; TD expect; }
 	S[] s =
 	[
-/*		{ "1", 					"0.999999999" },
-		{ "1E-107",				"0E-107" },
-		{ "-1.00000003",		"-1.00000004" },
-		{ "Infinity",			"9.99999999E+99" },
-		{ "-9.99999999E+99",	"-Infinity" },*/
+		{ "1", 					"0.9999999999999999" },
+		{ "1E-384",				"0E-384" },
+		{ "-1.000000000000003",		"-1.000000000000004" },
+		{ "Infinity",			"9.999999999999999E+369" },
+		{ "-9.999999999999999E+368",	"-Infinity" },
 	];
 	auto f = FunctionTest!(S,TD)("nextMinus");
 	foreach (t; s) f.test(t, nextMinus(t.arg));
