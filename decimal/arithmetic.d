@@ -78,34 +78,34 @@ version(unittest)
  * Flags: None
  *
  */
-public string classify(T)(in T x) if (isDecimal!T)
+public string classify(D)(in D num) if (isDecimal!D)
 {
-	if (x.isFinite)
-	{
-		if (x.isZero)		{ return x.sign ? "-Zero" : "+Zero"; }
-		if (x.isNormal)		{ return x.sign ? "-Normal" : "+Normal"; }
-		if (x.isSubnormal)	{ return x.sign ? "-SUBNORMAL" : "+SUBNORMAL"; }
-	}
-	if (x.isInfinite)  { return x.sign ? "-Infinity" : "+Infinity"; }
-	if (x.isSignaling) { return "sNaN"; }
-	return "NaN";
+  if (num.isFinite)
+  {
+    if (num.isZero)      { return num.sign ? "-Zero" : "+Zero"; }
+    if (num.isNormal)    { return num.sign ? "-Normal" : "+Normal"; }
+    if (num.isSubnormal) { return num.sign ? "-Subnormal" : "+Subnormal"; }
+  }
+  if (num.isInfinite)  { return num.sign ? "-Infinity" : "+Infinity"; }
+  if (num.isSignaling) { return "sNaN"; }
+  return "NaN";
 }
 
 unittest
-{	// classify
-	static struct S { TD x; string expect; }
-	S[] s =
-	[
-		{ TD.nan,         "NaN" },
-		{ TD.snan,        "sNaN" },
-		{ TD.infinity,    "+Infinity" },
-		{ TD("1E-10"),    "+Normal" },
-		{ TD("-0"),       "-Zero" },
-		// definitions of normal and subnormal depend on context -- pass these?
-		{ TD("-0.9E-368"), "-SUBNORMAL" },
-	];
-	auto f = FunctionTest!(S,string)("classify");
-	foreach (t; s) f.test(t, classify(t.x));
+{  // classify
+  static struct S { TD num; string expect; }
+  S[] s =
+  [
+    { TD.nan,         "NaN" },
+    { TD.snan,        "sNaN" },
+    { TD.infinity,    "+Infinity" },
+    { TD("1E-10"),    "+Normal" },
+    { TD("-0"),       "-Zero" },
+    // definitions of normal and subnormal depend on context -- pass these?
+    { TD("-0.9E-368"), "-Subnormal" },
+  ];
+  auto f = FunctionTest!(S,string)("classify");
+  foreach (t; s) f.test(t, classify(t.num));
     writefln(f.report);
 }
 
@@ -123,33 +123,34 @@ unittest
  *  Flags: INVALID_OPERATION, DIVISION_BY_ZERO.
  *
  */
-public int ilogb(T)(in T x) if (isDecimal!T)
+public int ilogb(D)(in D num) if (isDecimal!D)
 {
-	if (x.isInfinite || x.isNaN) {
-		invalidOperation!T;
-		return int.init;
-	}
-	if (x.isZero)
-	{
-		contextFlags.set(DIVISION_BY_ZERO);
-		return int.init;
-	}
-	return x.digits + x.expo - 1;
+  if (num.isInfinite || num.isNaN)
+  {
+    invalidOperation!D;
+    return int.init;
+  }
+  if (num.isZero)
+  {
+    contextFlags.set(DIVISION_BY_ZERO);
+    return int.init;
+  }
+  return num.digits + num.expo - 1;
 }
 
 unittest
-{	// ilogb
-	static struct S { TD x; int expect; }
-	S[] s =
-	[
-		{ 250,    2 },
-		{ 2.5,    0 },
-		{ 0.03,  -2 },
-		{ "Inf",  0 },	// sets INVALID_OPERATION flag
-		{ 0,      0 },	// sets DIVISION_BY_ZERO flag
-	];
-	auto f = FunctionTest!(S,int)("ilogb");
-	foreach (t; s) f.test(t, ilogb(t.x));
+{  // ilogb
+  static struct S { TD num; int expect; }
+  S[] s =
+  [
+    { 250,    2 },
+    { 2.5,    0 },
+    { 0.03,  -2 },
+    { "Inf",  0 },  // sets INVALID_OPERATION flag
+    { 0,      0 },  // sets DIVISION_BY_ZERO flag
+  ];
+  auto f = FunctionTest!(S,int)("ilogb");
+  foreach (t; s) f.test(t, ilogb(t.num));
     writefln(f.report);
 }
 
@@ -168,33 +169,33 @@ unittest
  *  Standard: Implements the 'logb' function in the specification. (p. 47)
  *
  */
-public T logb(T)(in T x) if (isDecimal!T)
+public D logb(D)(in D num) if (isDecimal!D)
 {
-	if (x.isNaN) return invalidOperand(x);
-	if (x.isInfinite) return T.infinity;
-	if (x.isZero)
-	{
-		contextFlags.set(DIVISION_BY_ZERO);
-		return T.infinity(true);
-	}
-	int exp = x.digits + x.expo - 1;
-	return T(exp);
+  if (num.isNaN) return invalidOperand(num);
+  if (num.isInfinite) return D.infinity;
+  if (num.isZero)
+  {
+    contextFlags.set(DIVISION_BY_ZERO);
+    return D.infinity(true);
+  }
+  int exp = num.digits + num.expo - 1;
+  return D(exp);
 }
 
 unittest
-{	// logb
-	static struct S { TD x; TD expect; }
-	S[] s =
-	[
-		{ 250,    2 },
-		{ 2.5,    0 },
-		{ 0.03,  -2 },
-		{ "Inf", "Inf" },
-		{ 0,     "-Inf" },
-		{ "NaN", "NaN" }, // NOTE: this test will fail: NaN != NaN
-	];
-	auto f = FunctionTest!(S,TD)("logb");
-	foreach (t; s) f.test(t, logb(t.x));
+{  // logb
+  static struct S { TD num; TD expect; }
+  S[] s =
+  [
+    { 250,    2 },
+    { 2.5,    0 },
+    { 0.03,  -2 },
+    { "Inf", "Inf" },
+    { 0,     "-Inf" },
+    { "NaN", "NaN" }, // NOTE: this test will fail: NaN != NaN
+  ];
+  auto f = FunctionTest!(S,TD)("logb");
+  foreach (t; s) f.test(t, logb(t.num));
     writefln(f.report);
 }
 
@@ -213,45 +214,45 @@ unittest
  *  Flags: INVALID_OPERATION, UNDERFLOW, OVERFLOW.
  *
  */
-public T scaleb(T)(in T x, in T y) if (isDecimal!T)
+public D scaleb(D)(in D left, in D right) if (isDecimal!D)
 {
-	T scaled = x.dup;
+  D scaled = left.dup;
 
-	if (x.isNaN || y.isNaN) return invalidOperand(x,y);
+  if (left.isNaN || right.isNaN) return invalidOperand(left,right);
 
-	if (x.isInfinite) return scaled;
+  if (left.isInfinite) return scaled;
 
-	if (y.isInfinite || y.expo != 0)
-	{
-		return invalidOperand(y);
-	}
-//	if (y > T.IntMax || y < T.IntMin)
-	if (y > T(int.max) || y < T(int.min))
-	{
-		return invalidOperand(y);
-	}
+  if (right.isInfinite || right.expo != 0)
+  {
+    return invalidOperand(right);
+  }
+//  if (right > D.IntMax || right < D.IntMin)
+  if (right > D(int.max) || right < D(int.min))
+  {
+    return invalidOperand(right);
+  }
 
-	int scale = /*cast(int)*/y.coff.toInt;
+  int scale = /*cast(int)*/right.coff.toInt;
 
-	if (y.isSigned)
-	{
-		scale = -scale;
-	}
-	// TODO: (behavior) check for overflow/underflow (GDA "scaleb").
-	scaled.expo = scaled.expo + scale;
-	return scaled;
+  if (right.isSigned)
+  {
+    scale = -scale;
+  }
+  // TODO: (behavior) check for overflow/underflow (GDA "scaleb").
+  scaled.expo = scaled.expo + scale;
+  return scaled;
 }
 
 unittest
-{	// scaleb
-	static struct S { TD x; TD y; TD expect; }
-	S[] s =
-	[
-		{ "7.50", "-2", "0.0750" },
-//		{ "7.50", "-3", "0.0750" },
-	];
-	auto f = FunctionTest!(S,TD)("scaleb");
-	foreach (t; s) f.test(t, scaleb(t.x, t.y));
+{  // scaleb
+  static struct S { TD left; TD right; TD expect; }
+  S[] s =
+  [
+    { "7.50", "-2", "0.0750" },
+//    { "7.50", "-3", "0.0750" },
+  ];
+  auto f = FunctionTest!(S,TD)("scaleb");
+  foreach (t; s) f.test(t, scaleb(t.left, t.right));
     writefln(f.report);
 }
 
@@ -263,15 +264,27 @@ unittest
  *  Rounds the argument to an integer using the specified rounding mode.
  *  The default rounding mode is the current context mode. //FIXTHIS
  */
-public D round(D)(D x, Round mode = D.mode)
+public D round(D)(D num, Round mode = D.mode)
 {
-	if (x.isNaN)
+  if (num.isNaN)
     {
-		contextFlags.set(INVALID_OPERATION);
-		return D.nan;
-	}
-	D value = roundToIntegralExact(x, mode);
-	return value;
+    contextFlags.set(INVALID_OPERATION);
+    return D.nan;
+  }
+  return roundToIntegralExact(num, mode);
+}
+
+unittest
+{  // round
+  static struct S { TD num; TD expect; }
+  S[] s =
+  [
+/*    { " 1",          "2", " 1.00000001" },
+    { "-1.00000003", "0", "-1.00000002" },*/
+  ];
+  auto f = FunctionTest!(S,TD)("round");
+  foreach (t; s) f.test(t, round(t.num));
+  writefln(f.report);
 }
 
 
@@ -293,54 +306,54 @@ public D round(D)(D x, Round mode = D.mode)
  *  Flags: INVALID_OPERATION
  *
  */
-public T reduce(T)(in T x,
-		Context context = T.context) if (isDecimal!T)
+public D reduce(D)(in D num,
+    Context context = D.context) if (isDecimal!D)
 {
-	// special cases
-	if (x.isNaN) return invalidOperand(x);
-	if (!x.isFinite) return x.dup;
+  // special cases
+  if (num.isNaN) return invalidOperand(num);
+  if (!num.isFinite) return num.dup;
 
-	// round the argument
-	T reduced = plus(x, context);
+  // round the argument
+  D reduced = plus(num, context);
 
-	// have to check again -- rounding may have made it infinite
-	if (!reduced.isFinite) return reduced;
+  // have to check again -- rounding may have made it infinite
+  if (!reduced.isFinite) return reduced;
 
-	int digits = reduced.digits;
-	auto temp = reduced.coff;
-	int zeros = clipZeros(temp, digits);
-	if (zeros)
-	{
-		reduced.coff = temp;
-		reduced.digits = digits - zeros;
-		reduced.expo = reduced.expo + zeros;
-	}
+  int digits = reduced.digits;
+  auto temp = reduced.coff;
+  int zeros = clipZeros(temp, digits);
+  if (zeros)
+  {
+    reduced.coff = temp;
+    reduced.digits = digits - zeros;
+    reduced.expo = reduced.expo + zeros;
+  }
 
-	return reduced;
+  return reduced;
 }
 
 // just a wrapper
-public T normalize(T)(in T x,
-		Context context = T.context) if (isDecimal!T)
+public D normalize(D)(in D num,
+    Context context = D.context) if (isDecimal!D)
 {
-	return reduce(x, context);
+  return reduce(num, context);
 }
 
 unittest
-{	// reduce
-	// test results depend on context
-	static struct S { TD x; TD expect; }
-	S[] s =
-	[
-		{ "1.200", "1.2" },
-//		{ "1.200", "1.3" },	// should fail
-//	FIXTHIS: should fail but doesn't
-		{ "1.200", "1.20" },	// NOTE: should fail but doesn't
-		{ "1.2001", "1.2001" },
-		{ "1.2000000000000001", "1.2" },
-	];
-	auto f = FunctionTest!(S,TD)("reduce");
-	foreach (t; s) f.test(t, reduce(t.x));
+{  // reduce
+  // test results depend on context
+  static struct S { TD num; TD expect; }
+  S[] s =
+  [
+    { "1.200", "1.2" },
+//    { "1.200", "1.3" },  // should fail
+//  FIXTHIS: should fail but doesn't
+    { "1.200", "1.20" },  // NOTE: should fail but doesn't
+    { "1.2001", "1.2001" },
+    { "1.2000000000000001", "1.2" },
+  ];
+  auto f = FunctionTest!(S,TD)("reduce");
+  foreach (t; s) f.test(t, reduce(t.num));
     writefln(f.report);
 }
 
@@ -360,24 +373,24 @@ unittest
  */
 public D abs(D)(in D arg, Context context = D.context) if (isDecimal!D)
 {
-	if (arg.isNaN) return invalidOperand(arg);
-	return roundToPrecision(arg.copyAbs, context);
+  if (arg.isNaN) return invalidOperand(arg);
+  return roundToPrecision(arg.copyAbs, context);
 }
 
 unittest
-{	// abs
-	static struct S { TD arg; TD expect; }
-	S[] s =
-	[
-		{ "-Inf", "Inf" },
-		{ "101.5", "101.5" },
-		{ "-101.5", "101.5" },
-		// test results that are rounded are dependent on context
-		{ "-1.234567890123456749E+23", "1.2345678901234567E+23" },	// rounds the argument
-	];
-	auto f = FunctionTest!(S,TD)("abs");
-	foreach (t; s) f.test(t, abs(t.arg));
-    writefln(f.report);
+{  // abs
+  static struct S { TD arg; TD expect; }
+  S[] s =
+  [
+    { "-Inf", "Inf" },
+    { "101.5", "101.5" },
+    { "-101.5", "101.5" },
+    // test results that are rounded are dependent on context
+    { "-1.234567890123456749E+23", "1.2345678901234567E+23" },  // rounds the argument
+  ];
+  auto f = FunctionTest!(S,TD)("abs");
+  foreach (t; s) f.test(t, abs(t.arg));
+  writefln(f.report);
 }
 
 /**
@@ -385,28 +398,28 @@ unittest
  *  negative, zero, or positive, respectively.
  *  The sign of zero is ignored: returns 0 for +0 or -0.
  */
-public int sgn(D)(in D arg) if (isDecimal!D)
+public int sgn(D)(in D num) if (isDecimal!D)
 {
-	if (arg.isZero) return 0;
-	return arg.isNegative ? -1 : 1;
+  if (num.isZero) return 0;
+  return num.isNegative ? -1 : 1;
 }
 
 unittest
-{	// sgn
-	static struct S { TD arg; int expect; }
-	S[] s =
-	[
-		{  "-123", -1 },
-		{  "2345",  1 },
-		{ "-2345", -1 },
-		{     "0",  0 },
-		{    "-0",  0 },
-		{  "0.00",  0 },
-		{  "-Inf", -1 },
-	];
-	auto f = FunctionTest!(S,int)("sgn");
-	foreach (t; s) f.test(t, sgn(t.arg));
-    writefln(f.report);
+{  // sgn
+  static struct S { TD num; int expect; }
+  S[] s =
+  [
+    {  "-123", -1 },
+    {  "2345",  1 },
+    { "-2345", -1 },
+    {     "0",  0 },
+    {    "-0",  0 },
+    {  "0.00",  0 },
+    {  "-Inf", -1 },
+  ];
+  auto f = FunctionTest!(S,int)("sgn");
+  foreach (t; s) f.test(t, sgn(t.num));
+  writefln(f.report);
 }
 
 /**
@@ -430,25 +443,25 @@ unittest
  *
  *  Flags: INVALID_OPERATION
  */
-public D plus(D)(in D arg,
-		Context context = D.context) if (isDecimal!D)
+public D plus(D)(in D num, Context context = D.context)
+    if (isDecimal!D)
 {
-	if (arg.isNaN) return invalidOperand(arg);
-//if (!__ctfe) writefln("arg = %s", arg);
-	return roundToPrecision(arg, context);
+  if (num.isNaN) return invalidOperand(num);
+//if (!__ctfe) writefln("num = %s", num);
+  return roundToPrecision(num, context);
 }
 
 unittest
-{	// plus -- depends on context
-	static struct S { TD arg; TD expect; }
-	S[] s =
-	[
-		{ "1.3", "1.3" },
-		{ "101.5", "101.5" },
-		{ "-101.5", "-101.5" },
-	];
-	auto f = FunctionTest!(S,TD)("plus");
-	foreach (t; s) f.test(t, plus(t.arg));
+{  // plus -- depends on context
+  static struct S { TD num; TD expect; }
+  S[] s =
+  [
+    { "1.3", "1.3" },
+    { "101.5", "101.5" },
+    { "-101.5", "-101.5" },
+  ];
+  auto f = FunctionTest!(S,TD)("plus");
+  foreach (t; s) f.test(t, plus(t.num));
     writefln(f.report);
 }
 
@@ -465,24 +478,24 @@ unittest
  *  Flags: INVALID_OPERATION
  *
  */
-public D minus(D)(in D arg,
-		Context context = D.context) if (isDecimal!D)
+public D minus(D)(in D num, Context context = D.context)
+    if (isDecimal!D)
 {
-	if (arg.isNaN) return invalidOperand(arg);
-	return roundToPrecision(arg.copyNegate, context);
+  if (num.isNaN) return invalidOperand(num);
+  return roundToPrecision(num.copyNegate, context);
 }
 
 unittest
-{	// minus -- depends on context
-	static struct S { TD arg; TD expect; }
-	S[] s =
-	[
-		{ "1.3", "-1.3" },
-		{ "101.5", "-101.5" },
-		{ "-101.5", "101.5" },
-	];
-	auto f = FunctionTest!(S,TD)("minus");
-	foreach (t; s) f.test(t, minus(t.arg));
+{  // minus -- depends on context
+  static struct S { TD num; TD expect; }
+  S[] s =
+  [
+    { "1.3", "-1.3" },
+    { "101.5", "-101.5" },
+    { "-101.5", "101.5" },
+  ];
+  auto f = FunctionTest!(S,TD)("minus");
+  foreach (t; s) f.test(t, minus(t.num));
     writefln(f.report);
 }
 
@@ -502,56 +515,56 @@ unittest
  *  Flags: INVALID_OPERATION
  *
  */
-public D nextPlus(D)(in D arg, Context context = D.context)
-	if (isDecimal!D)
+public D nextPlus(D)(in D num, Context context = D.context)
+  if (isDecimal!D)
 {
-	if (arg.isNaN) return invalidOperand(arg);
+  if (num.isNaN) return invalidOperand(num);
 
-	if (arg.isInfinite) {
-		if (arg.sign) {
-			return D.max.copyNegate;
-		}
-		else {
-			return arg;
-		}
-	}
-	int adjustedExpo = arg.expo + arg.digits - context.precision;
-	if (adjustedExpo < D.tinyExpo) {
-			return D(0, D.tinyExpo, true);
-	}
+  if (num.isInfinite) {
+    if (num.sign) {
+      return D.max.copyNegate;
+    }
+    else {
+      return num;
+    }
+  }
+  int adjustedExpo = num.expo + num.digits - context.precision;
+  if (adjustedExpo < D.tinyExpo) {
+      return D(0, D.tinyExpo, true);
+  }
 
-	D increment = D(1, adjustedExpo);
-	D next = add(arg, increment, context, false);
-	if (next > D.max) {
-		next = D.infinity;
-	}
+  D increment = D(1, adjustedExpo);
+  D next = add(num, increment, context, false);
+  if (next > D.max) {
+    next = D.infinity;
+  }
 
-	// FIXTHIS: need to pass setFlags value
-	return roundToPrecision(next);
+  // FIXTHIS: need to pass setFlags value
+  return roundToPrecision(next);
 }
 
 unittest
-{	// nextPlus -- depends on context
-	static struct S { TD arg; TD expect; }
-	S[] s =
-	[
-/*		D99 tests
-		{ "1", 			 "1.00000001" },
-		{ "-1E-107", 	 "-0E-107" },
-		{ "-1.00000003", "-1.00000002" },
-		{ "-Infinity",	 "-9.99999999E+99" },
-		{ "9.99999999E+99",	 "Infinity" },	// overflow flag should not be set!
-		{ "1E+101",	 "Infinity" },*/
+{  // nextPlus -- depends on context
+  static struct S { TD num; TD expect; }
+  S[] s =
+  [
+/*    D99 tests
+    { "1",        "1.00000001" },
+    { "-1E-107",    "-0E-107" },
+    { "-1.00000003", "-1.00000002" },
+    { "-Infinity",   "-9.99999999E+99" },
+    { "9.99999999E+99",   "Infinity" },  // overflow flag should not be set!
+    { "1E+101",   "Infinity" },*/
 
-		{ "1",			"1.000000000000001" },
-		{ "-1E-384",	"-0E-384" },
-		{ "-1.000000000000003", "-1.000000000000002" },
-		{ "-Infinity",	"-9.999999999999999E+369" },
-		{ "9.999999999999999E+369",	 "Infinity" },	// overflow flag should not be set!
-		{ "1E+371",	 "Infinity" },
-	];
-	auto f = FunctionTest!(S,TD)("nextPlus");
-	foreach (t; s) f.test(t, nextPlus(t.arg));
+    { "1",      "1.000000000000001" },
+    { "-1E-384",  "-0E-384" },
+    { "-1.000000000000003", "-1.000000000000002" },
+    { "-Infinity",  "-9.999999999999999E+369" },
+    { "9.999999999999999E+369",   "Infinity" },  // overflow flag should not be set!
+    { "1E+371",   "Infinity" },
+  ];
+  auto f = FunctionTest!(S,TD)("nextPlus");
+  foreach (t; s) f.test(t, nextPlus(t.num));
     writefln(f.report);
 }
 
@@ -565,42 +578,42 @@ unittest
  *
  *  Note: The overflow flag is not set by this operation.
  */
-public D nextMinus(D)(in D num,	Context context = D.context)
+public D nextMinus(D)(in D num,  Context context = D.context)
     if (isDecimal!D)
 {
-	if (num.isNaN) return invalidOperand(num);
+  if (num.isNaN) return invalidOperand(num);
 
-	if (num.isInfinite) {
-		return num.sign ? num : D.max;
-	}
+  if (num.isInfinite) {
+    return num.sign ? num : D.max;
+  }
 
-	int adjustedExpo = num.expo + num.digits - context.precision;
-	if (num.coff == 1) adjustedExpo--;
-	if (adjustedExpo < D.tinyExpo) {
-		return D(0, D.tinyExpo);
-	}
+  int adjustedExpo = num.expo + num.digits - context.precision;
+  if (num.coff == 1) adjustedExpo--;
+  if (adjustedExpo < D.tinyExpo) {
+    return D(0, D.tinyExpo);
+  }
 
-	D increment = D(1, adjustedExpo);
-	D next = sub(num, increment, context);
-	if (next < D.max.copyNegate) {
-		next = D.infinity.copyNegate;
-	}
-	return next;
+  D increment = D(1, adjustedExpo);
+  D next = sub(num, increment, context);
+  if (next < D.max.copyNegate) {
+    next = D.infinity.copyNegate;
+  }
+  return next;
 }
 
 unittest
-{	// nextMinus -- depends on context
-	static struct S { TD arg; TD expect; }
-	S[] s =
-	[
-		{ "1", 					"0.9999999999999999" },
-		{ "1E-384",				"0E-384" },
-		{ "-1.000000000000003",		"-1.000000000000004" },
-		{ "Infinity",			"9.999999999999999E+369" },
-		{ "-9.999999999999999E+368",	"-Infinity" },
-	];
-	auto f = FunctionTest!(S,TD)("nextMinus");
-	foreach (t; s) f.test(t, nextMinus(t.arg));
+{  // nextMinus -- depends on context
+  static struct S { TD num; TD expect; }
+  S[] s =
+  [
+    { "1",           "0.9999999999999999" },
+    { "1E-384",        "0E-384" },
+    { "-1.000000000000003",    "-1.000000000000004" },
+    { "Infinity",      "9.999999999999999E+369" },
+    { "-9.999999999999999E+368",  "-Infinity" },
+  ];
+  auto f = FunctionTest!(S,TD)("nextMinus");
+  foreach (t; s) f.test(t, nextMinus(t.num));
     writefln(f.report);
 }
 
@@ -615,30 +628,30 @@ unittest
  *
  */
 // TODO: anomalous flag settings
-public D nextToward(D)(in D arg, in D toward,
-		Context context = D.context) if (isDecimal!D)
+public D nextToward(D)(in D left, in D right,
+    Context context = D.context) if (isDecimal!D)
 {
-//   	D nan;
-	if (arg.isNaN || toward.isNaN) return invalidOperand(arg, toward);
+//     D nan;
+  if (left.isNaN || right.isNaN) return invalidOperand(left, right);
 
-	// compare them but don't round yet
-	int comp = compare(arg, toward, context);
-	if (comp < 0) return nextPlus(arg, context);
-	if (comp > 0) return nextMinus(arg, context);
+  // compare them but don't round yet
+  int comp = compare(left, right, context);
+  if (comp < 0) return nextPlus(left, context);
+  if (comp > 0) return nextMinus(left, context);
 
-	return roundToPrecision(arg.copySign(toward), context);
+  return roundToPrecision(left.copySign(right), context);
 }
 
 unittest
-{	// nextToward -- depends on context
-	static struct S { TD arg; TD toward; TD expect; }
-	S[] s =
-	[
-/*		{ " 1",          "2", " 1.00000001" },
-		{ "-1.00000003", "0", "-1.00000002" },*/
-	];
-	auto f = FunctionTest!(S,TD)("nextToward");
-	foreach (t; s) f.test(t, nextToward(t.arg, t.toward));
+{  // nextToward -- depends on context
+  static struct S { TD left; TD right; TD expect; }
+  S[] s =
+  [
+/*    { " 1",          "2", " 1.00000001" },
+    { "-1.00000003", "0", "-1.00000002" },*/
+  ];
+  auto f = FunctionTest!(S,TD)("nextToward");
+  foreach (t; s) f.test(t, nextToward(t.left, t.right));
     writefln(f.report);
 }
 
@@ -666,101 +679,112 @@ unittest
  *  Flags: INVALID_OPERATION
  *
  */
-public int compare(T)(in T left, in T right,
-		Context context = T.context) if (isDecimal!T)
+public int compare(T)(in T left, in T right, Context context = T.context)
+    if (isDecimal!T)
 {
-	// any operation with a signaling NaN is invalid.
-	// if both are signaling, return as if left > right.
-	if (left.isSignaling || right.isSignaling) {
-		contextFlags.set(INVALID_OPERATION);
-		return left.isSignaling ? 1 : -1;
-	}
+  // any operation with a signaling NaN is invalid.
+  // if both are signaling, return as if left > right.
+  if (left.isSignaling || right.isSignaling)
+  {
+    contextFlags.set(INVALID_OPERATION);
+    return left.isSignaling ? 1 : -1;
+  }
 
-	// if both are NaN, return as if left > right.
-	if (left.isNaN || right.isNaN) {
-		return left.isNaN ? 1 : -1;
-	}
+  // if both are NaN, return as if left > right.
+  if (left.isNaN || right.isNaN)
+  {
+    return left.isNaN ? 1 : -1;
+  }
 
-	// if either is zero...
-	if (left.isZero) {
-		if (right.isZero) return 0;
-		return right.isNegative ? 1 : -1;
-	}
-	if (right.isZero) {
-		return left.isNegative ? -1 : 1;
-	}
+  // if either is zero...
+  if (left.isZero) {
+    if (right.isZero) return 0;
+    return right.isNegative ? 1 : -1;
+  }
+  if (right.isZero)
+  {
+    return left.isNegative ? -1 : 1;
+  }
 
-	// if signs differ, just compare the signs
-	if (left.sign != right.sign) {
-		// check for zeros: +0 and -0 are equal
-		if (left.isZero && right.isZero) return 0;
-		return left.sign ? -1 : 1;
-	}
+  // if signs differ, just compare the signs
+  if (left.sign != right.sign)
+  {
+    // check for zeros: +0 and -0 are equal
+    if (left.isZero && right.isZero) return 0;
+    return left.sign ? -1 : 1;
+  }
 
-	// if either is infinite...
-	if (left.isInfinite || right.isInfinite) {
-		if (left.isInfinite && right.isInfinite) return 0;
-		return left.isInfinite ? 1 : -1;
-	}
+  // if either is infinite...
+  if (left.isInfinite || right.isInfinite)
+  {
+    if (left.isInfinite && right.isInfinite) return 0;
+    return left.isInfinite ? 1 : -1;
+  }
 
-	T lf = left.dup;
-	T rt = right.dup;
+  T lf = left.dup;
+  T rt = right.dup;
 
-	// TODO: (testing) test compare at precision limits.
-	// restrict operands to current precision
-	if (lf.digits > context.precision) {
-		lf = roundToPrecision(lf, context);
-	}
-	if (rt.digits > context.precision) {
-		rt = roundToPrecision(rt, context);
-	}
+  // TODO: (testing) test compare at precision limits.
+  // restrict operands to current precision
+  if (lf.digits > context.precision)
+  {
+    lf = roundToPrecision(lf, context);
+  }
+  if (rt.digits > context.precision)
+  {
+    rt = roundToPrecision(rt, context);
+  }
 
-	// TODO: this will return inf == inf after rounding
-	// Check again for infinities
-	if (lf.isInfinite || rt.isInfinite) {
-		if (lf.isInfinite && rt.isInfinite) return 0;
-		return lf.isInfinite ? 1 : -1;
-	}
+  // TODO: this will return inf == inf after rounding
+  // Check again for infinities
+  if (lf.isInfinite || rt.isInfinite)
+  {
+    if (lf.isInfinite && rt.isInfinite) return 0;
+    return lf.isInfinite ? 1 : -1;
+  }
 
-	// compare the magnitudes of the numbers
-	lf = lf.reduce;
-	rt = rt.reduce;
-	int diff = (lf.expo + lf.digits) - (rt.expo + rt.digits);
-	if (diff != 0) {
-		if (!lf.sign) {
-			if (diff > 0) return 1;
-			if (diff < 0) return -1;
-		}
-		else {
-			if (diff > 0) return -1;
-			if (diff < 0) return 1;
-		}
-	}
-	// align the operands
-	alignOps(lf, rt);	// both operands now have the same exponent
+  // compare the magnitudes of the numbers
+  lf = lf.reduce;
+  rt = rt.reduce;
+  int diff = (lf.expo + lf.digits) - (rt.expo + rt.digits);
+  if (diff != 0)
+  {
+    if (!lf.sign)
+    {
+      if (diff > 0) return 1;
+      if (diff < 0) return -1;
+    }
+    else
+    {
+      if (diff > 0) return -1;
+      if (diff < 0) return 1;
+    }
+  }
+  // align the operands
+  alignOps(lf, rt);  // both operands now have the same exponent
 
-	// The only remaining difference is in the coefficients.
-	if (lf.coff == rt.coff) return 0;
-	return (lf.coff > rt.coff) ? 1 : -1;
+  // The only remaining difference is in the coefficients.
+  if (lf.coff == rt.coff) return 0;
+  return (lf.coff > rt.coff) ? 1 : -1;
 }
 
 unittest
-{	// compare -- depends on context?
-	static struct S { TD x; TD y; int expect; }
-	S[] s =
-	[
-		{ " 3  ", " 2.1 ",  1 },
-		{ "-3  ", " 2.1 ", -1 },
-		{ " 2.1", "-3   ",  1 },
-		{ " 2.1", " 2.1 ",  0 },
-		{ " 2.1", " 2.10",  0 },
-		{ " Inf", "-Inf ",  1 },
-		{ " Inf", " Inf ",  0 },
-		{ " Inf", " 12  ",  1 },
-		{ "-Inf", " 12  ", -1 },
-	];
-	auto f = FunctionTest!(S,int)("compare");
-	foreach (t; s) f.test(t, compare(t.x, t.y));
+{  // compare -- depends on context?
+  static struct S { TD left; TD right; int expect; }
+  S[] s =
+  [
+    { " 3  ", " 2.1 ",  1 },
+    { "-3  ", " 2.1 ", -1 },
+    { " 2.1", "-3   ",  1 },
+    { " 2.1", " 2.1 ",  0 },
+    { " 2.1", " 2.10",  0 },
+    { " Inf", "-Inf ",  1 },
+    { " Inf", " Inf ",  0 },
+    { " Inf", " 12  ",  1 },
+    { "-Inf", " 12  ", -1 },
+  ];
+  auto f = FunctionTest!(S,int)("compare");
+  foreach (t; s) f.test(t, compare(t.left, t.right));
     writefln(f.report);
 }
 
@@ -782,67 +806,67 @@ unittest
  *
  *  Flags: INVALID_OPERATION
  */
-public bool equals(D)(in D left, in D right,
-		Context context = D.context) if (isDecimal!D)
+public bool equals(D)(in D left, in D right, Context context = D.context)
+    if (isDecimal!D)
 {
-	// any operation with a signaling NaN is invalid.
-	if (left.isSignaling || right.isSignaling) {
-		contextFlags.set(INVALID_OPERATION);
-		return false;
-	}
-	// if either is NaN...
-	// NaN is never equal to any number, not even another NaN
-	if (left.isNaN || right.isNaN) return false;
+  // any operation with a signaling NaN is invalid.
+  if (left.isSignaling || right.isSignaling) {
+    contextFlags.set(INVALID_OPERATION);
+    return false;
+  }
+  // if either is NaN...
+  // NaN is never equal to any number, not even another NaN
+  if (left.isNaN || right.isNaN) return false;
 
-	// if they are identical...
-	if (left is right) return true;
+  // if they are identical...
+  if (left is right) return true;
 
-	// if either is zero...
-	if (left.isZero || right.isZero) {
-		// ...they are equal if both are zero (regardless of sign)
-		return (left.isZero && right.isZero);
-	}
+  // if either is zero...
+  if (left.isZero || right.isZero) {
+    // ...they are equal if both are zero (regardless of sign)
+    return (left.isZero && right.isZero);
+  }
 
-	// if their signs differ they are not equal (except for zero, handled above)
-	if (left.sign != right.sign) return false;
+  // if their signs differ they are not equal (except for zero, handled above)
+  if (left.sign != right.sign) return false;
 
-	// if either is infinite...
-	if (left.isInfinite || right.isInfinite) {
-		// ...they are equal only if both are infinite with the same sign
-		return (left.isInfinite && right.isInfinite);
-	}
+  // if either is infinite...
+  if (left.isInfinite || right.isInfinite) {
+    // ...they are equal only if both are infinite with the same sign
+    return (left.isInfinite && right.isInfinite);
+  }
 
-	// if they have the same representation, they are equal
-	if (left.expo == right.expo && left.coff == right.coff) {
-		return true;
-	}
+  // if they have the same representation, they are equal
+  if (left.expo == right.expo && left.coff == right.coff) {
+    return true;
+  }
 
-	// restrict operands to the context precision
-	D rx, ry;
-	rx = roundToPrecision(left, context);
-	ry = roundToPrecision(right, context);
+  // restrict operands to the context precision
+  D lf, rt;
+  lf = roundToPrecision(left, context);
+  rt = roundToPrecision(right, context);
 
-	// if they are not of the same magnitude they are not equal
-	if (rx.expo + rx.digits != ry.expo + ry.digits) return false;
-	// align the operands
-	alignOps(rx, ry);
-	return rx.coff == ry.coff;
+  // if they are not of the same magnitude they are not equal
+  if (lf.expo + lf.digits != rt.expo + rt.digits) return false;
+  // align the operands
+  alignOps(lf, rt);
+  return lf.coff == rt.coff;
 }
 
 unittest
-{	// equals -- depends on context
-	static struct S { TD left; TD right; bool expect; }
-	S[] s =
-	[
-		{ " 123.4567     ", " 123.4568   ", false},
-		{ " 123.4567     ", " 123.4567   ", true },
-		{ " 234123.4567121236 ", " 234123.45671212356", true }, // equals to precision
-		{ " 1000000E-8   ", " 1E-2       ", true },
-		{ "+100000000E-08", "+1E+00      ", true },
-		{ "-1.00000000   ", "-1          ", true },
-	];
-	auto f = FunctionTest!(S,bool)("equals");
-	foreach (t; s) f.test(t, equals(t.left, t.right));
+{  // equals -- depends on context
+  static struct S { TD left; TD right; bool expect; }
+  S[] s =
+  [
+    { " 123.4567     ", " 123.4568   ", false},
+    { " 123.4567     ", " 123.4567   ", true },
+    { " 234123.4567121236 ", " 234123.45671212356", true }, // equals to precision
+    { " 1000000E-8   ", " 1E-2       ", true },
+    { "+100000000E-08", "+1E+00      ", true },
+    { "-1.00000000   ", "-1          ", true },
+  ];
+  auto f = FunctionTest!(S,bool)("equals");
+  foreach (t; s) f.test(t, equals(t.left, t.right));
     writefln(f.report);
 }
 
