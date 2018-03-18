@@ -121,7 +121,7 @@ public struct Context
 
 version(unittest)
 {
-	public enum Context TestContext    = Context(9, 99, HALF_EVEN);
+	public enum Context TestContext = Context(9, 99, HALF_EVEN);
 }
 
 /**

@@ -70,81 +70,81 @@ private T to(T:string)(in long n) {
 public string toString(D)(in D num, string fmStr = "%s") if (isDecimal!D)
 {
     auto fm = singleSpec!char(fmStr.dup);
-	string str = "";
-	if (num.isSigned) str = "-";
-	else if (fm.flPlus)  str = "+";
-	else if (fm.flSpace) str = " ";
+  string str = "";
+  if (num.isNegative) str = "-";
+  else if (fm.flPlus)  str = "+";
+  else if (fm.flSpace) str = " ";
 
-	bool noPrecision = (fm.precision == fm.UNSPECIFIED);
-	// if precision is unspecified it defaults to 6
-	int precision = noPrecision ? DEFAULT_PRECISION : fm.precision;
+  bool noPrecision = (fm.precision == fm.UNSPECIFIED);
+  // if precision is unspecified it defaults to 6
+  int precision = noPrecision ? DEFAULT_PRECISION : fm.precision;
 
-	// FIXTHIS: if num is special this may give error. see formatDecimal
-	str ~= formatDecimal(num, fm.spec, precision);
+  // FIXTHIS: if num is special this may give error. see formatDecimal
+  str ~= formatDecimal(num, fm.spec, precision);
 
-	// add trailing zeros
-	if (fm.flHash && str.indexOf('.' < 0)) {
-		str ~= ".0";
-	}
-	// if precision is unspecified the zero flag is ignored
-	bool zero = noPrecision ? fm.flZero : false;
-	// adjust width
-	str = setWidth(str, fm.width, fm.flDash, zero);
-	return str;
+  // add trailing zeros
+  if (fm.flHash && str.indexOf('.' < 0)) {
+    str ~= ".0";
+  }
+  // if precision is unspecified the zero flag is ignored
+  bool zero = noPrecision ? fm.flZero : false;
+  // adjust width
+  str = setWidth(str, fm.width, fm.flDash, zero);
+  return str;
 }
 
 unittest
-{	// toString
-	static struct S { TD num; string fmt; string str; }
-	S[] s =
-	[
-		// default format is scientific form
-		{ "123",		"%s",	"123" },
-		{ "-123",		"%S",	"-123" },
-		{ "12.3E1",		"%S",	"123" },
-		{ "123E1",		"%S",	"1.23E+3" },
-		{ "123E3",		"%S",	"1.23E+5" },
-		{ "123E-1",		"%S",	"12.3" },
-		{ "50E-7",		"%S",	"0.0000050" },
-		{ "5E-7",		"%S",	"5E-7" },
-		{ "12.3456789",	"%S",	"12.3456789" },
-		{ "12.34567",	"%s",	"12.34567" },
-		{ "12.345",		"%S",	"12.345"   },
-		// exponential form
-		{ "12.3456789",	"%E",	"1.234568E+01" },
-		{ "12.34567",	"%e",	"1.234567e+01" },
-		{ "12.345",		"%E",	"1.2345E+01"   },
-		// decimal form
-		{ "12.3456789",	"%F",	"12.345679" },
-		{ "12.34567",	"%F",	"12.345670" },
-		{ "12.345",		"%F",	"12.345000" },
-		// decimal or exponential. note change in meaning of precision
-		{ "12.3456789",	"%G",	"1.234568E+01" },
-		{ "12.34567",	"%G",	"1.234567E+01" },
-		{ "12.345",		"%G",	"12.345000"    },
-		// width
-		{ "12.34567",	"%12.4G",	"  1.2346E+01" },
-		{ "12.345",		"%12G",	"   12.345000" },
-		// flags
-		{ "12.34567",	"%G",	"1.234567E+01"},
-		{ "12.345",		"%+G",		"+12.345000"   },
-		{ "12.345",		"%-12G",	"12.345000   " },
-		{ "12.34567",	"%-12.4G",	"1.2346E+01  " },
-		{ "12.345",		"%012G",	"00012.345000" },
-		// zero flag ignored if precision is specified
-		{ "12.345",		 "%012.4G",	"     12.3450" },
-		// zero flag, upper/lower case  ignored if infinity or nan
-		{ "Inf",		 "%012.4G",	"    Infinity" },
-		{ "NaN",		 "%012.4g",	"         NaN" },
-		// if hash, print trailing zeros.
-		{ "1234567.89",	 "%.0G",	"1234568" },
-		{ "1234567.89",	 "%.0F",	"1234568" },
-		{ "1234567",	 "%.0F",	"1234567" },
-		{ "123",		 "%#.0F",	"123.0" },
-	];
-	auto f = FunctionTest!(S,string)("toString");
-	foreach (t; s) f.test(t, toString(t.num, t.fmt));
-    writefln(f.report);
+{  // toString
+  static struct S { TD num; string fmt; string str; }
+  S[] s =
+  [
+    // default format is scientific form
+    { "123",    "%s",  "123" },
+    { "-123",    "%S",  "-123" },
+    { "12.3E1",    "%S",  "123" },
+    { "123E1",    "%S",  "1.23E+3" },
+    { "123E3",    "%S",  "1.23E+5" },
+    { "123E-1",    "%S",  "12.3" },
+    { "50E-7",    "%S",  "0.0000050" },
+    { "5E-7",    "%S",  "5E-7" },
+    { "12.3456789",  "%S",  "12.3456789" },
+    { "12.34567",  "%s",  "12.34567" },
+    { "12.345",    "%S",  "12.345"   },
+    // exponential form
+    { "12.3456789",  "%E",  "1.234568E+01" },
+    { "12.34567",  "%e",  "1.234567e+01" },
+    { "12.345",    "%E",  "1.2345E+01"   },
+    // decimal form
+    { "12.3456789",  "%F",  "12.345679" },
+    { "12.34567",  "%F",  "12.345670" },
+    { "12.345",    "%F",  "12.345000" },
+    // decimal or exponential. note change in meaning of precision
+    { "12.3456789",  "%G",  "1.234568E+01" },
+    { "12.34567",  "%G",  "1.234567E+01" },
+    { "12.345",    "%G",  "12.345000"    },
+    // width
+    { "12.34567",  "%12.4G",  "  1.2346E+01" },
+    { "12.345",    "%12G",  "   12.345000" },
+    // flags
+    { "12.34567",  "%G",  "1.234567E+01"},
+    { "12.345",    "%+G",    "+12.345000"   },
+    { "12.345",    "%-12G",  "12.345000   " },
+    { "12.34567",  "%-12.4G",  "1.2346E+01  " },
+    { "12.345",    "%012G",  "00012.345000" },
+    // zero flag ignored if precision is specified
+    { "12.345",     "%012.4G",  "     12.3450" },
+    // zero flag, upper/lower case  ignored if infinity or nan
+    { "Inf",     "%012.4G",  "    Infinity" },
+    { "NaN",     "%012.4g",  "         NaN" },
+    // if hash, print trailing zeros.
+    { "1234567.89",   "%.0G",  "1234568" },
+    { "1234567.89",   "%.0F",  "1234568" },
+    { "1234567",   "%.0F",  "1234567" },
+    { "123",     "%#.0F",  "123.0" },
+  ];
+  auto f = FunctionTest!(S,string)("toString");
+  foreach (t; s) f.test(t, toString(t.num, t.fmt));
+  writefln(f.report);
 }
 
 /*    void toString(D)(
@@ -170,7 +170,7 @@ public string sciForm(D)(in D num) if (isDecimal!D)
 
 	char[] str = to!string(num.coff).dup;
 	int  expo = num.expo;
-	bool signed = num.isSigned;
+	bool signed = num.isNegative;
 
 	int adjx = expo + cast(int)str.length - 1;
 	// if the exponent is small use decimal notation
@@ -222,7 +222,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,string)("sciForm");
 	foreach (t; s) f.test(t, sciForm(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -237,7 +237,7 @@ public string engForm(D)(in D num) if (isDecimal!D)
 
 	char[] cof = to!string(num.coff).dup;
 	int  expo = num.expo;
-	bool signed = num.isSigned;
+	bool signed = num.isNegative;
 
 	int adjx = expo + cast(int)cof.length - 1;
 	// if exponent is small, don't use exponential notation
@@ -320,7 +320,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,string)("engForm");
 	foreach (t; s) f.test(t, engForm(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -363,7 +363,7 @@ unittest
 		{ "-Infinity",	"-Inf" },
 	];
 	foreach (t; r) f.test(t, specialForm(TD(t.num),true));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -373,77 +373,81 @@ unittest
  *  Numbers with large or small exponents will return long strings.
  *  Numbers with very large or very small exponents will return very long strings.
  */
-private string decimalForm(D)(in D number,
-	int precision = DEFAULT_PRECISION) if (isDecimal!D)
+private string decimalForm(D)(in D num, int precision = DEFAULT_PRECISION)
+    if (isDecimal!D)
 {
-	if (number.isSpecial)
-	{
-		return specialForm(number);
-	}
-	D num = number.dup;
-	// check if rounding is needed:
-	int diff = num.expo + precision;
-	if (diff < 0) {
-		int numPrecision = num.digits + num.expo + precision;
-		num = roundToPrecision(num, numPrecision);
-	}
+  // handle special numbers
+  if (num.isSpecial)
+  {
+    return specialForm(num);
+  }
 
-	// convert the coefficient to a string
-	char[] str = to!string(num.coff).dup;
-	int exp = num.expo;
-	bool sign = num.isSigned;
-	if (exp >= 0) {
-		if (exp > 0) {
-			// add zeros up to the decimal point
-			str ~= replicate("0", exp);
-		}
-		if (precision) {
-			// add zeros trailing the decimal point
-			str ~= "." ~ replicate("0", precision);
-		}
-	}
-	else { // (exp < 0)
-		int point = -exp;
-		// if coefficient is too small, pad with zeros on the left
-		if (point > str.length) {
-			str = rightJustify(str, point, '0');
-			}
-		// if no chars precede the decimal point, prefix a zero
-		if (point == str.length) {
-			str = "0." ~ str;
-		}
-		// otherwise insert a decimal point
-		else {
-			insertInPlace(str, str.length - point, ".");
-		}
-		// if result is less than precision, add zeros
-		if (point < precision) {
-			str ~= replicate("0", precision - point);
-		}
-	}
-	return sign ? ("-" ~ str).idup : str.idup;
+  // create a mutable copy
+  D copy = num.copy;
+
+  // check if rounding is needed:
+  if (copy.expo + precision < 0)
+  {
+    int numPrecision = copy.digits + copy.expo + precision;
+    copy = precisionRound(copy, numPrecision);
+  }
+
+  // convert the coefficient to a string
+  char[] str = to!string(copy.coff).dup;
+  int exp = copy.expo;
+  bool sign = copy.isNegative;
+  if (exp >= 0) {
+    if (exp > 0) {
+      // add zeros up to the decimal point
+      str ~= replicate("0", exp);
+    }
+    if (precision) {
+      // add zeros trailing the decimal point
+      str ~= "." ~ replicate("0", precision);
+    }
+  }
+  else { // (exp < 0)
+    int point = -exp;
+    // if coefficient is too small, pad with zeros on the left
+    if (point > str.length) {
+      str = rightJustify(str, point, '0');
+      }
+    // if no chars precede the decimal point, prefix a zero
+    if (point == str.length) {
+      str = "0." ~ str;
+    }
+    // otherwise insert a decimal point
+    else {
+      insertInPlace(str, str.length - point, ".");
+    }
+    // if result is less than precision, add zeros
+    if (point < precision) {
+      str ~= replicate("0", precision - point);
+    }
+  }
+  return sign ? ("-" ~ str).idup : str.idup;
 }
 
 unittest
-{	// decimalForm
-	static struct S { TD num; int precision; string str; }
-	S[] s =
-	[
-		{ "12.345",	6,	"12.345000" },
-		{ "125",	3,	"125.000" },
-		{ "-125",	3,	"-125.000" },
-		{ "125E5",	0,	"12500000" },
-		{ "1.25",	2,	"1.25" },
-		{ "125E-5",	6,	"0.001250" },
-		{ "-0",		6,	"-0.000000" },
-		{ "Inf",	0,	"Infinity" },
-		{ "-NaN",	4,	"-NaN" },
-		{ "123.4567890123",	6,	"123.456789" },
-		{ "123.4567895123",	6,	"123.456790" },
-	];
-	auto f = FunctionTest!(S,string)("decForm");
-	foreach (t; s) f.test(t, decimalForm(t.num, t.precision));
-    writefln(f.report);
+{  // decimalForm
+  static struct S { TD num; int precision; string str; }
+  S[] s =
+  [
+    { "12.345",  6,  "12.345000" },
+    { "125",  3,  "125.000" },
+    { "-125",  3,  "-125.000" },
+    { "125E5",  0,  "12500000" },
+    { "1.25",  2,  "1.25" },
+    { "125E-5",  6,  "0.001250" },
+    { "-0",    6,  "-0.000000" },
+    { "Inf",  0,  "Infinity" },
+    { "-NaN",  4,  "-NaN" },
+    { "123.4567890123",  6,  "123.456789" },
+    { "123.4567895123",  6,  "123.456790" },
+  ];
+  auto f = FunctionTest!(S,string)("decForm");
+  foreach (t; s) f.test(t, decimalForm(t.num, t.precision));
+  writefln(f.report);
 }
 
 /**
@@ -457,10 +461,10 @@ private string exponentForm(D)(in D number, int precision = DEFAULT_PRECISION,
 		return specialForm(number);
 	}
 	D num = number.dup;
-	num = roundToPrecision(num, precision + 1);
+	num = precisionRound(num, precision + 1);
 	char[] cof = to!string(num.coff).dup;
 	int exp = num.expo;
-	bool sign = num.isSigned;
+	bool sign = num.isNegative;
 	int adjx = exp + cast(int)cof.length - 1;
 	if (cof.length > 1) {
 		insertInPlace(cof, 1, ".");
@@ -494,7 +498,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,string)("expForm");
 	foreach (t; s) f.test(t, exponentForm(t.num, t.precision));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -569,7 +573,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,string)("setWidth");
 	foreach (t; s) f.test(t, setWidth(t.num, t.width, t.left, t.zeros));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -611,7 +615,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,string)("absForm");
 	foreach (t; s) f.test(t, abstractForm(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -662,7 +666,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,string)("fullForm");
 	foreach (t; s) f.test(t, fullForm(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -876,7 +880,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("fromString");
 	foreach (t; s) f.test(t, fromString!TD(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 private D setPayload(D)(in D num, char[] str, int len) if (isDecimal!D)
@@ -932,7 +936,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,string)("setPayload");
 	foreach (t; s) f.test(t, TD(t.num).toString);
-    writefln(f.report);
+  writefln(f.report);
 }
 
 // Binary Integer Decimal (BID) representation
@@ -1057,11 +1061,11 @@ public U toBid(D, U = ulong)(const D num)
 
     static if (is(U == ulong))
     {
-		rnum = roundToPrecision(num, Bid64Context);
+		rnum = precisionRound(num, Bid64Context);
 	}
     else if (is(U == uint))
     {
-		rnum = roundToPrecision(num, Bid32Context);
+		rnum = precisionRound(num, Bid32Context);
 	}
 
 	// check for overflow
@@ -1088,7 +1092,7 @@ public U toBid(D, U = ulong)(const D num)
 		bid |= coff;		// coefficient is always < long.max
 		bid |= expo << (bits - 2);
 	}
-	if (num.isSigned)
+	if (num.isNegative)
 	{
 		bid |= signBit;	// set sign bit
 	}
@@ -1124,7 +1128,7 @@ unittest
     ];
     auto f = FunctionTest!(S, ulong, "%016X")("toBid");
     foreach (t; s) f.test(t, toBid!(TD,ulong)(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 unittest
@@ -1158,7 +1162,7 @@ unittest
 	];
 	auto f = FunctionTest!(S, uint, "%08X")("toBid");
 	foreach (t; s) f.test(t, toBid!(TD,uint)(t.num));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 
@@ -1228,7 +1232,7 @@ unittest
 	];
 	auto f = FunctionTest!(S, TD, "%s")("fromBid(UL)");
 	foreach (t; s) f.test(t, fromBid!(TD,ulong)(t.bid));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 unittest
@@ -1248,7 +1252,7 @@ unittest
 	];
 	auto f = FunctionTest!(S, TD, "%s")("fromBid(U)");
 	foreach (t; s) f.test(t, fromBid!(TD,uint)(t.bid));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 unittest

@@ -234,7 +234,7 @@ public D scaleb(D)(in D left, in D right) if (isDecimal!D)
 
   int scale = /*cast(int)*/right.coff.toInt;
 
-  if (right.isSigned)
+  if (right.isNegative)
   {
     scale = -scale;
   }
@@ -271,7 +271,7 @@ public D round(D)(D num, Round mode = D.mode)
     contextFlags.set(INVALID_OPERATION);
     return D.nan;
   }
-  return roundToIntegralExact(num, mode);
+  return roundToInt(num, mode);
 }
 
 unittest
@@ -374,7 +374,7 @@ unittest
 public D abs(D)(in D arg, Context context = D.context) if (isDecimal!D)
 {
   if (arg.isNaN) return invalidOperand(arg);
-  return roundToPrecision(arg.copyAbs, context);
+  return precisionRound(arg.copyAbs, context);
 }
 
 unittest
@@ -448,7 +448,7 @@ public D plus(D)(in D num, Context context = D.context)
 {
   if (num.isNaN) return invalidOperand(num);
 //if (!__ctfe) writefln("num = %s", num);
-  return roundToPrecision(num, context);
+  return precisionRound(num, context);
 }
 
 unittest
@@ -482,7 +482,7 @@ public D minus(D)(in D num, Context context = D.context)
     if (isDecimal!D)
 {
   if (num.isNaN) return invalidOperand(num);
-  return roundToPrecision(num.copyNegate, context);
+  return precisionRound(num.copyNegate, context);
 }
 
 unittest
@@ -540,7 +540,7 @@ public D nextPlus(D)(in D num, Context context = D.context)
   }
 
   // FIXTHIS: need to pass setFlags value
-  return roundToPrecision(next);
+  return precisionRound(next);
 }
 
 unittest
@@ -639,7 +639,7 @@ public D nextToward(D)(in D left, in D right,
   if (comp < 0) return nextPlus(left, context);
   if (comp > 0) return nextMinus(left, context);
 
-  return roundToPrecision(left.copySign(right), context);
+  return precisionRound(left.copySign(right), context);
 }
 
 unittest
@@ -729,11 +729,11 @@ public int compare(D)(in D left, in D right, Context context = D.context)
   // restrict operands to current precision
   if (lf.digits > context.precision)
   {
-    lf = roundToPrecision(lf, context);
+    lf = precisionRound(lf, context);
   }
   if (rt.digits > context.precision)
   {
-    rt = roundToPrecision(rt, context);
+    rt = precisionRound(rt, context);
   }
 
   // TODO: this will return inf == inf after rounding
@@ -846,8 +846,8 @@ public bool equals(D)(in D left, in D right, Context context = D.context)
   }
 
   // round operands to the context precision
-  auto lf = roundToPrecision(left, context);
-  auto rt = roundToPrecision(right, context);
+  auto lf = precisionRound(left, context);
+  auto rt = precisionRound(right, context);
 
   // if they are not of the same magnitude they are not equal
   if (lf.expo + lf.digits != rt.expo + rt.digits) return false;
@@ -1194,7 +1194,7 @@ public D max(D)(in D left, in D right,  Context context = D.context)
     }
   }
   // result must be rounded
-  return roundToPrecision(result, context);
+  return precisionRound(result, context);
 }
 
 unittest
@@ -1219,11 +1219,11 @@ public D maxMagnitude(D)(in D left, in D right,
 {
   if (left.copyAbs > right.copyAbs)
   {
-    return roundToPrecision(left, context);
+    return precisionRound(left, context);
   }
   else
   {
-    return roundToPrecision(right, context);
+    return precisionRound(right, context);
   }
 }
 
@@ -1296,7 +1296,7 @@ public D min(D)(in D left, in D right,
     }
   }
   // min must be rounded
-  return roundToPrecision(min, context);
+  return precisionRound(min, context);
 }
 
 unittest
@@ -1321,17 +1321,17 @@ public D minMagnitude(D)(in D left, in D right,
 {
   if (left.copyAbs < right.copyAbs)
   {
-    return roundToPrecision(left, context);
+    return precisionRound(left, context);
   }
   else
   {
-    return roundToPrecision(right, context);
+    return precisionRound(right, context);
   }
 /*  // one of each
   if (left.copyAbs > right.copyAbs) {
-    return roundToPrecision(right, context);
+    return precisionRound(right, context);
   }
-  return roundToPrecision(left, context);*/
+  return precisionRound(left, context);*/
 }
 
 unittest
@@ -1645,7 +1645,7 @@ public D add(D)(in D left, in D right,
   sum.digits = countDigits(sum.coff);
   sum.expo = lf.expo;
   // round the result
-  return roundToPrecision(sum, context, setFlags);
+  return precisionRound(sum, context, setFlags);
 }
 
 
@@ -1749,7 +1749,7 @@ public D mul(D)(in D x, in D y, Context context = D.context)
   product.sign = x.sign ^ y.sign;
   product.digits = countDigits(product.coff);
 
-  return roundToPrecision(product, context);
+  return precisionRound(product, context);
 }
 
 /// Multiplies a decimal number by a long integer.
@@ -1787,7 +1787,7 @@ public D mul(D, U : long)(in D x, in U n, Context context = D.context)
   product.expo = x.expo;
   product.sign = x.sign ^ (n < 0);
   product.digits = countDigits(product.coff);
-  return roundToPrecision(product, context);
+  return precisionRound(product, context);
 }  // end mul(x, n)
 
 /// Multiplies the two operands.
@@ -1840,7 +1840,7 @@ public D sqr(D)(in D arg, Context context = D.context) if (isDecimal!D)
   copy.expo = 2 * copy.expo;
   copy.sign = false;
   copy.digits = countDigits(copy.coff);
-  return roundToPrecision(copy, context);
+  return precisionRound(copy, context);
 }
 
 unittest
@@ -1931,7 +1931,7 @@ public D div(D)(in D x, in D y,
   quo.expo = dvnd.expo - dvsr.expo;
   quo.sign = dvnd.sign ^ dvsr.sign;
   quo.digits = countDigits(quo.coff);
-  quo = roundToPrecision(quo, context);
+  quo = precisionRound(quo, context);
   // TODO: what's up with this? revisit
   quo = reduceToIdeal(quo, diff);
   return quo;
@@ -1968,7 +1968,7 @@ public D div(D, U : long)(in D x, in U n,
   quo.expo = dvnd.expo; // - n.expo;
   quo.sign = dvnd.sign ^ (n < 0);
   quo.digits = countDigits(quo.coff);
-  quo = roundToPrecision(quo, context);
+  quo = precisionRound(quo, context);
   quo = reduceToIdeal(quo, diff);
   return quo;
 }
@@ -2177,7 +2177,7 @@ public D remainderNear(D)(in D x, in D y) if (isDecimal!D)
   if (y.isZero) return divisionByZero(x, y);
   D quo = x/y;
   // TODO: (behavior) roundToIntegralValue?
-  D rem = x - y * roundToIntegralExact(quo);
+  D rem = x - y * roundToInt(quo);
   return rem;
 }
 
@@ -2241,9 +2241,9 @@ public D quantize(D)(in D left, in D right,
   }
   else {
     int precision = (-diff > left.digits) ? 0 : left.digits + diff;
-    result = roundToPrecision(result, precision, context.mode);
+    result = precisionRound(result, precision, context.mode);
     result.expo = right.expo;
-    if (result.isZero && left.isSigned) {
+    if (result.isZero && left.isNegative) {
       result.sign = true;
     }
     return result;
@@ -2285,8 +2285,10 @@ unittest
 /// Context flags may be set.
 /// Implements the 'round-to-integral-exact' function
 /// in the specification. (p. 39)
-public D roundToIntegralExact(D)(in D num,
-    in Round mode = HALF_EVEN) if (isDecimal!D)
+/// if setFlags is false, this is the 'round-to-integral-value' function.
+public D roundToInt(D)(in D num,
+  in Round mode = HALF_EVEN, bool setFlags = true)
+    if (isDecimal!D)
 {
   if (num.isSignal) return invalidOperation!D;
   if (num.isSpecial) return num;
@@ -2294,11 +2296,11 @@ public D roundToIntegralExact(D)(in D num,
 
   // TODO: (behavior) need to prevent precision overrides
   int precision = num.digits + num.expo;
-  return roundToPrecision(num, precision, mode); //, D.maxExpo);
+  return precisionRound(num, precision, mode, setFlags);
 }
 
 unittest
-{  // roundToIntegralExact
+{  // roundToInt
   static struct S { TD x; TD expect; }
   S[] s =
   [
@@ -2311,38 +2313,10 @@ unittest
     { "7.89E+77", "7.89E+77" },
     { "-Inf", "-Inf" },
   ];
-  auto f = FunctionTest!(S,TD)("roundIntEx");
-  foreach (t; s) f.test(t, roundToIntegralExact(t.x));
+  auto f = FunctionTest!(S,TD)("roundToInt");
+  foreach (t; s) f.test(t, roundToInt(t.x));
   writefln(f.report);
 }
-
-// TODO: (behavior) need to re-implement this so no flags are set.
-/// The result may be rounded and context flags may be set.
-/// Implements the 'round-to-integral-value' function
-/// in the specification. (p. 39)
-public D roundToIntegralValue(D)(in D arg) if (isDecimal!D)
-{
-  D result = arg.dup;
-  if (result.isSignal) return invalidOperation!D;
-  if (result.isSpecial) return result;
-  if (result.expo >= 0) return result;
-
-  int precision = result.digits + result.expo;
-  result = roundToPrecision(result, context);
-  return result;
-}
-
-// TODO: implement
-/*unittest
-{  // roundToIntegralValue
-  static struct S { TD x; TD expect; }
-  S[] s =
-  [
-  ];
-  auto f = FunctionTest!(S,TD)("roundIntVal");
-  foreach (t; s) f.test(t, roundToIntegralValue(t.x));
-  writefln(f.report);
-}*/
 
 /// Aligns the two operands by raising the smaller exponent
 /// to the value of the larger exponent, and adjusting the

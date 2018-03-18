@@ -67,26 +67,47 @@ mixin template checkNaN() {
  *  Rounds the argument to the nearest integer. If the argument is exactly
  *  half-way between two integers the even integer is returned.
  */
-public T rint(T)(T x) {
-	return round(x, HALF_EVEN);
+public D rint(D)(D num)
+    if (isDecimal!D)
+{
+  return round(num, HALF_EVEN);
 }
 
 unittest
-{	// rint
-	static struct S { TD x; TD expect; }
-	S[] s =
-	[
-		{  "2.1",  2 },
-		{  "2.5",  2 },
-		{  "3.5",  4 },
-		{  "2.9",  3 },
-		{ "-2.1", -2 },
-		{ "-2.9", -3 },
-		{ "-2.5", -2 },
-	];
-	auto f = FunctionTest!(S,TD)("rint");
-	foreach (t; s) f.test(t, rint(t.x));
-    writefln(f.report);
+{  // rint
+  static struct S { D9 num; D9 expect; }
+  S[] s =
+  [
+    {  "2.1",   "2" },
+    {  "100",   "100" },
+    {  "100.0", "100" },
+    {  "101.5", "102" },
+    {  "-101.5", "-102" },
+    {  "10E+5", "1.0E+6" },
+    { "7.89E+77", "7.89E+77" },
+    { "-Inf", "-Infinity" },
+  ];
+  auto f = FunctionTest!(S,D9)("rint");
+  foreach (t; s) f.test(t, rint(t.num));
+  writefln(f.report);
+}
+
+unittest
+{  // rint
+  static struct S { D9 num; D9 expect; }
+  S[] s =
+  [
+    {  "2.1",  2 },
+    {  "2.5",  2 },
+    {  "3.5",  4 },
+    {  "2.9",  3 },
+    { "-2.1", -2 },
+    { "-2.9", -3 },
+    { "-2.5", -2 },
+  ];
+  auto f = FunctionTest!(S,D9)("rint");
+  foreach (t; s) f.test(t, rint(t.num));
+  writefln(f.report);
 }
 
 /**
@@ -112,7 +133,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("floor");
 	foreach (t; s) f.test(t, floor(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -138,7 +159,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("ceil");
 	foreach (t; s) f.test(t, ceil(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -164,7 +185,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("trunc");
 	foreach (t; s) f.test(t, trunc(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -248,7 +269,7 @@ const char[] Constant =
 			value = eris.decimal.math." ~ name ~ "!T(context);
 			lastPrecision = precision;
 		}
-		return roundToPrecision(value, precision);
+		return precisionRound(value, precision);
 	}";
 }
 
@@ -387,7 +408,7 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 		s0 = s1;
 	}
 	T pi = mul(div(sqr(a1, context), s1, context), 2, context);
-	return roundToPrecision(pi, inContext);
+	return precisionRound(pi, inContext);
 }
 
 /*unittest
@@ -410,7 +431,7 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("pi");
 	foreach (t; s) f.test(t, TD.PI(t.n), t.n);
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 //mixin (Constant!("pi_2"));
@@ -418,7 +439,7 @@ package T pi_2(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T halfPi = mul(pi!T(context), T.HALF, context);
-	return roundToPrecision(halfPi, inContext);
+	return precisionRound(halfPi, inContext);
 }
 
 /*unittest
@@ -432,7 +453,7 @@ package T pi_2(T)(Context inContext) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("pi/2");
 	foreach (t; s) f.test(t, TD.pi_2(t.n), t.n);
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 //mixin (Constant!("invPi"));
@@ -443,7 +464,7 @@ package T invPi(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.one, pi!T(context), context);
-	return roundToPrecision(alpha, inContext);
+	return precisionRound(alpha, inContext);
 }
 
 /*unittest
@@ -457,7 +478,7 @@ package T invPi(T)(Context inContext) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("1/pi");
 	foreach (t; s) f.test(t, TD.invPi(t.n), t.n);
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 //mixin (Constant!("twoInvPi"));
@@ -468,7 +489,7 @@ package T twoInvPi(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.TWO, pi!T(context), context);
-	return roundToPrecision(alpha, inContext);
+	return precisionRound(alpha, inContext);
 }
 
 /*unittest
@@ -482,7 +503,7 @@ package T twoInvPi(T)(Context inContext) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("2/pi");
 	foreach (t; s) f.test(t, TD.twoInvPi(t.n), t.n);
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 //mixin (Constant!("e"));
@@ -500,7 +521,7 @@ package T e(T)(Context inContext) if (isDecimal!T)
 		term = div!T(term, n, context);
 		n++;
 	}
-	return roundToPrecision(sum, inContext);
+	return precisionRound(sum, inContext);
 }
 
 /*unittest
@@ -514,7 +535,7 @@ package T e(T)(Context inContext) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("e");
 	foreach (t; s) f.test(t, TD.e(t.n), t.n);
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 //mixin (Constant!("ln10"));
@@ -540,9 +561,9 @@ package enum T log2_10(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T log2T = div(log(T.TEN, context, false), log(T.TWO, context, false), context);
-	return roundToPrecision(log2T, inContext);
-//	return roundToPrecision(TD("18690473486004564289165545643685440097"), inContext);
-//	return roundToPrecision(TD("18690473486004564245643685440097"), inContext);
+	return precisionRound(log2T, inContext);
+//	return precisionRound(TD("18690473486004564289165545643685440097"), inContext);
+//	return precisionRound(TD("18690473486004564245643685440097"), inContext);
 }
 
 //mixin (Constant!("log10_e"));
@@ -578,7 +599,7 @@ package enum T invSqrtPi(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.one, sqrt(pi!T(context), context), context);
-	return roundToPrecision(alpha, inContext);
+	return precisionRound(alpha, inContext);
 }
 
 /*unittest
@@ -603,7 +624,7 @@ package enum T invSqrtPi(T)(Context inContext) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("constants");
 	foreach (t; s) f.test(t, t.x, t.p);
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 //--------------------------------
@@ -677,7 +698,7 @@ public T reciprocal(T)(in T x, Context inContext = T.context) if (isDecimal!T)
 		if (equals(r0, r1 ,context)) break;
 	}
 	// round to the original precision
-	return roundToPrecision(r1, context);
+	return precisionRound(r1, context);
 }
 
 unittest
@@ -692,7 +713,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("reciprocal");
 	foreach (t; s) f.test(t, reciprocal(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 // TODO: see note at reciprocal
@@ -731,7 +752,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 	// restore the exponent
 	a.expo = a.expo - k/2 - 1;
 	// round to the original precision
-	return roundToPrecision(a, inContext);
+	return precisionRound(a, inContext);
 }
 
 /*unittest
@@ -752,7 +773,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("invSqt");
 	foreach (t; s) f.test(t, invSqrt(t.x,t.n));
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 /// Returns the square root of the argument to the type precision.
@@ -791,7 +812,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 	// restore the exponent
 	a.expo = a.expo + (k+1)/2;
 	// round the result
-	return roundToPrecision(a, context);
+	return precisionRound(a, context);
 }
 
 /*unittest
@@ -809,7 +830,7 @@ public T sqrt(T)(T x, Context context) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("sqrt");
 	foreach (t; s) f.test(t, sqrt(t.x, t.p), t.p);
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 //--------------------------------
@@ -832,51 +853,53 @@ mixin (UnaryFunction!("exp"));
 
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
-package T exp(T)(T x, Context inContext) if (isDecimal!T)
+package D exp(D)(D x, Context inContext) if (isDecimal!D)
 {
-	if (x.isInfinite) {
-		return x.isNegative ? T.zero : x;
-	}
-	bool negative = x.isNegative;
-	if (negative) x = x.copyAbs;
-	auto context = guard(inContext);
-	T sqrx = sqr(x, context);
-	long n = 1;
-	T fact = 1;
-	T t1   = T.one;
-	T t2   = x;
-	T term = add(t1, t2, context);
-	T sum  = term;
-	while (term > T.epsilon(context)) {
-		n   += 2;
-		t1   = mul(t2, mul(x, n, context), context);
-		t2   = mul(t2, sqrx, context);
-		fact = mul(fact, n*(n-1), context);
-		term = div(add(t1, t2, context), fact, context);
-		sum  = add(sum, term, context);
-	}
-	if (negative) sum = div(T.one, sum, context);
-	return roundToPrecision(sum, inContext);
+  if (x.isInfinite)
+  {
+    return x.isNegative ? D.zero : x;
+  }
+  bool negative = x.isNegative;
+  if (negative) x = x.copyAbs;
+  auto context = guard(inContext);
+  D sqrx = sqr(x, context);
+  long n = 1;
+  D fact = 1;
+  D t1   = D.one;
+  D t2   = x;
+  D term = add(t1, t2, context);
+  D sum  = term;
+  while (term > D.epsilon(context))
+  {
+    n   += 2;
+    t1   = mul(t2, mul(x, n, context), context);
+    t2   = mul(t2, sqrx, context);
+    fact = mul(fact, n*(n-1), context);
+    term = div(add(t1, t2, context), fact, context);
+    sum  = add(sum, term, context);
+  }
+  if (negative) sum = div(D.one, sum, context);
+  return precisionRound(sum, inContext);
 }
 
 unittest
-{	// exp
-	static struct S { TD x; int p; TD expect; }
-	S[] s =
-	[
-		{  1, 9, "2.71828183" },
-		{  2, 9, "7.3890560989306502272" },
-		{ -2, 9, "0.13533528324" },
-		{  1, 9, "2.71828183" },
-		{  1, 11, "2.7182818285" },
-		{  1, 15, "2.71828182845905" },
-		{  2, 15, "7.3890560989306502272" },
-		{  2, 11, "7.3890560989306502272" },
-		{ -2, 11, "0.13533528324" },
-	];
-	auto f = FunctionTest!(S,TD)("exp");
-	foreach (t; s) f.test(t, exp(t.x, t.p), t.p);
-    writefln(f.report);
+{  // exp
+  static struct S { TD x; int p; TD expect; }
+  S[] s =
+  [
+    {  1, 9, "2.71828183" },
+    {  2, 9, "7.3890560989306502272" },
+    { -2, 9, "0.13533528324" },
+    {  1, 9, "2.71828183" },
+    {  1, 11, "2.7182818285" },
+    {  1, 15, "2.71828182845905" },
+    {  2, 15, "7.3890560989306502272" },
+    {  2, 11, "7.3890560989306502272" },
+    { -2, 11, "0.13533528324" },
+  ];
+  auto f = FunctionTest!(S,TD)("exp");
+  foreach (t; s) f.test(t, exp(t.x, t.p), t.p);
+  writefln(f.report);
 }
 
 /+
@@ -915,7 +938,7 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 	// ??? what is this --> if (x.copyAbs < lower || x.copyAbs > upper) {
 	if (x < lower || x > upper) {
 		sum = sub(exp(x, context), 1, context);
-		return roundToPrecision(sum, inContext);
+		return precisionRound(sum, inContext);
 	}
 
 	bool negative = x.isNegative;
@@ -923,7 +946,7 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 /*	// if too large return exp(x) - 1.
 	if (x < lower || x > upper) {
 		sum = sub(exp(x, context), 1, context);
-		return roundToPrecision(sum, inContext);
+		return precisionRound(sum, inContext);
 	}*/
 
 	// otherwise return expm1(x)
@@ -935,7 +958,7 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 		term = mul(term, div(x, n, context), context);
 	}
 	if (negative) sum = div(T.one, sum, context);
-	return roundToPrecision(sum, inContext);
+	return precisionRound(sum, inContext);
 }
 
 unittest
@@ -950,7 +973,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("expm1");
 	foreach (t; s) f.test(t, expm1(t.x, t.p), t.p);
-    writefln(f.report);
+  writefln(f.report);
 }
 
 mixin (UnaryFunction!("log"));
@@ -1006,7 +1029,7 @@ package T log(T)(T x, Context inContext,
 			if (reduceArg) {
 				ln = add(ln, mul(ln10!T(context), k, context), context);
 			}
-		return roundToPrecision(ln, inContext);
+		return precisionRound(ln, inContext);
 		}
 		a = d;
 		n += 2;
@@ -1029,7 +1052,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("log");
 	foreach (t; s) f.test(t, log(t.x, t.p), t.p);
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /**
@@ -1072,11 +1095,11 @@ public T log1p(T)(T x, Context inContext) if (isDecimal!T)
 //if (!__ctfe) writefln("sum.digits = %s", sum.digits);
 //if (!__ctfe) writefln("inContext.precision = %s", inContext.precision);
 
-	sum = roundToPrecision(sum, inContext);
+	sum = precisionRound(sum, inContext);
 //if (!__ctfe) writefln("sum = %s", abstractForm(sum));
 //if (!__ctfe) writefln("sum.digits = %s", sum.digits);
 	return sum;
-//	return roundToPrecision(sum, inContext);
+//	return precisionRound(sum, inContext);
 }
 
 // TODO: (testing) unittest this.
@@ -1103,7 +1126,7 @@ public T log10(T)(T x, Context inContext) if (isDecimal!T)
 	x.expo = x.expo - k;
 //	x.expo -= k;
 	T lg10 = add(div(log(x, context), ln10!T(context)), k);
-	return roundToPrecision(lg10, inContext);
+	return precisionRound(lg10, inContext);
 }
 
 unittest {
@@ -1125,7 +1148,7 @@ public T log2(T)(T x, Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T lg2 = div(log(x, context), ln2!T(context), context);
-	return roundToPrecision(lg2, inContext);
+	return precisionRound(lg2, inContext);
 }
 
 unittest {
@@ -1187,7 +1210,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("hypot");
 	foreach (t; s) f.test(t, hypot(t.x, t.y));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 //--------------------------------
@@ -1253,7 +1276,7 @@ package T sin(T)(in T x, Context inContext) if (isDecimal!T)
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
 	}
-	return roundToPrecision(sum, inContext);
+	return precisionRound(sum, inContext);
 }
 
 unittest
@@ -1271,7 +1294,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("sin");
 	foreach (t; s) f.test(t, sin(t.x, t.p), t.p);
-    writefln(f.report);
+  writefln(f.report);
 }
 
 unittest {
@@ -1323,7 +1346,7 @@ package T cos(T)(in T x, Context inContext) {
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
 	}
-	return roundToPrecision(sum, inContext);
+	return precisionRound(sum, inContext);
 }
 
 unittest
@@ -1339,7 +1362,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("cos");
 	foreach (t; s) f.test(t, cos(t.x, t.p), t.p);
-    writefln(f.report);
+  writefln(f.report);
 }
 
 public void sincos(T)(T x, out T sine, out T cosine, int precision = T.precision) {
@@ -1393,8 +1416,8 @@ public void sincos(T)(const T x, out T sine, out T cosine,
 		sterm = div(sx, fact, context);
 		ssum = add(ssum, sterm, context);
 	}
-    sine   = roundToPrecision(ssum, inContext);
-	cosine = roundToPrecision(csum, inContext);
+    sine   = precisionRound(ssum, inContext);
+	cosine = precisionRound(csum, inContext);
 }
 
 unittest {
@@ -1453,7 +1476,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("tan");
 	foreach (t; s) f.test(t, tan(t.x, t.p), t.p);
-    writefln(f.report);
+  writefln(f.report);
 }
 
 mixin (UnaryFunction!("atan"));
@@ -1486,7 +1509,7 @@ public T atan(T)(T x, Context inContext) if (isDecimal!T)
 		dvsr = dvsr + 2;
 		term = div!T(powx, dvsr, context);
 	}
-	return roundToPrecision(mul(sum, k, context), inContext);
+	return precisionRound(mul(sum, k, context), inContext);
 }
 
 
@@ -1503,7 +1526,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("atan");
 	foreach (t; s) f.test(t, atan(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Decimal version of std.math function.
@@ -1525,7 +1548,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("asin");
 	foreach (t; s) f.test(t, asin!TD(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Decimal version of std.math function.
@@ -1547,7 +1570,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("acos");
 	foreach (t; s) f.test(t, acos(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Decimal version of std.math function.
@@ -1588,7 +1611,7 @@ public T sinh(T)(T x, Context inContext) if (isDecimal!T)
 		powx = mul(powx, sqrx, context);
 		term = div(powx, fact, context);
 	}
-	return roundToPrecision(sum, inContext);
+	return precisionRound(sum, inContext);
 }
 
 
@@ -1603,7 +1626,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("sinh");
 	foreach (t; s) f.test(t, sinh(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Decimal version of std.math function.
@@ -1623,7 +1646,7 @@ public T cosh(T)(T x, Context inContext) if (isDecimal!T)
 		powx = mul(powx, sqrx, context);
 		term = div(powx, fact, context);
 	}
-	return roundToPrecision(sum, inContext);
+	return precisionRound(sum, inContext);
 }
 
 unittest
@@ -1637,7 +1660,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("cosh");
 	foreach (t; s) f.test(t, cosh(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 /// Decimal version of std.math function.
@@ -1645,7 +1668,7 @@ public T tanh(T)(T x, Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T tan = div(sinh(x, context), cosh(x, context), context);
-	return roundToPrecision(tan, inContext);
+	return precisionRound(tan, inContext);
 }
 
 unittest
@@ -1659,7 +1682,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("tanh");
 	foreach (t; s) f.test(t, tanh(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }
 
 mixin (UnaryFunction!("asinh"));
@@ -1675,7 +1698,7 @@ public T asinh(T)(T x, Context inContext) if (isDecimal!T)
 	if (x.copyAbs >= "1.0E-6")
 	{
 		T arg = add(x, sqrt(add(sqr(x, context), T.one, context), context), context);
-		return roundToPrecision(log(arg, context), inContext);
+		return precisionRound(log(arg, context), inContext);
 	}
 	else
 	{
@@ -1693,7 +1716,7 @@ public T asinh(T)(T x, Context inContext) if (isDecimal!T)
 			scl *= (n/(n+1));
 			term = mul(T(scl), div(powx, T(n), context), context);
 		}
-		return roundToPrecision(sum, inContext);
+		return precisionRound(sum, inContext);
 	}
 }
 
@@ -1719,7 +1742,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("asinh");
 	foreach (t; s) f.test(t, asinh(t.x, t.p), t.p);
-    writefln(f.report);
+  writefln(f.report);
 
 }
 
@@ -1736,7 +1759,7 @@ public T acosh(T)(T x, Context inContext) if (isDecimal!T)
 	auto context = guard(inContext);
 	// TODO: this is imprecise at small arguments -- Taylor series?
 	T arg = add(x, sqrt(sub(sqr(x, context), T.one, context), context), context);
-	return roundToPrecision(log(arg, context), inContext);
+	return precisionRound(log(arg, context), inContext);
 }
 
 /*unittest
@@ -1754,7 +1777,7 @@ public T acosh(T)(T x, Context inContext) if (isDecimal!T)
 	];
 	auto f = FunctionTest!(S,TD)("acosh");
 	foreach (t; s) f.test(t, acosh(t.x));
-    writefln(f.report);
+  writefln(f.report);
 }*/
 
 /// Decimal version of std.math function.
@@ -1778,7 +1801,7 @@ public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 		T q = div(n, d, context);
 		T l = log(q, context);
 		T a = mul(T.HALF, l, context);
-		return roundToPrecision(a, inContext);
+		return precisionRound(a, inContext);
 	}
 	else
 	{	// series expansion
@@ -1794,7 +1817,7 @@ public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 			dvsr += 2;
 			term = div!T(powx, dvsr, context);
 		}
-		return roundToPrecision(sum, inContext);
+		return precisionRound(sum, inContext);
 	}
 }
 
@@ -1816,7 +1839,7 @@ unittest
 	];
 	auto f = FunctionTest!(S,TD)("atanh");
 	foreach (t; s) f.test(t, atanh!TD(t.x, t.p), t.p);
-    writefln(f.report);
+  writefln(f.report);
 }
 
 unittest {
