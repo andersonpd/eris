@@ -2200,6 +2200,172 @@ unittest
   writefln(f.report);
 }
 
+/+
+//--------------------------------
+// exponentials and logarithms
+//--------------------------------
+
+/// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
+/// This is useful for extended calculation to minimize errors.
+/// Returns a new context with the precision increased by the guard digits value.
+/// Note that this does not create a new Decimal type with this context.
+public Context guard(Context context, int guardDigits = 2)
+{
+  return Context(context.precision + guardDigits, context.maxExpo, HALF_EVEN);
+}
+
+/// Returns the exponent of the argument at the specified precision.
+public D exp(D)(in D arg, int precision)
+    if (isDecimal!D || isConvertible(D))
+  {
+    D num = D(arg);
+
+    // check for nan
+    if (num.isNaN)
+    {
+      contextFlags.set(INVALID_OPERATION);
+      return D.nan;
+    }
+    // create new context at given precision
+    Context context = Context(precision, D.maxExpo, HALF_EVEN);
+    // call the function
+    return exp!D(num, context);
+  }
+
+/// Returns the exponent of the argument at the current precision.
+/// Decimal version of std.math function.
+/// Required by General Decimal Arithmetic Specification
+public D exp(D)(D num, Context context = D.context, int guardDigits = 2)
+    if (isDecimal!D)
+{
+  if (num.isInfinite)
+  {
+    return num.isNegative ? D.zero : num;
+  }
+  bool negative = num.isNegative;
+  if (negative) num = num.copyAbs;
+  auto guarded = guard(context, guardDigits);
+  D sqrx = sqr(num, guarded);
+  long n = 1;
+  D fact = 1;
+  D t1   = D.one;
+  D t2   = num;
+  D term = add(t1, t2, guarded);
+  D sum  = term;
+  while (term > D.epsilon(guarded))
+  {
+    n   += 2;
+    t1   = mul(t2, mul(num, n, guarded), guarded);
+    t2   = mul(t2, sqrx, guarded);
+    fact = mul(fact, n*(n-1), guarded);
+    term = div(add(t1, t2, guarded), fact, guarded);
+    sum  = add(sum, term, guarded);
+  }
+  if (negative) sum = div(D.one, sum, guarded);
+  return precisionRound(sum, context);
+}
+
+unittest
+{  // exp
+  static struct S { TD x; int p; TD expect; }
+  S[] s =
+  [
+    {  1, 9, "2.71828183" },
+    {  2, 9, "7.3890560989306502272" },
+    { -2, 9, "0.13533528324" },
+    {  1, 9, "2.71828183" },
+    {  1, 11, "2.7182818285" },
+    {  1, 15, "2.71828182845905" },
+    {  2, 15, "7.3890560989306502272" },
+    {  2, 11, "7.3890560989306502272" },
+    { -2, 11, "0.13533528324" },
+  ];
+  auto f = FunctionTest!(S,TD)("exp");
+  foreach (t; s) f.test(t, exp(t.x, t.p), t.p);
+  writefln(f.report);
+}
+
+public enum D ln10(D)(Context context) if (isDecimal!D)
+{
+  return log(D.TEN, context, false);
+}
+
+/// Returns the logarithm of the argument at the specified precision.
+public D log(D)(in D arg, int precision = D.precision)
+    if (isDecimal!D || isConvertible(D))
+{
+  D num = D(arg);
+   // check for nan
+  if (num.isNaN)
+  {
+    contextFlags.set(INVALID_OPERATION);
+    return D.nan;
+  }
+  // create new context at input precision
+  Context context = Context(precision, D.maxExpo, HALF_EVEN);
+  // call the function
+  return log!D(num, context);
+}
+
+public D log(D)(D num, Context context,
+    bool reduceArg = true) if (isDecimal!D)
+{
+  if (num.isZero)
+  {
+    contextFlags.set(DIVISION_BY_ZERO);
+    return -D.infinity;
+  }
+  if (num.isNegative) return D.nan;
+  if (num.isInfinite) return D.infinity;
+
+  auto guarded = guard(context);
+  int k;
+  if (reduceArg)
+  {
+    k = ilogb(num) + 1;
+    num.expo = num.expo - k;
+  }
+  D a = div(sub(num, 1, guarded), add(num, 1, guarded), guarded);
+  D b = sqr(a, guarded);
+  D c = a;
+  long n = 3;
+  while (true)
+  {
+    c = mul(c, b, guarded);
+    D d = add(a, div(c, n, guarded), guarded);
+    if (equals(a, d, guarded))
+    {
+      D ln = mul(a, 2, guarded);
+      if (reduceArg)
+      {
+        ln = add(ln, mul(ln10!D(guarded), k, guarded), guarded);
+      }
+      return precisionRound(ln, context);
+    }
+    a = d;
+    n += 2;
+  }
+}
+
+unittest
+{	// log
+	static struct S { TD x; int p; TD expect; }
+	S[] s =
+	[
+		{  "2.71828183",  9, "1.0" },
+		{  "10.00",      12, "2.30258509299" },
+		{  "10.00",       9, "2.30258509" },
+		{ "123.45",       9, "4.81583622" },
+		{  "99.999E+8",   9, "23.0258409" },
+		{  "99.999E+8",   7, "23.0258409" },
+		{  "99.999E+8",  15, "23.0258409298905" },
+		{  "99.999E+8",   9, "23.0258409" },
+	];
+	auto f = FunctionTest!(S,TD)("log");
+	foreach (t; s) f.test(t, log(t.x, t.p), t.p);
+  writefln(f.report);
+}
++/
 //--------------------------------
 // rounding routines
 //--------------------------------
@@ -2399,17 +2565,17 @@ unittest {  // invalidOperation
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package D invalidOperand(D)(in D x) if (isDecimal!D)
+package D invalidOperand(D)(in D num) if (isDecimal!D)
 {
   // flag the invalid operation
   contextFlags.set(INVALID_OPERATION);
-  // if the operand is a quiet NaN return it.
-  if (x.isQuiet) return x.dup;
+/*  // if the operand is a quiet NaN return it.
+  if (num.isQuiet) return num.dup;
   // Otherwise change the signalling NaN to a quiet NaN.
-  if (x.isSignal) return D.nan(cast(ushort)x.coff);
+  if (num.isSignal) return D.nan(cast(ushort)num.coff);
   // if the operand is neither quiet nor signaling something else is wrong
-  // so return NaN.
-  return D.nan.dup;
+  // so return NaN.*/
+  return D.nan;
 }
 
 /// Returns a quiet NaN and sets the invalid-operation flag.
@@ -2420,19 +2586,19 @@ package D invalidOperand(D)(in D x) if (isDecimal!D)
 /// signaling then from the first operand which is a NaN."
 /// -- General Decimal Arithmetic Specification, p. 24
 //@safe
-package D invalidOperand(D)(in D x, in D y) if (isDecimal!D)
+package D invalidOperand(D)(in D left, in D right) if (isDecimal!D)
 {
   // flag the invalid operation
   contextFlags.set(INVALID_OPERATION);
-  // if either operand is signaling return a quiet NaN.
-  // NOTE: sign is ignored.
-  if (x.isSignal) return D.nan(cast(ushort)x.coff);
-  if (y.isSignal) return D.nan(cast(ushort)y.coff);
-  // if the operand is a quiet NaN return it.
-  if (x.isQuiet) return x.dup;
-  if (y.isQuiet) return y.dup;
-  // if neither of the operands is quiet or signaling,
-  // the operands are invalid for some reason. return a quiet NaN.
+//  // if either operand is signaling return a quiet NaN.
+//  // NOTE: sign is ignored.
+//  if (left.isSignal) return D.nan; //(cast(ushort)left.coff);
+//  if (right.isSignal) return D.nan; //(cast(ushort)right.coff);
+//  // if the operand is a quiet NaN return it.
+//  if (left.isQuiet) return left;
+//  if (right.isQuiet) return right;
+//  // if neither of the operands is quiet or signaling,
+//  // the operands are invalid for some reason. return a quiet NaN.
   return D.nan;
 }
 

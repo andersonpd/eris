@@ -500,8 +500,8 @@
   <h4>Standards</h4>
   <p class="para">
     Conforms to the
-	General Decimal Arithmetic Specification,
-	Version 1.70, (25 March 2009).
+  General Decimal Arithmetic Specification,
+  Version 1.70, (25 March 2009).
   </p>
 </div>
 </section>
@@ -520,7 +520,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="classify"></span>string <code class="code">classify</code>(T)(in T <code class="code">x</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="classify"></span>string <code class="code">classify</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -576,7 +576,7 @@ None
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="ilogb"></span>int <code class="code">ilogb</code>(T)(in T <code class="code">x</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="ilogb"></span>int <code class="code">ilogb</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -634,7 +634,7 @@ INVALID_OPERATION, DIVISION_BY_ZERO.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="logb"></span>T <code class="code">logb</code>(T)(in T <code class="code">x</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="logb"></span>D <code class="code">logb</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -694,7 +694,7 @@ Implements the '<code class="code">logb</code>' function in the specification. (
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="scaleb"></span>T <code class="code">scaleb</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="scaleb"></span>D <code class="code">scaleb</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -716,7 +716,7 @@ Implements the '<code class="code">logb</code>' function in the specification. (
   <h4>Discussion</h4>
   <p class="para">
     The second operand must be a finite integer (&lt;= int.max &amp;&amp; &gt;= int.min)
- 	with an exponent of zero.
+   with an exponent of zero.
 
 
   </p>
@@ -759,7 +759,7 @@ INVALID_OPERATION, UNDERFLOW, OVERFLOW.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="round"></span>D <code class="code">round</code>(D)(D <code class="code">x</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>);
+            <span class="ddoc_anchor" id="round"></span>D <code class="code">round</code>(D)(D <code class="code">num</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>);
 
           </code>
         </p>
@@ -792,7 +792,7 @@ INVALID_OPERATION, UNDERFLOW, OVERFLOW.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="reduce"></span>T <code class="code">reduce</code>(T)(in T <code class="code">x</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="reduce"></span>D <code class="code">reduce</code>(D)(in D <code class="code">num</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -919,7 +919,7 @@ INVALID_OPERATION
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="sgn"></span>int <code class="code">sgn</code>(D)(in D <code class="code">arg</code>) if (isDecimal!D);
+            <span class="ddoc_anchor" id="sgn"></span>int <code class="code">sgn</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -953,7 +953,7 @@ INVALID_OPERATION
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="plus"></span>D <code class="code">plus</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+            <span class="ddoc_anchor" id="plus"></span>D <code class="code">plus</code>(D)(in D <code class="code">num</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -974,7 +974,7 @@ INVALID_OPERATION
   <h4>Discussion</h4>
   <p class="para">
     Returns a copy of the argument with the same sign as the argument.
-  The result is equivalent to add('0', <code class="code">arg</code>).
+  The result is equivalent to add('0', arg).
 
 
   </p>
@@ -1018,7 +1018,7 @@ INVALID_OPERATION
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="minus"></span>D <code class="code">minus</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+            <span class="ddoc_anchor" id="minus"></span>D <code class="code">minus</code>(D)(in D <code class="code">num</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1031,7 +1031,7 @@ INVALID_OPERATION
   <div class="ddoc_summary">
   <p class="para">
     Returns a copy of the argument with the opposite sign.
-  The result is equivalent to subtract('0', <code class="code">arg</code>).
+  The result is equivalent to subtract('0', arg).
 
   </p>
 </div>
@@ -1069,7 +1069,7 @@ INVALID_OPERATION
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="nextPlus"></span>D <code class="code">nextPlus</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+            <span class="ddoc_anchor" id="nextPlus"></span>D <code class="code">nextPlus</code>(D)(in D <code class="code">num</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1119,7 +1119,7 @@ INVALID_OPERATION
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="nextMinus"></span>D <code class="code">nextMinus</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+            <span class="ddoc_anchor" id="nextMinus"></span>D <code class="code">nextMinus</code>(D)(in D <code class="code">num</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1174,7 +1174,7 @@ The overflow flag is not set by this operation.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="nextToward"></span>D <code class="code">nextToward</code>(D)(in D <code class="code">arg</code>, in D <code class="code">toward</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
+            <span class="ddoc_anchor" id="nextToward"></span>D <code class="code">nextToward</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1194,7 +1194,7 @@ The overflow flag is not set by this operation.
 <div class="ddoc_description">
   <h4>Discussion</h4>
   <p class="para">
-    Implements the 'next-<code class="code">toward</code>' function in the specification. (p. 34-35)
+    Implements the 'next-toward' function in the specification. (p. 34-35)
 
 
   </p>
@@ -1222,7 +1222,7 @@ INVALID_OPERATION
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="compare"></span>int <code class="code">compare</code>(T)(in T <code class="code">left</code>, in T <code class="code">right</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="compare"></span>int <code class="code">compare</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1439,7 +1439,7 @@ INVALID_OPERATION
   <div class="ddoc_summary">
   <p class="para">
     Takes two numbers and compares the operands using their
- 	abstract representation rather than their numerical value.
+   abstract representation rather than their numerical value.
   Numbers (representations which are not NaNs) are ordered such that
   a larger numerical value is higher in the ordering.
   If two representations have the same numerical value
@@ -1754,7 +1754,7 @@ INVALID_OPERATION, ROUNDED.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="quantum"></span>T <code class="code">quantum</code>(T)(in T <code class="code">x</code>);
+            <span class="ddoc_anchor" id="quantum"></span>D <code class="code">quantum</code>(D)(in D <code class="code">x</code>);
 
           </code>
         </p>
@@ -1794,7 +1794,7 @@ NONE.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="shift"></span>T <code class="code">shift</code>(T, U = T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="shift"></span>D <code class="code">shift</code>(D, U = D)(in D <code class="code">x</code>, in D <code class="code">y</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1832,7 +1832,7 @@ Implements the '<code class="code">shift</code>' function in the specification. 
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="shift.2"></span>T <code class="code">shift</code>(T, U : int)(in T <code class="code">arg</code>, U <code class="code">n</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="shift.2"></span>D <code class="code">shift</code>(D, U : int)(in D <code class="code">arg</code>, U <code class="code">n</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1870,7 +1870,7 @@ Implements the '<code class="code">shift</code>' function in the specification. 
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="rotate"></span>T <code class="code">rotate</code>(T, U = T)(in T <code class="code">x</code>, in U <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="rotate"></span>D <code class="code">rotate</code>(D, U = D)(in D <code class="code">x</code>, in U <code class="code">y</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1908,7 +1908,7 @@ Implements the '<code class="code">rotate</code>' function in the specification.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="rotate.2"></span>T <code class="code">rotate</code>(T, U : int)(in T <code class="code">arg</code>, U <code class="code">n</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="rotate.2"></span>D <code class="code">rotate</code>(D, U : int)(in D <code class="code">arg</code>, U <code class="code">n</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -1945,7 +1945,7 @@ Implements the '<code class="code">rotate</code>' function in the specification.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="add"></span>T <code class="code">add</code>(T)(in T <code class="code">left</code>, in T <code class="code">right</code>, Context <code class="code">context</code> = T.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!T);
+            <span class="ddoc_anchor" id="add"></span>D <code class="code">add</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
 
           </code>
         </p>
@@ -1986,7 +1986,7 @@ INVALID_OPERATION, OVERFLOW.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="add.2"></span>T <code class="code">add</code>(T, U)(in T <code class="code">left</code>, in U <code class="code">right</code>, Context <code class="code">context</code> = T.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!T &amp;&amp; isConvertible!U);
+            <span class="ddoc_anchor" id="add.2"></span>D <code class="code">add</code>(D, U)(in D <code class="code">left</code>, in U <code class="code">right</code>, Context <code class="code">context</code> = D.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D &amp;&amp; isConvertible!U);
 
           </code>
         </p>
@@ -2061,7 +2061,7 @@ Implements the 'subtract' function in the specification. (p. 26)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="sub.2"></span>T <code class="code">sub</code>(T, U)(in T <code class="code">x</code>, U <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!T &amp;&amp; isConvertible!U);
+            <span class="ddoc_anchor" id="sub.2"></span>D <code class="code">sub</code>(D, U)(in D <code class="code">x</code>, U <code class="code">y</code>, Context <code class="code">context</code> = D.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D &amp;&amp; isConvertible!U);
 
           </code>
         </p>
@@ -2095,7 +2095,7 @@ Implements the 'subtract' function in the specification. (p. 26)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="mul"></span>T <code class="code">mul</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="mul"></span>D <code class="code">mul</code>(D)(in D <code class="code">x</code>, in D <code class="code">y</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2129,7 +2129,7 @@ Implements the 'multiply' function in the specification. (p. 33-34)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="mul.2"></span>T <code class="code">mul</code>(T, U : long)(in T <code class="code">x</code>, in U <code class="code">n</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="mul.2"></span>D <code class="code">mul</code>(D, U : long)(in D <code class="code">x</code>, in U <code class="code">n</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2164,7 +2164,7 @@ an unnecessary conversion to a decimal when multiplying by an integer.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="mul.3"></span>T <code class="code">mul</code>(T, U)(in T <code class="code">x</code>, in U <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T &amp;&amp; isConvertible!U);
+            <span class="ddoc_anchor" id="mul.3"></span>D <code class="code">mul</code>(D, U)(in D <code class="code">x</code>, in U <code class="code">y</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D &amp;&amp; isConvertible!U);
 
           </code>
         </p>
@@ -2198,7 +2198,7 @@ Implements the 'multiply' function in the specification. (p. 33-34)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="sqr"></span>T <code class="code">sqr</code>(T)(in T <code class="code">arg</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="sqr"></span>D <code class="code">sqr</code>(D)(in D <code class="code">arg</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2231,7 +2231,7 @@ The result may be rounded and <code class="code">context</code> flags may be set
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="fma"></span>T <code class="code">fma</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, in T <code class="code">z</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="fma"></span>D <code class="code">fma</code>(D)(in D <code class="code">x</code>, in D <code class="code">y</code>, in D <code class="code">z</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2266,7 +2266,7 @@ Implements the 'fused-multiply-add' function in the specification. (p. 30)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="div"></span>T <code class="code">div</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="div"></span>D <code class="code">div</code>(D)(in D <code class="code">x</code>, in D <code class="code">y</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2301,7 +2301,7 @@ Implements the 'divide' function in the specification. (p. 27-29)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="div.2"></span>T <code class="code">div</code>(T, U : long)(in T <code class="code">x</code>, in U <code class="code">n</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="div.2"></span>D <code class="code">div</code>(D, U : long)(in D <code class="code">x</code>, in U <code class="code">n</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2336,7 +2336,7 @@ Implements the 'divide' function in the specification. (p. 27-29)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="div.3"></span>T <code class="code">div</code>(T, U)(in T <code class="code">x</code>, in U <code class="code">z</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T &amp;&amp; isConvertible!U);
+            <span class="ddoc_anchor" id="div.3"></span>D <code class="code">div</code>(D, U)(in D <code class="code">x</code>, in U <code class="code">z</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D &amp;&amp; isConvertible!U);
 
           </code>
         </p>
@@ -2371,7 +2371,7 @@ Implements the 'divide' function in the specification. (p. 27-29)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="divideInteger"></span>T <code class="code">divideInteger</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>);
+            <span class="ddoc_anchor" id="divideInteger"></span>D <code class="code">divideInteger</code>(D)(in D <code class="code">x</code>, in D <code class="code">y</code>);
 
           </code>
         </p>
@@ -2407,7 +2407,7 @@ Implements the 'divide-integer' function in the specification. (p. 30)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="remQuo"></span>T <code class="code">remQuo</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, out T <code class="code">quo</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="remQuo"></span>D <code class="code">remQuo</code>(D)(in D <code class="code">x</code>, in D <code class="code">y</code>, out D <code class="code">quo</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2443,7 +2443,7 @@ Implements the 'divide-integer' function in the specification. (p. 30)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="remainder"></span>T <code class="code">remainder</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>, Context <code class="code">context</code> = T.<code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="remainder"></span>D <code class="code">remainder</code>(D)(in D <code class="code">x</code>, in D <code class="code">y</code>, Context <code class="code">context</code> = D.<code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2480,7 +2480,7 @@ Implements the '<code class="code">remainder</code>' function in the specificati
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="remainderNear"></span>T <code class="code">remainderNear</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="remainderNear"></span>D <code class="code">remainderNear</code>(D)(in D <code class="code">x</code>, in D <code class="code">y</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2544,7 +2544,7 @@ Implements the '<code class="code">quantize</code>' function in the specificatio
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#roundToIntegralExact" id="roundToIntegralExact"><code class="code">roundToIntegralExact</code></a>
+  <a href="#roundToInt" id="roundToInt"><code class="code">roundToInt</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -2553,7 +2553,7 @@ Implements the '<code class="code">quantize</code>' function in the specificatio
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="roundToIntegralExact"></span>D <code class="code">roundToIntegralExact</code>(D)(in D <code class="code">num</code>, in Round <code class="code">mode</code> = HALF_EVEN) if (isDecimal!D);
+            <span class="ddoc_anchor" id="roundToInt"></span>D <code class="code">roundToInt</code>(D)(in D <code class="code">num</code>, in Round <code class="code">mode</code> = HALF_EVEN, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
 
           </code>
         </p>
@@ -2569,40 +2569,7 @@ Implements the '<code class="code">quantize</code>' function in the specificatio
 Context flags may be set.
 Implements the 'round-to-integral-exact' function
 in the specification. (p. 39)
-  </p>
-</div>
-
-</section>
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#roundToIntegralValue" id="roundToIntegralValue"><code class="code">roundToIntegralValue</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="roundToIntegralValue"></span>T <code class="code">roundToIntegralValue</code>(T)(in T <code class="code">arg</code>) if (isDecimal!T);
-
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  <section class="section ddoc_sections">
-  <div class="ddoc_summary">
-  <p class="para">
-    The result may be rounded and context flags may be set.
-Implements the 'round-to-integral-value' function
-in the specification. (p. 39)
+if <code class="code">setFlags</code> is <code class="code">false</code>, this is the 'round-to-integral-value' function.
   </p>
 </div>
 
@@ -2622,7 +2589,7 @@ in the specification. (p. 39)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="invalidOperation"></span>T <code class="code">invalidOperation</code>(T)(ushort <code class="code">payload</code> = 0) if (isDecimal!T);
+            <span class="ddoc_anchor" id="invalidOperation"></span>D <code class="code">invalidOperation</code>(D)(ushort <code class="code">payload</code> = 0) if (isDecimal!D);
 
           </code>
         </p>
@@ -2654,7 +2621,7 @@ in the specification. (p. 39)
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="invalidOperand"></span>T <code class="code">invalidOperand</code>(T)(in T <code class="code">x</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="invalidOperand"></span>D <code class="code">invalidOperand</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -2692,7 +2659,7 @@ signaling then from the first operand which is a NaN."
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="invalidOperand.2"></span>T <code class="code">invalidOperand</code>(T)(in T <code class="code">x</code>, in T <code class="code">y</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="invalidOperand.2"></span>D <code class="code">invalidOperand</code>(D)(in D <code class="code">left</code>, in D <code class="code">right</code>) if (isDecimal!D);
 
           </code>
         </p>

@@ -500,8 +500,8 @@
   <h4>Standards</h4>
   <p class="para">
     Conforms to the
-	General Decimal Arithmetic Specification,
-	Version 1.70, (25 March 2009).
+  General Decimal Arithmetic Specification,
+  Version 1.70, (25 March 2009).
   </p>
 </div>
 </section>
@@ -543,7 +543,7 @@
  A boolean sign
  A integer-type coefficient,
  An integer exponent
- A special value flag
+ A tag for special values (NaN, infinity)
   </p>
 </div>
 
@@ -1662,7 +1662,7 @@ whether or not they are reduced to their simplest form.
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#Decimal.isSignaling" id="Decimal.isSignaling"><code class="code">isSignaling</code></a>
+  <a href="#Decimal.isSignal" id="Decimal.isSignal"><code class="code">isSignal</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -1671,7 +1671,7 @@ whether or not they are reduced to their simplest form.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="Decimal.isSignaling"></span>const @safe bool <code class="code">isSignaling</code>();
+            <span class="ddoc_anchor" id="Decimal.isSignal"></span>const @safe bool <code class="code">isSignal</code>();
 
           </code>
         </p>
@@ -2581,7 +2581,7 @@ unary operation on this number.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="Decimal.opBinary"></span>const decimal <code class="code">opBinary</code>(string op, T : decimal)(in T <code class="code">x</code>);
+            <span class="ddoc_anchor" id="Decimal.opBinary"></span>const decimal <code class="code">opBinary</code>(string op, D : decimal)(in D <code class="code">that</code>);
 
           </code>
         </p>
@@ -2727,6 +2727,134 @@ and the argument then assigns the result to this number.
   <p class="para">
     Performs the specified binary operation on this number
 and the argument then assigns the result to this number.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Decimal.PI" id="Decimal.PI"><code class="code">PI</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Decimal.PI"></span>enum decimal <code class="code">PI</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns pi, pi = 3.14159266...
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Decimal.E" id="Decimal.E"><code class="code">E</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Decimal.E"></span>enum decimal <code class="code">E</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Decimal.LN2" id="Decimal.LN2"><code class="code">LN2</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Decimal.LN2"></span>enum decimal <code class="code">LN2</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    natural logarithm of 2 = 0.693147806...
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Decimal.LN10" id="Decimal.LN10"><code class="code">LN10</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Decimal.LN10"></span>enum decimal <code class="code">LN10</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    natural logarithm of 10 = 2.30258509...
   </p>
 </div>
 

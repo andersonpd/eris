@@ -255,7 +255,7 @@ public BigInt toBigInt(T)(T x, Round mode = HALF_EVEN)
 //	string mixins
 //--------------------------------
 
-template Constant(string name)
+/*template Constant(string name)
 {
 const char[] Constant =
 	"/// Returns the value of the constant at the specified precision.
@@ -271,7 +271,7 @@ const char[] Constant =
 		}
 		return precisionRound(value, precision);
 	}";
-}
+}*/
 
 /*template UnaryFunction(string name)
 {
@@ -310,95 +310,68 @@ const char[] UnaryFunction =
 
 template UnaryFunction(string name)
 {
-const char[] UnaryFunction =
+  const char[] UnaryFunction =
 
-	"/// Returns the value of the function at the specified precision.
-	public T " ~ name ~ "(T)(T x, int precision = T.precision) if (isDecimal!T)
-	{
-		if (x.isNaN) {
-			contextFlags.set(INVALID_OPERATION);
-			return T.nan;
-		}
-		Context context = Context(precision, T.maxExpo, HALF_EVEN);
-		return " ~ name ~ "!T(x, context);
-	}
+  "/// Returns the value of the function at the specified precision.
+  public T " ~ name ~ "(T)(T x, int precision = T.precision) if (isDecimal!T)
+  {
+    if (x.isNaN)
+    {
+      contextFlags.set(INVALID_OPERATION);
+      return T.nan;
+    }
+    Context context = Context(precision, T.maxExpo, HALF_EVEN);
+    return " ~ name ~ "!T(x, context);
+  }
 
-/*/// Returns the value of the function at the specified precision.
-public T reciprocal(T, U)(in U u, int precision)
-	if (isDecimal!T && isConvertible!U)
-{
-	T x = T(u);
-	if (x.isNaN) {
-		contextFlags.set(INVALID_OPERATION);
-		return T.nan;
-	}
-	Context context = Context(precision, T.maxExpo, HALF_EVEN);
-	return reciprocal!T(T(x), context);
-}*/
-
-	/// Returns the value of the function at the specified precision.
-	public T " ~ name ~ "(T,U)(U num, int precision)
-		if (isDecimal!T && isConvertible!U)
-	{
-		T x = T(num);
-		return " ~ name ~ "!T(x, precision);
-	}
-
-/*	/// Returns the value of the function at the specified precision.
-	public T " ~ name ~ "(T,L:long)(L n, int precision = T.precision) if (isDecimal!T) {
-		T x = T(n);
-		return " ~ name ~ "!T(x, precision);
-	}
-
-	/// Returns the value of the function at the specified precision.
-	public T " ~ name ~ "(T,R:real)(R a, int precision = T.precision)  if (isDecimal!T){
-		T x = T(a);
-		return " ~ name ~ "!T(x, precision);
-	}*/";
+  /// Returns the value of the function at the specified precision.
+  public T " ~ name ~ "(T,U)(U num, int precision)
+    if (isDecimal!T && isConvertible!U)
+  {
+    T x = T(num);
+    return " ~ name ~ "!T(x, precision);
+  }";
 }
 
 template BinaryFunction(string name)
 {
 const char[] BinaryFunction =
-	"/// Returns the value of the function at the specified precision.
-	public T " ~ name ~ "(T)(T x, T y, int precision = T.precision)
-	if (isDecimal!T)
-	{
-		if (x.isNaN || y.isNaN) {
-			contextFlags.set(INVALID_OPERATION);
-			return T.nan;
-		}
-		Context context = Context(precision, T.maxExpo, HALF_EVEN);
-		return " ~ name ~ "!T(x, y, context);
-	}";
+
+  "/// Returns the value of the function at the specified precision.
+  public T " ~ name ~ "(T)(T x, T y, int precision = T.precision)
+  if (isDecimal!T)
+  {
+    if (x.isNaN || y.isNaN)
+    {
+      contextFlags.set(INVALID_OPERATION);
+      return T.nan;
+    }
+    Context context = Context(precision, T.maxExpo, HALF_EVEN);
+    return " ~ name ~ "!T(x, y, context);
+  }";
 }
 
 //--------------------------------
 //	CONSTANTS
 //--------------------------------
 
-/// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
-private Context guard(Context context, int guardDigits = 2) {
-	return Context(context.precision + guardDigits, context.maxExpo, HALF_EVEN);
-}
-
 /// Calculates the value of pi to the specified precision.
 //mixin (Constant!("pi"));
-package T pi(T)(Context inContext) if (isDecimal!T)
+package D pi(D)(Context inContext) if (isDecimal!D)
 {
 	// TODO: (behavior) if only 2 guard digits are used, function doesn't return
 	auto context = guard(inContext, 3);
 	// AGM algorithm
 	long k = 1;
-	T a0 = T.one;
-	T b0 = sqrt1_2!T(context);
-	T s0 = T(5,-1);//.HALF;
-	T a1, b1, s1;
+	D a0 = D.one;
+	D b0 = sqrt1_2!D(context);
+	D s0 = D(5,-1);//.HALF;
+	D a1, b1, s1;
 	// loop until the arithmetic mean equals the geometric mean
 	while (!equals(a0, b0, context))
 	{
 		// arithmetic mean: a1 = (a0+bo)/2))
-		a1 = mul(T.HALF, add(a0, b0, context), context);
+		a1 = mul(D.HALF, add(a0, b0, context), context);
 		// geometric mean: b1 = sqrt(a0*b0)
 		b1 = sqrt(mul(a0, b0, context), context);
 		k *= 2;
@@ -407,7 +380,7 @@ package T pi(T)(Context inContext) if (isDecimal!T)
 		b0 = b1;
 		s0 = s1;
 	}
-	T pi = mul(div(sqr(a1, context), s1, context), 2, context);
+	D pi = mul(div(sqr(a1, context), s1, context), 2, context);
 	return precisionRound(pi, inContext);
 }
 
@@ -538,11 +511,11 @@ package T e(T)(Context inContext) if (isDecimal!T)
   writefln(f.report);
 }*/
 
-//mixin (Constant!("ln10"));
+/*//mixin (Constant!("ln10"));
 package enum T ln10(T)(Context context) if (isDecimal!T)
 {
 	return log(T.TEN, context, false);
-}
+}*/
 
 //mixin (Constant!("ln2"));
 package enum T ln2(T)(Context context) if (isDecimal!T)
@@ -778,67 +751,67 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
-public T sqrt(T)(T x, Context context) if (isDecimal!T)
+public D sqrt(D)(D x, Context context) if (isDecimal!D)
 {
-//	auto context = guard(inContext, 3);
-	// special values
-	if (x.isNegative) {
-		contextFlags.set(INVALID_OPERATION);
-		return T.nan;
-	}
-	// TODO: what if x is very close to one or zero??
-	if (x.isOne) return T.one;
-	if (x.isZero) return T.zero;
-	if (x.isInfinite) return T.infinity;
+//  auto context = guard(inContext, 3);
+  // special values
+  if (x.isNegative) {
+    contextFlags.set(INVALID_OPERATION);
+    return D.nan;
+  }
+  // TODO: what if x is very close to one or zero??
+  if (x.isOne) return D.one;
+  if (x.isZero) return D.zero;
+  if (x.isInfinite) return D.infinity;
 
-	// reduce the exponent and estimate the result
-	T a;
-	int k = ilogb(x);
-	if (isOdd(k)) {
-		a = T(6, -1);
-	}
-	else {
-		a = T(2, -1);
-		k++;
-	}
-	x.expo = x.expo - k - 1;
+  // reduce the exponent and estimate the result
+  D a;
+  int k = ilogb(x);
+  if (isOdd(k)) {
+    a = D(6, -1);
+  }
+  else {
+    a = D(2, -1);
+    k++;
+  }
+  x.expo = x.expo - k - 1;
 
-	// Newton's method
-	while (true) {
-		T b = a;
-		a = mul(T.HALF, add(b, div(x, b, context), context), context);
-		if (equals(a, b, context)) break;
-	}
-	// restore the exponent
-	a.expo = a.expo + (k+1)/2;
-	// round the result
-	return precisionRound(a, context);
+  // Newton's method
+  while (true) {
+    D b = a;
+    a = mul(D.HALF, add(b, div(x, b, context), context), context);
+    if (equals(a, b, context)) break;
+  }
+  // restore the exponent
+  a.expo = a.expo + (k+1)/2;
+  // round the result
+  return precisionRound(a, context);
 }
 
-/*unittest
-{	// sqrt
-	static struct S { TD x; int p; TD expect; }
-	S[] s =
-	[
-		{ "2", 9, "1.41421356" },
-		{ "0.707106781187", 12, "0.840896415254" },
-		{ "200", 21, "14.142135623730950488000" },
-		{ "25", 8, "5.0" },
-		{ "2E-5", 10, "0.00447213595500" },
-		{ "1E-15", 9, "3.16227766E-8" },
-		{ "1E-16", 9, "1.00000000E-8" },
-	];
-	auto f = FunctionTest!(S,TD)("sqrt");
-	foreach (t; s) f.test(t, sqrt(t.x, t.p), t.p);
+unittest
+{  // sqrt
+  static struct S { TD x; int p; TD expect; }
+  S[] s =
+  [
+    { "2", 9, "1.41421356" },
+    { "0.707106781187", 12, "0.840896415254" },
+    { "200", 21, "14.142135623730950488000" },
+    { "25", 8, "5.0" },
+    { "2E-5", 10, "0.00447213595500" },
+    { "1E-15", 9, "3.16227766E-8" },
+    { "1E-16", 9, "1.00000000E-8" },
+  ];
+  auto f = FunctionTest!(S,TD)("sqrt");
+  foreach (t; s) f.test(t, sqrt(t.x, t.p), t.p);
   writefln(f.report);
-}*/
+}
 
 //--------------------------------
 // EXPONENTIAL AND LOGARITHMIC FUNCTIONS
 //--------------------------------
 
-mixin (UnaryFunction!("exp"));
-/+
+/+mixin (UnaryFunction!("exp"));
+
 	"/// Returns the value of the function at the specified precision.
 	public T " ~ name ~ "(T)(T x, int precision = T.precision) if (isDecimal!T)
 	{
@@ -851,7 +824,173 @@ mixin (UnaryFunction!("exp"));
 	}
 +/
 
+//--------------------------------
+// exponentials and logarithms
+//--------------------------------
+
+/// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
+/// This is useful for extended calculation to minimize errors.
+/// Returns a new context with the precision increased by the guard digits value.
+/// Note that this does not create a new Decimal type with this context.
+public Context guard(Context context, int guardDigits = 2)
+{
+  return Context(context.precision + guardDigits, context.maxExpo, HALF_EVEN);
+}
+
+/// Returns the exponent of the argument at the specified precision.
+public D exp(D)(in D arg, int precision)
+    if (isDecimal!D || isConvertible(D))
+  {
+    D num = D(arg);
+
+    // check for nan
+    if (num.isNaN)
+    {
+      contextFlags.set(INVALID_OPERATION);
+      return D.nan;
+    }
+    // create new context at given precision
+    Context context = Context(precision, D.maxExpo, HALF_EVEN);
+    // call the function
+    return exp!D(num, context);
+  }
+
+/// Returns the exponent of the argument at the current precision.
 /// Decimal version of std.math function.
+/// Required by General Decimal Arithmetic Specification
+public D exp(D)(D num, Context context = D.context, int guardDigits = 2)
+    if (isDecimal!D)
+{
+  if (num.isInfinite)
+  {
+    return num.isNegative ? D.zero : num;
+  }
+  bool negative = num.isNegative;
+  if (negative) num = num.copyAbs;
+  auto guarded = guard(context, guardDigits);
+  D sqrx = sqr(num, guarded);
+  long n = 1;
+  D fact = 1;
+  D t1   = D.one;
+  D t2   = num;
+  D term = add(t1, t2, guarded);
+  D sum  = term;
+  while (term > D.epsilon(guarded))
+  {
+    n   += 2;
+    t1   = mul(t2, mul(num, n, guarded), guarded);
+    t2   = mul(t2, sqrx, guarded);
+    fact = mul(fact, n*(n-1), guarded);
+    term = div(add(t1, t2, guarded), fact, guarded);
+    sum  = add(sum, term, guarded);
+  }
+  if (negative) sum = div(D.one, sum, guarded);
+  return precisionRound(sum, context);
+}
+
+unittest
+{  // exp
+  static struct S { TD x; int p; TD expect; }
+  S[] s =
+  [
+    {  1, 9, "2.71828183" },
+    {  2, 9, "7.3890560989306502272" },
+    { -2, 9, "0.13533528324" },
+    {  1, 9, "2.71828183" },
+    {  1, 11, "2.7182818285" },
+    {  1, 15, "2.71828182845905" },
+    {  2, 15, "7.3890560989306502272" },
+    {  2, 11, "7.3890560989306502272" },
+    { -2, 11, "0.13533528324" },
+  ];
+  auto f = FunctionTest!(S,TD)("exp");
+  foreach (t; s) f.test(t, exp(t.x, t.p), t.p);
+  writefln(f.report);
+}
+
+public enum D ln10(D)(Context context) if (isDecimal!D)
+{
+  return log(D.TEN, context, false);
+}
+
+/// Returns the logarithm of the argument at the specified precision.
+public D log(D)(in D arg, int precision = D.precision)
+    if (isDecimal!D || isConvertible(D))
+{
+  D num = D(arg);
+   // check for nan
+  if (num.isNaN)
+  {
+    contextFlags.set(INVALID_OPERATION);
+    return D.nan;
+  }
+  // create new context at input precision
+  Context context = Context(precision, D.maxExpo, HALF_EVEN);
+  // call the function
+  return log!D(num, context);
+}
+
+public D log(D)(D num, Context context,
+    bool reduceArg = true) if (isDecimal!D)
+{
+  if (num.isZero)
+  {
+    contextFlags.set(DIVISION_BY_ZERO);
+    return -D.infinity;
+  }
+  if (num.isNegative) return D.nan;
+  if (num.isInfinite) return D.infinity;
+
+  auto guarded = guard(context);
+  int k;
+  if (reduceArg)
+  {
+    k = ilogb(num) + 1;
+    num.expo = num.expo - k;
+  }
+  D a = div(sub(num, 1, guarded), add(num, 1, guarded), guarded);
+  D b = sqr(a, guarded);
+  D c = a;
+  long n = 3;
+  while (true)
+  {
+    c = mul(c, b, guarded);
+    D d = add(a, div(c, n, guarded), guarded);
+    if (equals(a, d, guarded))
+    {
+      D ln = mul(a, 2, guarded);
+      if (reduceArg)
+      {
+        ln = add(ln, mul(ln10!D(guarded), k, guarded), guarded);
+      }
+      return precisionRound(ln, context);
+    }
+    a = d;
+    n += 2;
+  }
+}
+
+unittest
+{	// log
+	static struct S { TD x; int p; TD expect; }
+	S[] s =
+	[
+		{  "2.71828183",  9, "1.0" },
+		{  "10.00",      12, "2.30258509299" },
+		{  "10.00",       9, "2.30258509" },
+		{ "123.45",       9, "4.81583622" },
+		{  "99.999E+8",   9, "23.0258409" },
+		{  "99.999E+8",   7, "23.0258409" },
+		{  "99.999E+8",  15, "23.0258409298905" },
+		{  "99.999E+8",   9, "23.0258409" },
+	];
+	auto f = FunctionTest!(S,TD)("log");
+	foreach (t; s) f.test(t, log(t.x, t.p), t.p);
+  writefln(f.report);
+}
+
+
+/*/// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 package D exp(D)(D x, Context inContext) if (isDecimal!D)
 {
@@ -901,7 +1040,7 @@ unittest
   foreach (t; s) f.test(t, exp(t.x, t.p), t.p);
   writefln(f.report);
 }
-
+*/
 /+
 /**
  * Decimal version of std.math function.
@@ -976,7 +1115,7 @@ unittest
   writefln(f.report);
 }
 
-mixin (UnaryFunction!("log"));
+//mixin (UnaryFunction!("log"));
 mixin (UnaryFunction!("log1p"));
 mixin (UnaryFunction!("log10"));
 mixin (UnaryFunction!("log2"));
@@ -998,63 +1137,6 @@ mixin (UnaryFunction!("log2"));
 /// Decimal version of std.math function.
 /// Required by General Decimal Arithmetic Specification
 // TODO: efficiency) see Natural Logarithm, Wikipedia.
-package T log(T)(T x, Context inContext,
-		bool reduceArg = true) if (isDecimal!T)
-{
-	if (x.isZero) {
-		contextFlags.set(DIVISION_BY_ZERO);
-		return -T.infinity;
-	}
-	if (x.isNegative) {
-		return T.nan;
-	}
-	if (x.isInfinite) {
-		return T.infinity;
-	}
-	auto context = guard(inContext);
-	int k;
-	if (reduceArg) {
-		k = ilogb(x) + 1;
-		x.expo = x.expo - k;
-	}
-	T a = div(sub(x, 1, context), add(x, 1, context), context);
-	T b = sqr(a, context);
-	T c = a;
-	long n = 3;
-	while (true) {
-		c = mul(c, b, context);
-		T d = add(a, div(c, n, context), context);
-		if (equals(a, d, context)) {
-			T ln = mul(a, 2, context);
-			if (reduceArg) {
-				ln = add(ln, mul(ln10!T(context), k, context), context);
-			}
-		return precisionRound(ln, inContext);
-		}
-		a = d;
-		n += 2;
-	}
-}
-
-unittest
-{	// log
-	static struct S { TD x; int p; TD expect; }
-	S[] s =
-	[
-		{  "2.71828183",  9, "1.0" },
-		{  "10.00",      12, "2.30258509299" },
-		{  "10.00",       9, "2.30258509" },
-		{ "123.45",       9, "4.81583622" },
-		{  "99.999E+8",   9, "23.0258409" },
-		{  "99.999E+8",   7, "23.0258409" },
-		{  "99.999E+8",  15, "23.0258409298905" },
-		{  "99.999E+8",   9, "23.0258409" },
-	];
-	auto f = FunctionTest!(S,TD)("log");
-	foreach (t; s) f.test(t, log(t.x, t.p), t.p);
-  writefln(f.report);
-}
-
 /**
  * log1p (== log(1 + x)).
  * Decimal version of std.math function.

@@ -554,7 +554,7 @@ static if (context == Bid64Context)
   enum decimal ONE     = decimal(1);
   enum decimal NEG_ONE = decimal(-1);
   enum decimal TWO     = decimal(2);
-  enum decimal THREE   = decimal(3);
+//  enum decimal THREE   = decimal(3);
   enum decimal FIVE    = decimal(5);
   enum decimal TEN     = decimal(10);
 
@@ -1435,27 +1435,27 @@ static if (context == Bid64Context)
 
   /// Returns the result of the specified
   /// binary operation on this number and the argument.
-  public decimal opBinary(string op, T:decimal)(in T x) const
+  public decimal opBinary(string op, D:decimal)(in D that) const
   {
     static if (op == "+")
     {
-      return add(this, x);
+      return add(this, that);
     }
     else static if (op == "-")
     {
-      return sub(this, x);
+      return sub(this, that);
     }
     else static if (op == "*")
     {
-      return mul(this, x);
+      return mul(this, that);
     }
     else static if (op == "/")
     {
-      return div(this, x);
+      return div(this, that);
     }
     else static if (op == "%")
     {
-      return remainder(this, x);
+      return remainder(this, that);
     }
   }
 
@@ -1579,26 +1579,26 @@ static if (context == Bid64Context)
   mixin Constant!("REAL_MAX", "1.1897314953572317649E+4932");
 
   /// Returns pi, pi = 3.14159266...
-  mixin Constant!("PI",
-    roundString("3.1415926535897932384626433832795028841" ~
-    "9716939937510582097494459230781640628620899862803482534211707",
-    precision));
+  public enum decimal PI =      // 99 digits
+    roundString("3.14159265358979323846264338327950288419716939937510" ~
+        "582097494459230781640628620899862803482534211707",
+    precision);
 
   /// Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
-  mixin Constant!("E",
+  public enum decimal E =
     roundString("2.71828182845904523536028747135266249775" ~
     "724709369995957496696762772407663035354759457138217852516643",
-    precision));
+    precision);
 
   /// natural logarithm of 2 = 0.693147806...
-  mixin Constant!("LN2",
+  public enum decimal LN2 =
     roundString("0.693147180559945309417232121458176568" ~
     "075500134360255254120680009493393621969694715605863326996418688",
-    precision));
+    precision);
 
   /// natural logarithm of 10 = 2.30258509...
-  mixin Constant!("ln10", LN10);
-  enum string LN10 = roundString("2.30258509299404568401799145468436420" ~
+  public enum decimal LN10 =
+    roundString("2.30258509299404568401799145468436420" ~
     "760110148862877297603332790096757260967735248023599720508959820",
     decimal.precision);
 
@@ -1868,18 +1868,6 @@ unittest {
     ~ "}");
 }*/
 
-/+
-  public static decimal pi (int precision = decimal.precision)
-  {
-    if (precision != decimal.precision)
-    {
-      return eris.decimal.math.pi!decimal(precision);
-    }
-    return PI;
-  }
-
-+/
-
 mixin template Constant(string name, string value)
 {
   mixin
@@ -1897,20 +1885,6 @@ mixin template Constant(string name, string value)
   ~ "}"
   );
 }
-
-/+
-  static decimal one()
-  {
-    static bool initialized = false;
-    static decimal one;
-    if (!initialized)
-    {
-      one = decimal(1);
-      initialized = true;
-    }
-    return one;
-  }
-+/
 
 /*
 /// mixin template to create a constant at the type precision,
@@ -1948,7 +1922,7 @@ public string roundString(string str, int precision)
   precision += index;
 
   // if the precision is greater than the length return the whole string
-  if (precision >= copy.length) return copy.idup;
+  if (precision >= copy.length) return str;
 
   // get the last digit in the (to-be-)clipped string,
   // and the following digit

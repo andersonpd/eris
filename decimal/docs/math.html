@@ -520,7 +520,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="rint"></span>T <code class="code">rint</code>(T)(T <code class="code">x</code>);
+            <span class="ddoc_anchor" id="rint"></span>D <code class="code">rint</code>(D)(D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -756,7 +756,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="pi"></span>T <code class="code">pi</code>(T)(Context <code class="code">inContext</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="pi"></span>D <code class="code">pi</code>(D)(Context <code class="code">inContext</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -916,7 +916,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="sqrt"></span>T <code class="code">sqrt</code>(T)(T <code class="code">x</code>, Context <code class="code">context</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="sqrt"></span>D <code class="code">sqrt</code>(D)(D <code class="code">x</code>, Context <code class="code">context</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -940,7 +940,7 @@ Uses Newton's method.
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#exp" id="exp"><code class="code">exp</code></a>
+  <a href="#guard" id="guard"><code class="code">guard</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -949,7 +949,7 @@ Uses Newton's method.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="exp"></span>T <code class="code">exp</code>(T)(T <code class="code">x</code>, Context <code class="code">inContext</code>) if (isDecimal!T);
+            <span class="ddoc_anchor" id="guard"></span>Context <code class="code">guard</code>(Context <code class="code">context</code>, int <code class="code">guardDigits</code> = 2);
 
           </code>
         </p>
@@ -961,8 +961,108 @@ Uses Newton's method.
   <section class="section ddoc_sections">
   <div class="ddoc_summary">
   <p class="para">
-    Decimal version of std.math function.
+    Adds <code class="code">guard</code> digits to the <code class="code">context</code> precision and sets rounding to HALF_EVEN.
+This is useful for extended calculation to minimize errors.
+Returns a new <code class="code">context</code> with the precision increased by the <code class="code">guard</code> digits value.
+Note that this does not create a new Decimal type with this <code class="code">context</code>.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#exp" id="exp"><code class="code">exp</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="exp"></span>D <code class="code">exp</code>(D)(in D <code class="code">arg</code>, int <code class="code">precision</code>) if (isDecimal!D || isConvertible(D));
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the exponent of the argument at the specified <code class="code">precision</code>.
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#exp" id="exp"><code class="code">exp</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="exp"></span>D <code class="code">exp</code>(D)(D <code class="code">num</code>, Context <code class="code">context</code> = D.<code class="code">context</code>, int <code class="code">guardDigits</code> = 2) if (isDecimal!D);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the exponent of the argument at the current precision.
+Decimal version of std.math function.
 Required by General Decimal Arithmetic Specification
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#log" id="log"><code class="code">log</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="log"></span>D <code class="code">log</code>(D)(in D <code class="code">arg</code>, int <code class="code">precision</code> = D.<code class="code">precision</code>) if (isDecimal!D || isConvertible(D));
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Returns the logarithm of the argument at the specified <code class="code">precision</code>.
   </p>
 </div>
 
@@ -1013,39 +1113,6 @@ Beebe, Nelson H. F., "Computation of <code class="code">expm1</code>(<code class
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#log" id="log"><code class="code">log</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="log"></span>T <code class="code">log</code>(T)(T <code class="code">x</code>, Context <code class="code">inContext</code>, bool <code class="code">reduceArg</code> = true) if (isDecimal!T);
-
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  <section class="section ddoc_sections">
-  <div class="ddoc_summary">
-  <p class="para">
-    Decimal version of std.math function.
-Required by General Decimal Arithmetic Specification
-  </p>
-</div>
-
-</section>
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
   <a href="#log1p" id="log1p"><code class="code">log1p</code></a>
 </div>
 </div><div class="ddoc_decl">
@@ -1066,6 +1133,14 @@ Required by General Decimal Arithmetic Specification
 <div class="ddoc_decl">
   <section class="section ddoc_sections">
   <div class="ddoc_summary">
+  <p class="para">
+    Decimal version of std.math function.
+Required by General Decimal Arithmetic Specification
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
   <p class="para">
     <code class="code">log1p</code> (== log(1 + <code class="code">x</code>)).
  Decimal version of std.math function.

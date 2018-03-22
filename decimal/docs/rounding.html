@@ -491,7 +491,7 @@
   <h4>Standards</h4>
   <p class="para">
     General Decimal Arithmetic Specification,
-	Version 1.70, (25 March 2009).
+  Version 1.70, (25 March 2009).
   </p>
 </div>
 </section>
@@ -501,7 +501,7 @@
   <li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#roundToPrecision" id="roundToPrecision"><code class="code">roundToPrecision</code></a>
+  <a href="#precisionRound" id="precisionRound"><code class="code">precisionRound</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -510,7 +510,7 @@
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="roundToPrecision"></span>D <code class="code">roundToPrecision</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
+            <span class="ddoc_anchor" id="precisionRound"></span>D <code class="code">precisionRound</code>(D)(in D <code class="code">num</code>) if (isDecimal!D);
 
           </code>
         </p>
@@ -540,7 +540,7 @@ SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#roundToPrecision" id="roundToPrecision"><code class="code">roundToPrecision</code></a>
+  <a href="#precisionRound" id="precisionRound"><code class="code">precisionRound</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -549,7 +549,7 @@ SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="roundToPrecision"></span>D <code class="code">roundToPrecision</code>(D)(in D <code class="code">num</code>, Context <code class="code">context</code> = D.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
+            <span class="ddoc_anchor" id="precisionRound"></span>D <code class="code">precisionRound</code>(D)(in D <code class="code">num</code>, Context <code class="code">context</code> = D.<code class="code">context</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
 
           </code>
         </p>
@@ -581,7 +581,7 @@ SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#roundToPrecision" id="roundToPrecision"><code class="code">roundToPrecision</code></a>
+  <a href="#precisionRound" id="precisionRound"><code class="code">precisionRound</code></a>
 </div>
 </div><div class="ddoc_decl">
   <section class="section">
@@ -590,7 +590,7 @@ SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
       <div class="dlang">
         <p class="para">
           <code class="code">
-            <span class="ddoc_anchor" id="roundToPrecision"></span>D <code class="code">roundToPrecision</code>(D)(in D <code class="code">num</code>, int <code class="code">precision</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
+            <span class="ddoc_anchor" id="precisionRound"></span>D <code class="code">precisionRound</code>(D)(in D <code class="code">num</code>, int <code class="code">precision</code>, Round <code class="code">mode</code> = D.<code class="code">mode</code>, bool <code class="code">setFlags</code> = true) if (isDecimal!D);
 
           </code>
         </p>
@@ -654,8 +654,8 @@ SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
     <div class="dlang">
       <ol class="code_lines">
         <li><code class="code"><span class="keyword">auto</span> big = BigInt(
-    <span class="string_literal">"1234567890_1234567890_1234567890_1234567890_1234567890"</span> ~
-    <span class="string_literal">"1234567890_1234567890_1234567890_1234567890_1234567890_1"</span>);
+  <span class="string_literal">"1234567890_1234567890_1234567890_1234567890_1234567890"</span> ~
+  <span class="string_literal">"1234567890_1234567890_1234567890_1234567890_1234567890_1"</span>);
 <span class="keyword">assert</span>(<span class="psymbol">countDigits</span>(big) == 101);
 </code></li>
       </ol>
