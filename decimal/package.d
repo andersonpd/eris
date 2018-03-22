@@ -33,6 +33,7 @@ public import eris.decimal.context;
 public import eris.decimal.rounding;
 public import eris.decimal.arithmetic;
 public import eris.decimal.conv;
+static import eris.decimal.math;
 
 import eris.decimal.logical;
 
@@ -75,6 +76,7 @@ static if (context == Bid64Context) {
 
   public enum Context context = _context;
   alias decimal = Decimal!(context);
+  alias D = Decimal!(context);
 
   private Tag m_tag     = Tag.QNAN;// special value: default is quiet NaN
   private bool m_sign   = 0;    // true if the value is negative, false otherwise.
@@ -1564,6 +1566,96 @@ static if (context == Bid64Context)
 // decimal constants
 //--------------------------------
 
+mixin template strInit(string str)
+{
+  mixin
+  (
+    "static decimal value = roundString(str, decimal.precision);
+    static int last = decimal.precision;
+    static int high = decimal.precision;
+    static decimal highValue;"
+  );
+}
+
+
+private static D avoidCalculation(int precision,
+  ref int last, ref D value,
+  ref int high, ref D highValue)
+{
+  // initialize the high value, if needed.
+  if (highValue.isNaN) highValue = value;
+
+  // if the input precision <= last precision used
+  if (precision == last)
+  {
+   return value;
+  }
+  if (precision < last)
+  {
+    last = precision;
+    value = precisionRound(value, precision);
+    return value;
+  }
+
+  // if the input precision <= highest precision used
+  if (precision == high)
+  {
+    last = high;
+    value = highValue;
+    return value;
+  }
+  if (precision < high)
+  {
+    last = precision;
+    value = precisionRound(highValue, precision);
+    return value;
+  }
+  return D.nan;
+}
+
+public static D pi(int precision = D.precision)
+{
+  mixin strInit!(
+    "3.14159265358979323846264338327950" ~
+    "288419716939937510582097494459230" ~
+    "781640628620899862803482534211707");
+
+   value = avoidCalculation(precision, last, value, high, highValue);
+
+   if (value.isNaN)
+   {  // recalculation needed.
+    Context context = Context(precision, D.maxExpo, D.mode);
+    value = eris.decimal.math.pi!D(context);
+    high = precision;
+    last = high;
+   }
+  return value;
+}
+
+unittest
+{  // pi
+  static struct S { int n; TD expect; }
+  S[] s =
+  [
+    {  9, "3.14159265" },
+    { 10, "3.141592654" },
+    { 12, "3.14159265359" },
+    { 20, "3.1415926535897932385" },
+    { 14, "3.1415926535898" },
+    { 16, "3.141592653589793" },
+    { 18, "3.14159265358979324" },
+    { 22, "3.141592653589793238463" },
+    { 23, "3.1415926535897932384626" },
+    { 24, "3.14159265358979323846264" },
+    { 25, "3.141592653589793238462643" },
+    { 26, "3.1415926535897932384626434" },
+  ];
+  auto f = FunctionTest!(S,TD)("pi");
+  foreach (t; s) f.test(t, TD.pi(t.n), t.n);
+  writefln(f.report);
+}
+
+
 /*  enum decimal RealMax = decimal("1.1897314953572317649E+4932");
   enum decimal RealMin = RealMax.copyNegate;
   enum decimal RealMinNorm = decimal("3.362103143112093506E-4932");
@@ -2011,7 +2103,7 @@ version(unittest)
     return ten^^n;
   }
 
-  public enum double pow10Dbl(int n)
+/*  public enum double pow10Dbl(int n)
   {
     static double[23] dtens;
     static bool initialized = false;
@@ -2026,32 +2118,13 @@ version(unittest)
     }
     if (n > 22) return double.nan;
     return dtens[n];
-  }
+  }*/
 
 // ======================================================== //
 // dead code
 // ======================================================== //
 
 /+
-
-
-  // Returns a real number constructed from
-  // a long coefficient and an integer exponent.
-  private static real longToReal(const bigd x)
-  {
-    // convert the coefficient to a real number
-    real r;
-    r = cast(ulong)x.coff;
-    if (x.sign) r = -r;
-    if (x.expo == 0) return r;
-
-    // scale by the decimal exponent
-    real tens = 10.0L ^^ std.math.abs(x.expo);
-    if (x.expo > 0) return r * tens;
-    else            return r / tens;
-  }
-
-
   /// Converts a decimal number to a real number. The decimal will be
   /// rounded to the RealContext before conversion, if necessary.
   public real toReal() const
@@ -2289,38 +2362,6 @@ unittest
   foreach (t; s) f.test(t, t.x);
   writefln(f.report);
 }
-
-//--------------------------------
-// decimal constant boilerplate
-//--------------------------------
-
-  /// mixin template to create a constant at the type precision,
-  /// with an option to create an arbitrary precision constant.
-  mixin template Constant(string name)
-  {
-    mixin ("public static bigd " ~ name ~ "(int precision = bigd.precision)"
-      ~ "{"
-        ~ "if (precision != bigd.precision)"
-        ~ "{"
-          ~ "return eris.decimal.math." ~ name ~ "!bigd(precision);"
-        ~ "}"
-      ~ "return " ~ name.toUpper ~ ";"
-      ~ "}");
-  }
-
-  /// mixin template to create a constant at the type precision,
-  /// with an option to create an arbitrary precision constant.
-  mixin template Constant(string lcName, string ucName)
-  {
-    mixin ("public static bigd " ~ lcName ~ "(int precision = bigd.precision)"
-      ~ "{"
-        ~ "if (precision != bigd.precision)"
-        ~ "{"
-          ~ "return eris.decimal.math." ~ lcName ~ "!bigd(precision);"
-        ~ "}"
-      ~ "return " ~ ucName ~ ";"
-      ~ "}");
-  }
 
   static if (context == TestContext) {
   unittest {

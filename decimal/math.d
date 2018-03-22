@@ -355,8 +355,6 @@ const char[] BinaryFunction =
 //	CONSTANTS
 //--------------------------------
 
-/// Calculates the value of pi to the specified precision.
-//mixin (Constant!("pi"));
 package D pi(D)(Context inContext) if (isDecimal!D)
 {
 	// TODO: (behavior) if only 2 guard digits are used, function doesn't return
@@ -383,29 +381,6 @@ package D pi(D)(Context inContext) if (isDecimal!D)
 	D pi = mul(div(sqr(a1, context), s1, context), 2, context);
 	return precisionRound(pi, inContext);
 }
-
-/*unittest
-{	// pi
-	static struct S { int n; TD expect; }
-	S[] s =
-	[
-		{  9, "3.14159265" },
-		{ 10, "3.141592654" },
-		{ 12, "3.14159265359" },
-		{ 14, "3.1415926535898" },
-		{ 16, "3.141592653589793" },
-		{ 18, "3.14159265358979324" },
-		{ 20, "3.1415926535897932385" },
-		{ 22, "3.141592653589793238463" },
-		{ 23, "3.1415926535897932384626" },
-		{ 24, "3.14159265358979323846264" },
-		{ 25, "3.141592653589793238462643" },
-		{ 26, "3.1415926535897932384626434" },
-	];
-	auto f = FunctionTest!(S,TD)("pi");
-	foreach (t; s) f.test(t, TD.PI(t.n), t.n);
-  writefln(f.report);
-}*/
 
 //mixin (Constant!("pi_2"));
 package T pi_2(T)(Context inContext) if (isDecimal!T)
