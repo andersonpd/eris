@@ -38,9 +38,9 @@ version(unittest)
  *  Returns the number rounded to its context precision.
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
-public D precisionRound(D)(in D num) if (isDecimal!D)
+public D round(D)(in D num) if (isDecimal!D)
 {
-  return precisionRound(num, D.context);
+  return round(num, D.context);
 }
 
 /**
@@ -49,10 +49,10 @@ public D precisionRound(D)(in D num) if (isDecimal!D)
  *  Returns the rounded number.
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
-package D precisionRound(D)(in D num, Context context = D.context, bool setFlags = true)
+package D round(D)(in D num, Context context = D.context, bool setFlags = true)
   if (isDecimal!D)
 {
-  return precisionRound(num,
+  return round(num,
     context.precision, context.mode, setFlags);
 }
 
@@ -62,7 +62,7 @@ package D precisionRound(D)(in D num, Context context = D.context, bool setFlags
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
 //@safe
-package D precisionRound(D)(in D num, int precision, Round mode = D.mode,
+package D round(D)(in D num, int precision, Round mode = D.mode,
     bool setFlags = true)
   if (isDecimal!D)
 {
@@ -115,11 +115,11 @@ package D precisionRound(D)(in D num, int precision, Round mode = D.mode,
   // round the number
   return modeRound(copy, precision, mode, setFlags);
 
-} // end precisionRound()
+} // end round()
 
 unittest
-{  // precisionRound
-  static struct S { D64 x; int n; D64 expect; }
+{  // round
+  static struct S { D16 x; int n; D16 expect; }
   S[] s =
   [
     { "9999", 3, "1.00E+4" },
@@ -155,8 +155,8 @@ unittest
     { "0E-384", 3, "0E-384" },
     { "0E-385", 3, "0E-384" },
   ];
-  auto f = FunctionTest!(S,D64)("roundPrec");
-  foreach (t; s) f.test(t, precisionRound!D64(t.x,t.n));
+  auto f = FunctionTest!(S,D16)("roundPrec");
+  foreach (t; s) f.test(t, round!D16(t.x,t.n));
   writefln(f.report);
 }
 
@@ -204,7 +204,7 @@ private D overflow(D)(in D num, Round mode = D.mode,
 // TODO: these tests aren't very useful
 unittest
 {  // overflow
-  static struct S { D64 num; Round mode; D64 expect; }
+  static struct S { D16 num; Round mode; D16 expect; }
   S[] s =
   [
     { "1000",  HALF_EVEN,  "1000" },
@@ -214,13 +214,13 @@ unittest
 //    { "1234550", ROUND_DOWN, "1.2345E+6" },
 //    { "1234550", ROUND_UP,   "1.2346E+6" },
   ];
-  auto f = FunctionTest!(S,D64)("overflow");
-  foreach (t; s) f.test(t, overflow!D64(t.num,t.mode));
+  auto f = FunctionTest!(S,D16)("overflow");
+  foreach (t; s) f.test(t, overflow!D16(t.num,t.mode));
   writefln(f.report);
 }
 
 
-// TODO: move this into precisionRound -- it's the only function that calls it.
+// TODO: move this into round -- it's the only function that calls it.
 /**
  *  Rounds the number to the context precision
  *  using the specified rounding mode.
@@ -305,7 +305,7 @@ unittest
 
 unittest
 {  // modeRound
-  static struct S { D64 x; int p; Round r; D64 expect; }
+  static struct S { D16 x; int p; Round r; D16 expect; }
   S[] s =
   [
     { "1000",  5, HALF_EVEN,  "1000" },
@@ -320,8 +320,8 @@ unittest
     { "1234550", 5, FLOOR,    "1.2345E+6" },
     { "1234550", 5, CEILING,  "1.2346E+6" },
   ];
-  auto f = FunctionTest!(S,D64)("modeRound");
-  foreach (t; s) f.test(t, modeRound!D64(t.x,t.p,t.r));
+  auto f = FunctionTest!(S,D16)("modeRound");
+  foreach (t; s) f.test(t, modeRound!D16(t.x,t.p,t.r));
   writefln(f.report);
 }
 
@@ -359,13 +359,13 @@ private D getRemainder(D) (ref D num, int precision) if (isDecimal!D)
 
 unittest
 {  // getRemainder
-  static struct S { D64 x; int p; D64 expect; }
+  static struct S { D16 x; int p; D16 expect; }
   S[] s =
   [
   { 1234567890123456L, 5, "67890123456" },
   ];
-  auto f = FunctionTest!(S,D64)("remainder");
-  foreach (t; s) f.test(t, getRemainder!D64(t.x,t.p));
+  auto f = FunctionTest!(S,D16)("remainder");
+  foreach (t; s) f.test(t, getRemainder!D16(t.x,t.p));
    writefln(f.report);
 }
 
@@ -394,27 +394,27 @@ private void incrementAndRound(D)(ref D num) if (isDecimal!D)
 
 unittest
 {  // incrementAndRound
-  D64 incr(D64 num)
+  D16 incr(D16 num)
   {
     incrementAndRound(num);
     return num;
   }
 
-  static struct S { D64 num; D64 expect; }
+  static struct S { D16 num; D16 expect; }
   S[] s =
   [
     {  10, 11 },
     {  19, 20 },
     { 999, "1.00E+3" },
   ];
-  auto f = FunctionTest!(S,D64)("increment");
+  auto f = FunctionTest!(S,D16)("increment");
   foreach (t; s) f.test(t, incr(t.num));
   writefln(f.report);
 }
 
 /*unittest {  // increment
   write("-- increment&round..");
-  D64 actual, expect;
+  D16 actual, expect;
   actual = 10;
   expect = 11;
   incrementAndRound(actual);

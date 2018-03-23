@@ -264,7 +264,7 @@ unittest
  *  Rounds the argument to an integer using the specified rounding mode.
  *  The default rounding mode is the current context mode. //FIXTHIS
  */
-public D round(D)(D num, Round mode = D.mode)
+/*public D round(D)(D num, Round mode = D.mode)
 {
   if (num.isNaN)
     {
@@ -272,8 +272,9 @@ public D round(D)(D num, Round mode = D.mode)
     return D.nan;
   }
   return roundToInt(num, mode);
-}
+}*/
 
+/+
 unittest
 {  // round
   static struct S { TD num; TD expect; }
@@ -286,6 +287,7 @@ unittest
   foreach (t; s) f.test(t, round(t.num));
   writefln(f.report);
 }
++/
 
 
 /**
@@ -374,7 +376,7 @@ unittest
 public D abs(D)(in D arg, Context context = D.context) if (isDecimal!D)
 {
   if (arg.isNaN) return invalidOperand(arg);
-  return precisionRound(arg.copyAbs, context);
+  return round(arg.copyAbs, context);
 }
 
 unittest
@@ -448,7 +450,7 @@ public D plus(D)(in D num, Context context = D.context)
 {
   if (num.isNaN) return invalidOperand(num);
 //if (!__ctfe) writefln("num = %s", num);
-  return precisionRound(num, context);
+  return round(num, context);
 }
 
 unittest
@@ -482,7 +484,7 @@ public D minus(D)(in D num, Context context = D.context)
     if (isDecimal!D)
 {
   if (num.isNaN) return invalidOperand(num);
-  return precisionRound(num.copyNegate, context);
+  return round(num.copyNegate, context);
 }
 
 unittest
@@ -540,7 +542,7 @@ public D nextPlus(D)(in D num, Context context = D.context)
   }
 
   // FIXTHIS: need to pass setFlags value
-  return precisionRound(next);
+  return round(next);
 }
 
 unittest
@@ -639,7 +641,7 @@ public D nextToward(D)(in D left, in D right,
   if (comp < 0) return nextPlus(left, context);
   if (comp > 0) return nextMinus(left, context);
 
-  return precisionRound(left.copySign(right), context);
+  return round(left.copySign(right), context);
 }
 
 unittest
@@ -729,11 +731,11 @@ public int compare(D)(in D left, in D right, Context context = D.context)
   // restrict operands to current precision
   if (lf.digits > context.precision)
   {
-    lf = precisionRound(lf, context);
+    lf = round(lf, context);
   }
   if (rt.digits > context.precision)
   {
-    rt = precisionRound(rt, context);
+    rt = round(rt, context);
   }
 
   // TODO: this will return inf == inf after rounding
@@ -846,8 +848,8 @@ public bool equals(D)(in D left, in D right, Context context = D.context)
   }
 
   // round operands to the context precision
-  auto lf = precisionRound(left, context);
-  auto rt = precisionRound(right, context);
+  auto lf = round(left, context);
+  auto rt = round(right, context);
 
   // if they are not of the same magnitude they are not equal
   if (lf.expo + lf.digits != rt.expo + rt.digits) return false;
@@ -1194,7 +1196,7 @@ public D max(D)(in D left, in D right,  Context context = D.context)
     }
   }
   // result must be rounded
-  return precisionRound(result, context);
+  return round(result, context);
 }
 
 unittest
@@ -1219,11 +1221,11 @@ public D maxMagnitude(D)(in D left, in D right,
 {
   if (left.copyAbs > right.copyAbs)
   {
-    return precisionRound(left, context);
+    return round(left, context);
   }
   else
   {
-    return precisionRound(right, context);
+    return round(right, context);
   }
 }
 
@@ -1296,7 +1298,7 @@ public D min(D)(in D left, in D right,
     }
   }
   // min must be rounded
-  return precisionRound(min, context);
+  return round(min, context);
 }
 
 unittest
@@ -1321,17 +1323,17 @@ public D minMagnitude(D)(in D left, in D right,
 {
   if (left.copyAbs < right.copyAbs)
   {
-    return precisionRound(left, context);
+    return round(left, context);
   }
   else
   {
-    return precisionRound(right, context);
+    return round(right, context);
   }
 /*  // one of each
   if (left.copyAbs > right.copyAbs) {
-    return precisionRound(right, context);
+    return round(right, context);
   }
-  return precisionRound(left, context);*/
+  return round(left, context);*/
 }
 
 unittest
@@ -1645,7 +1647,7 @@ public D add(D)(in D left, in D right,
   sum.digits = countDigits(sum.coff);
   sum.expo = lf.expo;
   // round the result
-  return precisionRound(sum, context, setFlags);
+  return round(sum, context, setFlags);
 }
 
 
@@ -1749,7 +1751,7 @@ public D mul(D)(in D x, in D y, Context context = D.context)
   product.sign = x.sign ^ y.sign;
   product.digits = countDigits(product.coff);
 
-  return precisionRound(product, context);
+  return round(product, context);
 }
 
 /// Multiplies a decimal number by a long integer.
@@ -1787,7 +1789,7 @@ public D mul(D, U : long)(in D x, in U n, Context context = D.context)
   product.expo = x.expo;
   product.sign = x.sign ^ (n < 0);
   product.digits = countDigits(product.coff);
-  return precisionRound(product, context);
+  return round(product, context);
 }  // end mul(x, n)
 
 /// Multiplies the two operands.
@@ -1840,7 +1842,7 @@ public D sqr(D)(in D arg, Context context = D.context) if (isDecimal!D)
   copy.expo = 2 * copy.expo;
   copy.sign = false;
   copy.digits = countDigits(copy.coff);
-  return precisionRound(copy, context);
+  return round(copy, context);
 }
 
 unittest
@@ -1931,7 +1933,7 @@ public D div(D)(in D x, in D y,
   quo.expo = dvnd.expo - dvsr.expo;
   quo.sign = dvnd.sign ^ dvsr.sign;
   quo.digits = countDigits(quo.coff);
-  quo = precisionRound(quo, context);
+  quo = round(quo, context);
   // TODO: what's up with this? revisit
   quo = reduceToIdeal(quo, diff);
   return quo;
@@ -1968,7 +1970,7 @@ public D div(D, U : long)(in D x, in U n,
   quo.expo = dvnd.expo; // - n.expo;
   quo.sign = dvnd.sign ^ (n < 0);
   quo.digits = countDigits(quo.coff);
-  quo = precisionRound(quo, context);
+  quo = round(quo, context);
   quo = reduceToIdeal(quo, diff);
   return quo;
 }
@@ -2241,7 +2243,7 @@ public D quantize(D)(in D left, in D right,
   }
   else {
     int precision = (-diff > left.digits) ? 0 : left.digits + diff;
-    result = precisionRound(result, precision, context.mode);
+    result = round(result, precision, context.mode);
     result.expo = right.expo;
     if (result.isZero && left.isNegative) {
       result.sign = true;
@@ -2296,7 +2298,7 @@ public D roundToInt(D)(in D num,
 
   // TODO: (behavior) need to prevent precision overrides
   int precision = num.digits + num.expo;
-  return precisionRound(num, precision, mode, setFlags);
+  return round(num, precision, mode, setFlags);
 }
 
 unittest

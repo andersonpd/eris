@@ -389,7 +389,7 @@ private string decimalForm(D)(in D num, int precision = DEFAULT_PRECISION)
   if (copy.expo + precision < 0)
   {
     int numPrecision = copy.digits + copy.expo + precision;
-    copy = precisionRound(copy, numPrecision);
+    copy = round(copy, numPrecision);
   }
 
   // convert the coefficient to a string
@@ -461,7 +461,7 @@ private string exponentForm(D)(in D number, int precision = DEFAULT_PRECISION,
 		return specialForm(number);
 	}
 	D num = number.dup;
-	num = precisionRound(num, precision + 1);
+	num = round(num, precision + 1);
 	char[] cof = to!string(num.coff).dup;
 	int exp = num.expo;
 	bool sign = num.isNegative;
@@ -971,7 +971,7 @@ struct Bid32Rep
     enum uint bias = 101, fractionBits = 23, exponentBits = 8, signBits = 1;
 }
 
-struct Bid64Rep
+struct BiD16Rep
 {
     union
     {
@@ -1061,11 +1061,11 @@ public U toBid(D, U = ulong)(const D num)
 
     static if (is(U == ulong))
     {
-		rnum = precisionRound(num, Bid64Context);
+		rnum = round(num, Bid64);
 	}
     else if (is(U == uint))
     {
-		rnum = precisionRound(num, Bid32Context);
+		rnum = round(num, Bid32);
 	}
 
 	// check for overflow
@@ -1174,7 +1174,7 @@ public D fromBid(D, U = ulong)(U bid)
 
     static if (is(U == ulong))
     {
-		Bid64Rep rep;
+		BiD16Rep rep;
 		rep.bid = bid;
 		bits = rep.fractionBits;
 	}

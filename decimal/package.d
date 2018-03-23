@@ -48,8 +48,8 @@ version(unittest)
 version(unittest)
 {
   alias D9 = Decimal!(TestContext);
-  alias D64 = Decimal!(Bid64Context);
-  alias TD = D64;
+  alias D16 = Decimal!(Bid64);
+  alias TD = D16;
 }
 
 /**
@@ -64,7 +64,7 @@ version(unittest)
 struct Decimal(immutable Context _context = DefaultContext)
 {
 
-static if (context == Bid64Context) {
+static if (context == Bid64) {
   unittest {
     writeln("==========================");
     writeln("decimal64............begin");
@@ -181,7 +181,7 @@ static if (context == Bid64Context) {
     this.m_expo  = that.m_expo;
     this.m_coff  = that.m_coff;
     if (that.context > this.context)
-      precisionRound(this, that.context);
+      round(this, that.context);
   }
 
   // TODO: reduce the number of constructors
@@ -239,7 +239,7 @@ static if (context == Bid64Context) {
     this(BigInt(coefficient), exponent, sign);
   }*/
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // this(u,i,b)
@@ -257,7 +257,7 @@ static if (context == Bid64Context)
 
 }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // this(string)
@@ -286,7 +286,7 @@ static if (context == Bid64Context)
 }
 
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // this(double)
@@ -304,7 +304,7 @@ static if (context == Bid64Context)
   }
 }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
 /*  unittest
   {  // this(flt)
@@ -329,7 +329,7 @@ static if (context == Bid64Context)
 }
 
   // TODO: (testing) need to test this with 15-17 digit precision
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest // real construction
   {
@@ -573,7 +573,7 @@ static if (context == Bid64Context)
     return sign ? NEG_ONE : ONE;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // constants
@@ -733,7 +733,7 @@ static if (context == Bid64Context)
     return true;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isCanonical
@@ -769,7 +769,7 @@ static if (context == Bid64Context)
     return isFinite && !isNegative && coff == 1 && expo == 0;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isNaN, isQuiet, isSignal
@@ -804,7 +804,7 @@ static if (context == Bid64Context)
     return isFinite && coff == 0;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isZero
@@ -844,7 +844,7 @@ static if (context == Bid64Context)
     return this.m_tag  == Tag.QNAN;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isNaN, isQuiet, isSignal
@@ -882,7 +882,7 @@ static if (context == Bid64Context)
   }
 }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isNaN
@@ -917,7 +917,7 @@ static if (context == Bid64Context)
       && m_tag  != Tag.SNAN;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isFinite
@@ -959,7 +959,7 @@ static if (context == Bid64Context)
       || m_tag  == Tag.SNAN;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isSpecial
@@ -991,7 +991,7 @@ static if (context == Bid64Context)
     return !sign;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isSpecial
@@ -1030,7 +1030,7 @@ static if (context == Bid64Context)
 //      && adjExpo >= subExponent;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // isNormal, isSubnormal
@@ -1083,7 +1083,7 @@ static if (context == Bid64Context)
     return false;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest {  // isIntegralValued
     write("-- isIntegralValued.");
@@ -1124,7 +1124,7 @@ static if (context == Bid64Context)
     return isNaN || isZero;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest {  //isTrue/isFalse
     write("-- isTrue/isFalse...");
@@ -1149,7 +1149,7 @@ static if (context == Bid64Context)
     return !isSpecial && coefficient == 0;
   }*/
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
 /*  unittest {  // isZeroCoefficient
     write("-- isZeroCoeff......");
@@ -1239,7 +1239,7 @@ static if (context == Bid64Context)
     this = decimal(that);
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest {  // opAssign
     write("-- opAssign.........");
@@ -1345,7 +1345,7 @@ static if (context == Bid64Context)
     return opEquals(decimal(that));
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest {  // comparison
     write("-- comparison.......");
@@ -1394,7 +1394,7 @@ static if (context == Bid64Context)
     }
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest {  // opUnary
     write("-- opUnary..........");
@@ -1461,7 +1461,7 @@ static if (context == Bid64Context)
     }
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // opBinary
@@ -1543,7 +1543,7 @@ static if (context == Bid64Context)
     return this;
   }
 
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest {  // opOpAssign
     write("-- opOpAssign.......");
@@ -1734,7 +1734,7 @@ unittest
   enum decimal IntMin = decimal("-2147483648");*/
 
 //  mixin Constant!("REAL_MAX", "1.1897314953572317649E+4932");
-static if (context == Bid64Context)
+static if (context == Bid64)
 {
   unittest
   {  // constants
@@ -1780,7 +1780,7 @@ static if (context == Bid64Context)
     return nextToward(this, x, decimal.context);
   }
 
-  static if (context == Bid64Context) {
+  static if (context == Bid64) {
   unittest {  // nextUp, nextDown, nextAfter
     write("-- next.............");
     TD big = 123.45;
@@ -1792,7 +1792,7 @@ static if (context == Bid64Context)
   }}
 
 
-  static if (context == Bid64Context) {
+  static if (context == Bid64) {
   unittest {
     writeln("==========================");
     writeln("decimal64..............end");

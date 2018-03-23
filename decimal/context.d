@@ -39,9 +39,9 @@ public enum Context DoubleContext  = Context(double.dig, double.max_10_exp, HALF
 public enum Context FloatContext   = Context(float.dig, float.max_10_exp, HALF_EVEN);
 
 /// Decimal64 BID
-public enum Context Bid32Context   = Context(7, 96, HALF_EVEN);
+public enum Context Bid32   = Context(7, 96, HALF_EVEN);
 /// Decimal64 BID
-public enum Context Bid64Context   = Context(16, 369, HALF_EVEN);
+public enum Context Bid64   = Context(16, 369, HALF_EVEN);
 
 /**
  * The available rounding modes. For cumulative operations use the

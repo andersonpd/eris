@@ -70,7 +70,7 @@ mixin template checkNaN() {
 public D rint(D)(D num)
     if (isDecimal!D)
 {
-  return round(num, HALF_EVEN);
+  return roundToInt(num, HALF_EVEN);
 }
 
 unittest
@@ -115,7 +115,7 @@ unittest
  *  Rounds toward negative infinity.
  */
 public T floor(T)(T x) {
-	return round(x, FLOOR);
+	return roundToInt(x, FLOOR);
 }
 
 unittest
@@ -141,7 +141,7 @@ unittest
  *  Rounds toward positive infinity.
  */
 public T ceil(T)(T x) {
-	return round(x, CEILING);
+	return roundToInt(x, CEILING);
 }
 
 unittest
@@ -167,7 +167,7 @@ unittest
  *  Rounds toward zero.
  */
 public T trunc(T)(T x) {
-	return round(x, ROUND_DOWN);
+	return roundToInt(x, ROUND_DOWN);
 }
 
 unittest
@@ -246,7 +246,7 @@ public BigInt toBigInt(T)(T x, Round mode = HALF_EVEN)
 	if (x.expo != 0)
 	{
 		// FIXTHIS: what does this actually do?
-		return round(x, mode).coff;
+		return roundToInt(x, mode).coff;
 	}
 	return x.coff;
 }
@@ -269,7 +269,7 @@ const char[] Constant =
 			value = eris.decimal.math." ~ name ~ "!T(context);
 			lastPrecision = precision;
 		}
-		return precisionRound(value, precision);
+		return round(value, precision);
 	}";
 }*/
 
@@ -376,7 +376,7 @@ public static D pin(D)(int precision, D estimate = D.PI) if (isDecimal!D)
   // if the returned value is NaN, a recalculation is needed.
   if (value.isNaN)
   {
-    Context context = Context(precision, D.maxExpo, D.mode);
+    Context context = changePrecision(D.context, precision);
     value = eris.decimal.math.pi!D(context);
     high = precision;
     last = high;
@@ -439,7 +439,7 @@ public D pi(D)(Context context) if (isDecimal!D)
 		s0 = s1;
 	}
 	D pi = mul(div(sqr(a1, guarded), s1, guarded), 2, guarded);
-	return precisionRound(pi, context);
+	return round(pi, context);
 }
 
 //mixin (Constant!("pi_2"));
@@ -447,7 +447,7 @@ package T pi_2(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T halfPi = mul(pi!T(context), T.HALF, context);
-	return precisionRound(halfPi, inContext);
+	return round(halfPi, inContext);
 }
 
 /*unittest
@@ -472,7 +472,7 @@ package T invPi(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.one, pi!T(context), context);
-	return precisionRound(alpha, inContext);
+	return round(alpha, inContext);
 }
 
 /*unittest
@@ -497,7 +497,7 @@ package T twoInvPi(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.TWO, pi!T(context), context);
-	return precisionRound(alpha, inContext);
+	return round(alpha, inContext);
 }
 
 /*unittest
@@ -533,7 +533,7 @@ package D avoidCalculation(D)(int precision,
   if (precision < last)
   {
     last = precision;
-    value = precisionRound(value, precision);
+    value = round(value, precision);
     return value;
   }
 
@@ -547,7 +547,7 @@ package D avoidCalculation(D)(int precision,
   if (precision < high)
   {
     last = precision;
-    value = precisionRound(highValue, precision);
+    value = round(highValue, precision);
     return value;
   }
   return D.nan;
@@ -572,8 +572,7 @@ public D e(D)(int precision = D.precision) if (isDecimal!D)
   // if the returned value is NaN, a recalculation is needed.
   if (value.isNaN)
   {
-    Context context = Context(precision, D.maxExpo, D.mode);
-    value = eris.decimal.math.e!D(context);
+    value = eris.decimal.math.e!D(changePrecision(D.context, precision));
     high = precision;
     last = high;
   }
@@ -594,7 +593,7 @@ package D e(D)(Context context) if (isDecimal!D)
     term = div!D(term, n, guarded);
     n++;
   }
-  return precisionRound(sum, context);
+  return round(sum, context);
 }
 
 unittest
@@ -634,9 +633,9 @@ package enum T log2_10(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T log2T = div(log(T.TEN, context, false), log(T.TWO, context, false), context);
-	return precisionRound(log2T, inContext);
-//	return precisionRound(TD("18690473486004564289165545643685440097"), inContext);
-//	return precisionRound(TD("18690473486004564245643685440097"), inContext);
+	return round(log2T, inContext);
+//	return round(TD("18690473486004564289165545643685440097"), inContext);
+//	return round(TD("18690473486004564245643685440097"), inContext);
 }
 
 //mixin (Constant!("log10_e"));
@@ -672,7 +671,7 @@ package enum T invSqrtPi(T)(Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext, 4);
 	T alpha =  div(T.one, sqrt(pi!T(context), context), context);
-	return precisionRound(alpha, inContext);
+	return round(alpha, inContext);
 }
 
 /*unittest
@@ -771,7 +770,7 @@ public T reciprocal(T)(in T x, Context inContext = T.context) if (isDecimal!T)
 		if (equals(r0, r1 ,context)) break;
 	}
 	// round to the original precision
-	return precisionRound(r1, context);
+	return round(r1, context);
 }
 
 unittest
@@ -825,7 +824,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 	// restore the exponent
 	a.expo = a.expo - k/2 - 1;
 	// round to the original precision
-	return precisionRound(a, inContext);
+	return round(a, inContext);
 }
 
 /*unittest
@@ -885,7 +884,7 @@ public D sqrt(D)(D arg, Context context) if (isDecimal!D)
   // restore the exponent
   value.expo = value.expo + (k+1)/2;
   // round the result
-  return precisionRound(value, context);
+  return round(value, context);
 }
 
 unittest
@@ -937,6 +936,15 @@ public Context guard(Context context, int guardDigits = 2)
   return Context(context.precision + guardDigits, context.maxExpo, HALF_EVEN);
 }
 
+/// Changes the context precision and sets rounding to HALF_EVEN.
+/// This is useful for extended calculation to minimize errors.
+/// Returns a new context with the precision increased by the guard digits value.
+/// Note that this does not create a new Decimal type with this context.
+public Context changePrecision(Context context, int precision)
+{
+  return Context(precision, context.maxExpo, HALF_EVEN);
+}
+
 /// Returns the exponent of the argument at the specified precision.
 public D exp(D)(in D arg, int precision)
     if (isDecimal!D || isConvertible(D))
@@ -950,7 +958,7 @@ public D exp(D)(in D arg, int precision)
       return D.nan;
     }
     // create new context at given precision
-    Context context = Context(precision, D.maxExpo, HALF_EVEN);
+    Context context = changePrecision(D.context, precision);
     // call the function
     return exp!D(num, context);
   }
@@ -985,7 +993,7 @@ public D exp(D)(D num, Context context = D.context, int guardDigits = 2)
     sum  = add(sum, term, guarded);
   }
   if (negative) sum = div(D.one, sum, guarded);
-  return precisionRound(sum, context);
+  return round(sum, context);
 }
 
 unittest
@@ -1063,7 +1071,7 @@ public D log(D)(D num, Context context,
       {
         ln = add(ln, mul(ln10!D(guarded), k, guarded), guarded);
       }
-      return precisionRound(ln, context);
+      return round(ln, context);
     }
     a = d;
     n += 2;
@@ -1118,7 +1126,7 @@ package D exp(D)(D x, Context inContext) if (isDecimal!D)
     sum  = add(sum, term, context);
   }
   if (negative) sum = div(D.one, sum, context);
-  return precisionRound(sum, inContext);
+  return round(sum, inContext);
 }
 
 unittest
@@ -1177,7 +1185,7 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 	// ??? what is this --> if (x.copyAbs < lower || x.copyAbs > upper) {
 	if (x < lower || x > upper) {
 		sum = sub(exp(x, context), 1, context);
-		return precisionRound(sum, inContext);
+		return round(sum, inContext);
 	}
 
 	bool negative = x.isNegative;
@@ -1185,7 +1193,7 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 /*	// if too large return exp(x) - 1.
 	if (x < lower || x > upper) {
 		sum = sub(exp(x, context), 1, context);
-		return precisionRound(sum, inContext);
+		return round(sum, inContext);
 	}*/
 
 	// otherwise return expm1(x)
@@ -1197,7 +1205,7 @@ public T expm1(T)(T x, Context inContext) if (isDecimal!T)
 		term = mul(term, div(x, n, context), context);
 	}
 	if (negative) sum = div(T.one, sum, context);
-	return precisionRound(sum, inContext);
+	return round(sum, inContext);
 }
 
 unittest
@@ -1277,11 +1285,11 @@ public T log1p(T)(T x, Context inContext) if (isDecimal!T)
 //if (!__ctfe) writefln("sum.digits = %s", sum.digits);
 //if (!__ctfe) writefln("inContext.precision = %s", inContext.precision);
 
-	sum = precisionRound(sum, inContext);
+	sum = round(sum, inContext);
 //if (!__ctfe) writefln("sum = %s", abstractForm(sum));
 //if (!__ctfe) writefln("sum.digits = %s", sum.digits);
 	return sum;
-//	return precisionRound(sum, inContext);
+//	return round(sum, inContext);
 }
 
 // TODO: (testing) unittest this.
@@ -1308,7 +1316,7 @@ public T log10(T)(T x, Context inContext) if (isDecimal!T)
 	x.expo = x.expo - k;
 //	x.expo -= k;
 	T lg10 = add(div(log(x, context), ln10!T(context)), k);
-	return precisionRound(lg10, inContext);
+	return round(lg10, inContext);
 }
 
 unittest {
@@ -1330,7 +1338,7 @@ public T log2(T)(T x, Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T lg2 = div(log(x, context), ln2!T(context), context);
-	return precisionRound(lg2, inContext);
+	return round(lg2, inContext);
 }
 
 unittest {
@@ -1458,7 +1466,7 @@ package T sin(T)(in T x, Context inContext) if (isDecimal!T)
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
 	}
-	return precisionRound(sum, inContext);
+	return round(sum, inContext);
 }
 
 unittest
@@ -1528,7 +1536,7 @@ package T cos(T)(in T x, Context inContext) {
 		fact = mul(fact, n*(n-1), context);
 		term = div(powx, fact, context);
 	}
-	return precisionRound(sum, inContext);
+	return round(sum, inContext);
 }
 
 unittest
@@ -1598,8 +1606,8 @@ public void sincos(T)(const T x, out T sine, out T cosine,
 		sterm = div(sx, fact, context);
 		ssum = add(ssum, sterm, context);
 	}
-    sine   = precisionRound(ssum, inContext);
-	cosine = precisionRound(csum, inContext);
+    sine   = round(ssum, inContext);
+	cosine = round(csum, inContext);
 }
 
 unittest {
@@ -1691,7 +1699,7 @@ public T atan(T)(T x, Context inContext) if (isDecimal!T)
 		dvsr = dvsr + 2;
 		term = div!T(powx, dvsr, context);
 	}
-	return precisionRound(mul(sum, k, context), inContext);
+	return round(mul(sum, k, context), inContext);
 }
 
 
@@ -1793,7 +1801,7 @@ public T sinh(T)(T x, Context inContext) if (isDecimal!T)
 		powx = mul(powx, sqrx, context);
 		term = div(powx, fact, context);
 	}
-	return precisionRound(sum, inContext);
+	return round(sum, inContext);
 }
 
 
@@ -1828,7 +1836,7 @@ public T cosh(T)(T x, Context inContext) if (isDecimal!T)
 		powx = mul(powx, sqrx, context);
 		term = div(powx, fact, context);
 	}
-	return precisionRound(sum, inContext);
+	return round(sum, inContext);
 }
 
 unittest
@@ -1850,7 +1858,7 @@ public T tanh(T)(T x, Context inContext) if (isDecimal!T)
 {
 	auto context = guard(inContext);
 	T tan = div(sinh(x, context), cosh(x, context), context);
-	return precisionRound(tan, inContext);
+	return round(tan, inContext);
 }
 
 unittest
@@ -1880,7 +1888,7 @@ public T asinh(T)(T x, Context inContext) if (isDecimal!T)
 	if (x.copyAbs >= "1.0E-6")
 	{
 		T arg = add(x, sqrt(add(sqr(x, context), T.one, context), context), context);
-		return precisionRound(log(arg, context), inContext);
+		return round(log(arg, context), inContext);
 	}
 	else
 	{
@@ -1898,7 +1906,7 @@ public T asinh(T)(T x, Context inContext) if (isDecimal!T)
 			scl *= (n/(n+1));
 			term = mul(T(scl), div(powx, T(n), context), context);
 		}
-		return precisionRound(sum, inContext);
+		return round(sum, inContext);
 	}
 }
 
@@ -1941,7 +1949,7 @@ public T acosh(T)(T x, Context inContext) if (isDecimal!T)
 	auto context = guard(inContext);
 	// TODO: this is imprecise at small arguments -- Taylor series?
 	T arg = add(x, sqrt(sub(sqr(x, context), T.one, context), context), context);
-	return precisionRound(log(arg, context), inContext);
+	return round(log(arg, context), inContext);
 }
 
 /*unittest
@@ -1983,7 +1991,7 @@ public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 		T q = div(n, d, context);
 		T l = log(q, context);
 		T a = mul(T.HALF, l, context);
-		return precisionRound(a, inContext);
+		return round(a, inContext);
 	}
 	else
 	{	// series expansion
@@ -1999,7 +2007,7 @@ public T atanh(T)(T x, Context inContext) if (isDecimal!T)
 			dvsr += 2;
 			term = div!T(powx, dvsr, context);
 		}
-		return precisionRound(sum, inContext);
+		return round(sum, inContext);
 	}
 }
 
