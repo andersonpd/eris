@@ -184,8 +184,8 @@ void main()
 	writefln("dec64.PI = %s", dec64.PI);
   writefln("dec64.E = %s", dec64.E);
 	writefln("dec64.LN2 = %s", dec64.LN2);
-	comment("note extra precision");
-	writefln("dec64.REAL_MAX = %s", dec64.REAL_MAX);
+//	comment("note extra precision");
+//	writefln("dec64.REAL_MAX = %s", dec64.REAL_MAX);
 
 	header("copy");
 	dec1 = "3098.3235";

@@ -1566,69 +1566,134 @@ static if (context == Bid64Context)
 // decimal constants
 //--------------------------------
 
-mixin template strInit(string str)
+/// Returns square root of two = (1.41421357...)
+/// at the context precision (up to 99 digits).
+/// If the context precision is greater than 99 digits,
+/// only the first 99 digits are returned.
+/// This value is immutable.
+public enum D SQRT2 = roundString( // 99 digits
+  "1.41421356237309504880168872420969" ~
+  "807856967187537694807317667973799" ~
+  "073247846210703885038753432764157",
+  D.precision);
+
+/// Returns pi (3.14159265...) at the context precision (up to 99 digits).
+/// If the context precision is greater than 99 digits,
+/// only the first 99 digits are returned.
+/// This value is immutable.
+public enum D PI = roundString( // 99 digits
+  "3.14159265358979323846264338327950" ~
+  "288419716939937510582097494459230" ~
+  "781640628620899862803482534211707",
+  D.precision);
+
+/// Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
+public enum D E = roundString(
+  "2.71828182845904523536028747135266" ~
+  "249775724709369995957496696762772" ~
+  "407663035354759457138217852516643",
+  precision);
+
+/// natural logarithm of 2 = 0.693147806...
+public enum decimal LN2 = roundString(
+  "0.69314718055994530941723212145817" ~
+  "656807550013436025525412068000949" ~
+  "3393621969694715605863326996418688",
+  precision);
+
+/// natural logarithm of 10 = 2.30258509...
+public enum decimal LN10 = roundString(
+  "2.30258509299404568401799145468436" ~
+  "420760110148862877297603332790096" ~
+  "757260967735248023599720508959820",
+  decimal.precision);
+
+/// base 2 logarithm of e = 1.44269504...
+public enum decimal LBE = roundString(
+  "1.44269504088896340735992468100189213" ~
+  "742664595415298593413544940693110921918118507988552662289350634",
+  decimal.precision);
+
+/// base 2 logarithm of 10 = 3.32192809...
+public enum decimal LB10 = roundString(
+  "3.3219280948873623478703194294893901" ~
+  "7586483139302458061205475639581593477660862521585013974335937016",
+  decimal.precision);
+
+/// base 10 logarithm of 2 = 0.301029996...
+public enum decimal LG2 = roundString(
+  "0.3010299956639811952137388947244930" ~
+  "26768189881462108541310427461127108189274424509486927252118186172",
+  decimal.precision);
+
+/// base 10 logarithm of e  = 4.34294482...
+public enum decimal LGE = roundString(
+  "4.3429448190325182765112891891660508" ~
+  "2294397005803666566114453783165864649208870774729224949338431748",
+  decimal.precision);
+
+/// golden ratio = 1.6180339887...
+public enum decimal PHI = roundString(
+  "1.6180339887498948482045868343656381177" ~
+  "20309179805762862135448622705260462818902449707207204189391137",
+  decimal.precision);
+
+/// Returns the square root of two (1.41421357...) at the specified precision.
+/// If the precision is less than or equal to any prior precision,
+/// the earlier calculated value is returned (rounded if needed).
+/// If the specified precision is higher than any previously calculated
+/// precision, then the constant is recalculated and the higher value
+/// is retained for subsequent use.
+/// Repeated calls to the function at the same precision perform no rounding
+/// or calculation.
+public static D sqrt2(int precision = D.precision)
 {
-  mixin
-  (
-    "static decimal value = roundString(str, decimal.precision);
-    static int last = decimal.precision;
-    static int high = decimal.precision;
-    static decimal highValue;"
-  );
-}
+  static D value = D.SQRT2;
+  static int last = D.precision;
+  static D highValue = D.SQRT2;
+  static int high = D.precision;
 
+  // attempt to use previously calculated values
+  value = eris.decimal.math.avoidCalculation!D(precision, last, value, high, highValue);
 
-private static D avoidCalculation(int precision,
-  ref int last, ref D value,
-  ref int high, ref D highValue)
-{
-  // initialize the high value, if needed.
-  if (highValue.isNaN) highValue = value;
-
-  // if the input precision <= last precision used
-  if (precision == last)
+  // if the returned value is NaN, a recalculation is needed.
+  if (value.isNaN)
   {
-   return value;
-  }
-  if (precision < last)
-  {
-    last = precision;
-    value = precisionRound(value, precision);
-    return value;
-  }
-
-  // if the input precision <= highest precision used
-  if (precision == high)
-  {
+    Context context = Context(precision, D.maxExpo, D.mode);
+    value = eris.decimal.math.sqrt(D(2), context);
+    high = precision;
     last = high;
-    value = highValue;
-    return value;
   }
-  if (precision < high)
-  {
-    last = precision;
-    value = precisionRound(highValue, precision);
-    return value;
-  }
-  return D.nan;
+  return value;
 }
 
+
+/// Returns pi (3.14159265...) at the specified precision.
+/// If the precision is less than or equal to a prior precision,
+/// the earlier calculated value is returned (rounded if needed).
+/// If the specified precision is higher than any previously calculated
+/// precision, then the constant is recalculated and the higher value
+/// is retained for subsequent use.
+/// Repeated calls to the function at the same precision perform no rounding
+/// or calculation.
 public static D pi(int precision = D.precision)
 {
-  mixin strInit!(
-    "3.14159265358979323846264338327950" ~
-    "288419716939937510582097494459230" ~
-    "781640628620899862803482534211707");
+  static D value = D.PI;
+  static int last = D.precision;
+  static D highValue = D.PI;
+  static int high = D.precision;
 
-   value = avoidCalculation(precision, last, value, high, highValue);
+  // attempt to use previously calculated values
+  value = eris.decimal.math.avoidCalculation!D(precision, last, value, high, highValue);
 
-   if (value.isNaN)
-   {  // recalculation needed.
+  // if the returned value is NaN, a recalculation is needed.
+  if (value.isNaN)
+  {
     Context context = Context(precision, D.maxExpo, D.mode);
     value = eris.decimal.math.pi!D(context);
     high = precision;
     last = high;
-   }
+  }
   return value;
 }
 
@@ -1668,103 +1733,7 @@ unittest
   enum decimal IntMax = decimal("2147483647");
   enum decimal IntMin = decimal("-2147483648");*/
 
-  mixin Constant!("REAL_MAX", "1.1897314953572317649E+4932");
-
-  /// Returns pi, pi = 3.14159266...
-  public enum decimal PI =      // 99 digits
-    roundString("3.14159265358979323846264338327950288419716939937510" ~
-        "582097494459230781640628620899862803482534211707",
-    precision);
-
-  /// Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
-  public enum decimal E =
-    roundString("2.71828182845904523536028747135266249775" ~
-    "724709369995957496696762772407663035354759457138217852516643",
-    precision);
-
-  /// natural logarithm of 2 = 0.693147806...
-  public enum decimal LN2 =
-    roundString("0.693147180559945309417232121458176568" ~
-    "075500134360255254120680009493393621969694715605863326996418688",
-    precision);
-
-  /// natural logarithm of 10 = 2.30258509...
-  public enum decimal LN10 =
-    roundString("2.30258509299404568401799145468436420" ~
-    "760110148862877297603332790096757260967735248023599720508959820",
-    decimal.precision);
-
-  /// base 2 logarithm of e = 1.44269504...
-  mixin Constant!("lbe", LBE);
-  enum string LBE = roundString("1.44269504088896340735992468100189213" ~
-    "742664595415298593413544940693110921918118507988552662289350634",
-    decimal.precision);
-
-  /// base 2 logarithm of 10 = 3.32192809...
-  mixin Constant!("lb10", LB10);
-  enum string LB10 = roundString("3.3219280948873623478703194294893901" ~
-    "7586483139302458061205475639581593477660862521585013974335937016",
-    decimal.precision);
-
-  /// base 10 logarithm of 2 = 0.301029996...
-  mixin Constant!("lg2", LG2);
-  enum string LG2 = roundString("0.3010299956639811952137388947244930" ~
-    "26768189881462108541310427461127108189274424509486927252118186172",
-    decimal.precision);
-
-  /// base 10 logarithm of e  = 4.34294482...
-  mixin Constant!("lge", LGE);
-  enum string LGE = roundString("4.3429448190325182765112891891660508" ~
-    "2294397005803666566114453783165864649208870774729224949338431748",
-    decimal.precision);
-
-  /// pi/2
-  mixin Constant!("pi_2", PI_2);
-  private enum string PI_2 = roundString("1.57079632679489661923132169163975144" ~
-    "209858469968755291048747229615390820314310449931401741267105853",
-    decimal.precision);
-
-  /// pi/4
-  mixin Constant!("pi_4", PI_4);
-  enum string PI_4 = roundString("0.78539816339744830961566084581987572" ~
-    "1049292349843776455243736148076954101571552249657008706335529267",
-    decimal.precision);
-
-  /// 1/pi
-/*  mixin Constant!("invPi","INV_PI");
-  enum decimal INV_PI = roundString("0.318309886183790671537767526745028" ~
-    "724068919291480912897495334688117793595268453070180227605532506172",
-    decimal.precision);
-
-  /// 2/pi
-  mixin Constant!("twoInvPi","TWO_INV_PI");
-  enum decimal TWO_INV_PI = roundString("0.63661977236758134307553505349005" ~
-    "74481378385829618257949906693762355871905369061403604552110650123438",
-    decimal.precision);
-
-  /// 1/2*pi
-  enum decimal INV_2PI = roundString("0.15915494309189533576888376337251" ~
-    "4362034459645740456448747667344058896797634226535090113802766253086",
-    decimal.precision);
-
-  /// square root of two = 1.41421357
-  mixin Constant!("sqrt2");
-  enum decimal SQRT2 = roundString("1.4142135623730950488016887242096980" ~
-    "7856967187537694807317667973799073247846210703885038753432764157",
-    decimal.precision);
-
-  /// square root of one half = 0.707106781...
-  mixin Constant!("sqrt1_2");
-  enum decimal SQRT1_2 = roundString("0.707106781186547524400844362104849" ~
-    "039284835937688474036588339868995366239231053519425193767163820786",
-    decimal.precision);
-
-  /// golden ratio = 1.6180339887...
-  mixin Constant!("phi");
-  enum decimal PHI = roundString("1.6180339887498948482045868343656381177" ~
-    "20309179805762862135448622705260462818902449707207204189391137",
-    decimal.precision);*/
-
+//  mixin Constant!("REAL_MAX", "1.1897314953572317649E+4932");
 static if (context == Bid64Context)
 {
   unittest
@@ -1960,7 +1929,7 @@ unittest {
     ~ "}");
 }*/
 
-mixin template Constant(string name, string value)
+/*mixin template Constant(string name, string value)
 {
   mixin
   (
@@ -1976,7 +1945,7 @@ mixin template Constant(string name, string value)
     ~ "return " ~ name ~ ";"
   ~ "}"
   );
-}
+}*/
 
 /*
 /// mixin template to create a constant at the type precision,
@@ -2261,117 +2230,6 @@ version(unittest)
     writeln("test missing");
   }}
 
-//--------------------------------
-// bigd constants
-//--------------------------------
-
-  /// Constants are computed at compile time to the type precision.
-  /// For values of the constant at other precisions use e.g. pi(n),
-  /// where n is the desired precision.
-
-  /// Returns pi, pi = 3.14159266...
-  mixin Constant!("pi");
-  enum bigd PI = roundString("3.1415926535897932384626433832795028841" ~
-    "9716939937510582097494459230781640628620899862803482534211707");
-
-  /// Returns 'e' (the base of natural logarthims, e = 2.7182818283...)
-  mixin Constant!("e");
-  enum bigd E = roundString("2.71828182845904523536028747135266249775" ~
-    "724709369995957496696762772407663035354759457138217852516643");
-
-  /// natural logarithm of 2 = 0.693147806...
-  mixin Constant!("ln2");
-  enum bigd LN2 = roundString("0.693147180559945309417232121458176568" ~
-    "075500134360255254120680009493393621969694715605863326996418688");
-
-  /// natural logarithm of 10 = 2.30258509...
-  mixin Constant!("ln10");
-  enum bigd LN10 = roundString("2.30258509299404568401799145468436420" ~
-    "760110148862877297603332790096757260967735248023599720508959820");
-
-  /// base 2 logarithm of e = 1.44269504...
-  mixin Constant!("lb_e");
-  enum bigd LB_E = roundString("1.44269504088896340735992468100189213" ~
-    "742664595415298593413544940693110921918118507988552662289350634");
-
-  /// base 2 logarithm of 10 = 3.32192809...
-  mixin Constant!("lb_10");
-  enum bigd LB_10 = roundString("3.3219280948873623478703194294893901" ~
-    "7586483139302458061205475639581593477660862521585013974335937016");
-
-  /// base 10 logarithm of 2 = 0.301029996...
-  enum bigd LOG10_2 = roundString("0.3010299956639811952137388947244930" ~
-    "26768189881462108541310427461127108189274424509486927252118186172");
-
-  /// base 10 logarithm of e  = 4.34294482...
-  enum bigd LOG10_E = roundString("4.3429448190325182765112891891660508" ~
-    "2294397005803666566114453783165864649208870774729224949338431748");
-
-  /// pi/2
-  mixin Constant!("pi_2");
-  enum bigd PI_2 = roundString("1.57079632679489661923132169163975144" ~
-    "209858469968755291048747229615390820314310449931401741267105853");
-
-  /// pi/4
-  enum bigd PI_4 = roundString("0.78539816339744830961566084581987572" ~
-    "1049292349843776455243736148076954101571552249657008706335529267");
-
-  /// 1/pi
-  mixin Constant!("invPi","INV_PI");
-  enum bigd INV_PI = roundString("0.318309886183790671537767526745028" ~
-    "724068919291480912897495334688117793595268453070180227605532506172");
-
-  /// 2/pi
-  mixin Constant!("twoInvPi","TWO_INV_PI");
-  enum bigd TWO_INV_PI = roundString("0.63661977236758134307553505349005" ~
-    "74481378385829618257949906693762355871905369061403604552110650123438");
-
-  /// 1/2*pi
-  enum bigd INV_2PI = roundString("0.15915494309189533576888376337251" ~
-    "4362034459645740456448747667344058896797634226535090113802766253086");
-
-  /// square root of two = 1.41421357
-  mixin Constant!("sqrt2");
-  enum bigd SQRT2 = roundString("1.4142135623730950488016887242096980" ~
-    "7856967187537694807317667973799073247846210703885038753432764157");
-
-  /// square root of one half = 0.707106781...
-  mixin Constant!("sqrt1_2");
-  enum bigd SQRT1_2 = roundString("0.707106781186547524400844362104849" ~
-    "039284835937688474036588339868995366239231053519425193767163820786");
-
-  /// golden ratio = 1.6180339887...
-  mixin Constant!("phi");
-  enum bigd PHI = roundString("1.6180339887498948482045868343656381177" ~
-    "20309179805762862135448622705260462818902449707207204189391137");
-
-unittest
-{  // constants
-  static struct S { TD x; TD expect; }
-  S[] s =
-  [
-    { TD.E,     "2.71828183" },
-    { TD.pi,    "3.14159265" },
-    { TD.PI,    "3.14159265" },
-    { TD.LN2,   "0.693147181" },
-    { TD.LN10,  "2.30258509" },
-    { TD.SQRT2, "1.41421356" },
-    { TD.INV_PI,"0.318309886" },
-  ];
-  auto f = FunctionTest!(S,TD)("constants");
-  foreach (t; s) f.test(t, t.x);
-  writefln(f.report);
-}
-
-  static if (context == TestContext) {
-  unittest {
-    writeln("==========================");
-    writeln("decimal................end");
-    writeln("==========================");
-
-  }}
-
-}   // end struct BigDecimal
 +/
 
 // ======================================================== //

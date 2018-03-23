@@ -355,31 +355,91 @@ const char[] BinaryFunction =
 //	CONSTANTS
 //--------------------------------
 
-package D pi(D)(Context inContext) if (isDecimal!D)
+/*/// Returns pi (3.14159265...) at the specified precision.
+/// If the precision is less than or equal to a prior precision,
+/// the earlier calculated value is returned (rounded if needed).
+/// If the specified precision is higher than any previously calculated
+/// precision, then the constant is recalculated and the higher value
+/// is retained for subsequent use.
+/// Repeated calls to the function at the same precision perform no rounding
+/// or calculation.
+public static D pin(D)(int precision, D estimate = D.PI) if (isDecimal!D)
+{
+  static D value = D.PI;
+  static int last = D.precision;
+  static D highValue = D.PI;
+  static int high = D.precision;
+
+  // attempt to use previously calculated values
+  value = avoidCalculation(precision, last, value, high, highValue);
+
+  // if the returned value is NaN, a recalculation is needed.
+  if (value.isNaN)
+  {
+    Context context = Context(precision, D.maxExpo, D.mode);
+    value = eris.decimal.math.pi!D(context);
+    high = precision;
+    last = high;
+  }
+  return value;
+}
+
+unittest
+{  // pi
+  static struct S { int n; TD expect; }
+  S[] s =
+  [
+    {  9, "3.14159265" },
+    { 10, "3.141592654" },
+    { 12, "3.14159265359" },
+    { 20, "3.1415926535897932385" },
+    { 14, "3.1415926535898" },
+    { 16, "3.141592653589793" },
+    { 18, "3.14159265358979324" },
+    { 22, "3.141592653589793238463" },
+    { 23, "3.1415926535897932384626" },
+    { 24, "3.14159265358979323846264" },
+    { 25, "3.141592653589793238462643" },
+    { 26, "3.1415926535897932384626434" },
+  ];
+  auto f = FunctionTest!(S,TD)("pin");
+  foreach (t; s) f.test(t, pin(t.n), t.n);
+  writefln(f.report);
+}*/
+
+/// Returns pi (3.14159265...) at the specified precision.
+/// If the precision is less than or equal to a prior precision,
+/// the earlier calculated value is returned (rounded if needed).
+/// If the specified precision is higher than any previously calculated
+/// precision, then the constant is recalculated and the higher value
+/// is retained for subsequent use.
+/// Repeated calls to the function at the same precision perform no rounding
+/// or calculation.
+public D pi(D)(Context context) if (isDecimal!D)
 {
 	// TODO: (behavior) if only 2 guard digits are used, function doesn't return
-	auto context = guard(inContext, 3);
+	auto guarded = guard(context, 3);
 	// AGM algorithm
 	long k = 1;
 	D a0 = D.one;
-	D b0 = sqrt1_2!D(context);
+	D b0 = sqrt1_2!D(guarded);
 	D s0 = D(5,-1);//.HALF;
 	D a1, b1, s1;
 	// loop until the arithmetic mean equals the geometric mean
-	while (!equals(a0, b0, context))
+	while (!equals(a0, b0, guarded))
 	{
 		// arithmetic mean: a1 = (a0+bo)/2))
-		a1 = mul(D.HALF, add(a0, b0, context), context);
+		a1 = mul(D.HALF, add(a0, b0, guarded), guarded);
 		// geometric mean: b1 = sqrt(a0*b0)
-		b1 = sqrt(mul(a0, b0, context), context);
+		b1 = sqrt(mul(a0, b0, guarded), guarded);
 		k *= 2;
-		s1 = sub(s0, mul(sub(sqr(a1, context), sqr(b1, context), context), k, context), context);
+		s1 = sub(s0, mul(sub(sqr(a1, guarded), sqr(b1, guarded), guarded), k, guarded), guarded);
 		a0 = a1;
 		b0 = b1;
 		s0 = s1;
 	}
-	D pi = mul(div(sqr(a1, context), s1, context), 2, context);
-	return precisionRound(pi, inContext);
+	D pi = mul(div(sqr(a1, guarded), s1, guarded), 2, guarded);
+	return precisionRound(pi, context);
 }
 
 //mixin (Constant!("pi_2"));
@@ -454,37 +514,102 @@ package T twoInvPi(T)(Context inContext) if (isDecimal!T)
   writefln(f.report);
 }*/
 
-//mixin (Constant!("e"));
-/// Returns the value of e in the specified context.
-package T e(T)(Context inContext) if (isDecimal!T)
+/// If a constant has already been calculated, this function attempts
+/// to use an existing value rather than recalculate.
+/// If the constant has not yet been calculated to the desired precision,
+/// returns null.
+package D avoidCalculation(D)(int precision,
+  ref int last, ref D value,
+  ref int high, ref D highValue)
 {
-	auto context = guard(inContext);
-	// initialize Taylor series.
-	long n = 2;
-	T term = T.one;
-	T sum  = T.one;
-	// loop until the term is too small to affect the sum.
-	while (term > T.epsilon(context)) {
-		sum  = add(sum, term, context);
-		term = div!T(term, n, context);
-		n++;
-	}
-	return precisionRound(sum, inContext);
+  // initialize the high value, if needed.
+  if (highValue.isNaN) highValue = value;
+
+  // if the input precision <= last precision used
+  if (precision == last)
+  {
+   return value;
+  }
+  if (precision < last)
+  {
+    last = precision;
+    value = precisionRound(value, precision);
+    return value;
+  }
+
+  // if the input precision <= highest precision used
+  if (precision == high)
+  {
+    last = high;
+    value = highValue;
+    return value;
+  }
+  if (precision < high)
+  {
+    last = precision;
+    value = precisionRound(highValue, precision);
+    return value;
+  }
+  return D.nan;
 }
 
-/*unittest
-{	// e
-	static struct S { int n; TD expect; }
-	S[] s =
-	[
-		{  9, "2.71828183" },
-		{ 25, "2.7182818284590452353602874713526625" },
-		{  5, "2.71828183" },
-	];
-	auto f = FunctionTest!(S,TD)("e");
-	foreach (t; s) f.test(t, TD.e(t.n), t.n);
+public D e(D)(int precision = D.precision) if (isDecimal!D)
+{
+  enum D precValue = roundString(
+    "2.71828182845904523536028747135266" ~
+    "249775724709369995957496696762772" ~
+    "407663035354759457138217852516643",
+    D.precision);
+  static D value = precValue;
+  static int last = D.precision;
+  static D highValue = precValue;
+  static int high = D.precision;
+
+  if (precision == D.precision) return precValue;
+  // attempt to use previously calculated values
+  value = avoidCalculation!D(precision, last, value, high, highValue);
+
+  // if the returned value is NaN, a recalculation is needed.
+  if (value.isNaN)
+  {
+    Context context = Context(precision, D.maxExpo, D.mode);
+    value = eris.decimal.math.e!D(context);
+    high = precision;
+    last = high;
+  }
+  return value;
+}
+
+/// Returns the value of e in the specified context.
+package D e(D)(Context context) if (isDecimal!D)
+{
+  auto guarded = guard(context);
+  // initialize Taylor series.
+  long n = 2;
+  D term = D.one;
+  D sum  = D.one;
+  // loop until the term is too small to affect the sum.
+  while (term > D.epsilon(guarded)) {
+    sum  = add(sum, term, guarded);
+    term = div!D(term, n, guarded);
+    n++;
+  }
+  return precisionRound(sum, context);
+}
+
+unittest
+{  // e
+  static struct S { int n; TD expect; }
+  S[] s =
+  [
+    {  9, "2.71828183" },
+    { 25, "2.7182818284590452353602874713526625" },
+    {  5, "2.7183" },
+  ];
+  auto f = FunctionTest!(S,TD)("e");
+  foreach (t; s) f.test(t, e!TD(t.n), t.n);
   writefln(f.report);
-}*/
+}
 
 /*//mixin (Constant!("ln10"));
 package enum T ln10(T)(Context context) if (isDecimal!T)
@@ -726,41 +851,41 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
 
 /// Returns the square root of the argument to the type precision.
 /// Uses Newton's method.
-public D sqrt(D)(D x, Context context) if (isDecimal!D)
+public D sqrt(D)(D arg, Context context) if (isDecimal!D)
 {
 //  auto context = guard(inContext, 3);
   // special values
-  if (x.isNegative) {
+  if (arg.isNegative) {
     contextFlags.set(INVALID_OPERATION);
     return D.nan;
   }
-  // TODO: what if x is very close to one or zero??
-  if (x.isOne) return D.one;
-  if (x.isZero) return D.zero;
-  if (x.isInfinite) return D.infinity;
+  // TODO: what if arg is very close to one or zero??
+  if (arg.isOne) return D.one;
+  if (arg.isZero) return D.zero;
+  if (arg.isInfinite) return D.infinity;
 
   // reduce the exponent and estimate the result
-  D a;
-  int k = ilogb(x);
+  D value;
+  int k = ilogb(arg);
   if (isOdd(k)) {
-    a = D(6, -1);
+    value = D(6, -1);
   }
   else {
-    a = D(2, -1);
+    value = D(2, -1);
     k++;
   }
-  x.expo = x.expo - k - 1;
+  arg.expo = arg.expo - k - 1;
 
   // Newton's method
   while (true) {
-    D b = a;
-    a = mul(D.HALF, add(b, div(x, b, context), context), context);
-    if (equals(a, b, context)) break;
+    D prev = value;
+    value = mul(D.HALF, add(prev, div(arg, prev, context), context), context);
+    if (equals(value, prev, context)) break;
   }
   // restore the exponent
-  a.expo = a.expo + (k+1)/2;
+  value.expo = value.expo + (k+1)/2;
   // round the result
-  return precisionRound(a, context);
+  return precisionRound(value, context);
 }
 
 unittest
