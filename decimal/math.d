@@ -24,8 +24,7 @@ import std.stdio; // for test only
 import eris.decimal;
 
 unittest {
-	writeln("==========================");
-	writeln("decimal math.........begin");
+	writeln("        math tests        ");
 	writeln("==========================");
 }
 
@@ -63,6 +62,10 @@ mixin template checkNaN() {
 // ROUNDING
 //--------------------------------
 
+unittest
+{
+	writeln("-------- rounding --------");
+}
 /**
  *  Rounds the argument to the nearest integer. If the argument is exactly
  *  half-way between two integers the even integer is returned.
@@ -86,17 +89,6 @@ unittest
     {  "10E+5", "1.0E+6" },
     { "7.89E+77", "7.89E+77" },
     { "-Inf", "-Infinity" },
-  ];
-  auto f = FunctionTest!(S,D9)("rint");
-  foreach (t; s) f.test(t, rint(t.num));
-  writefln(f.report);
-}
-
-unittest
-{  // rint
-  static struct S { D9 num; D9 expect; }
-  S[] s =
-  [
     {  "2.1",  2 },
     {  "2.5",  2 },
     {  "3.5",  4 },
@@ -245,7 +237,6 @@ public BigInt toBigInt(T)(T x, Round mode = HALF_EVEN)
 	}
 	if (x.expo != 0)
 	{
-		// FIXTHIS: what does this actually do?
 		return roundToInt(x, mode).coff;
 	}
 	return x.coff;
@@ -355,181 +346,40 @@ const char[] BinaryFunction =
 //	CONSTANTS
 //--------------------------------
 
-/*/// Returns pi (3.14159265...) at the specified precision.
-/// If the precision is less than or equal to a prior precision,
-/// the earlier calculated value is returned (rounded if needed).
-/// If the specified precision is higher than any previously calculated
-/// precision, then the constant is recalculated and the higher value
-/// is retained for subsequent use.
-/// Repeated calls to the function at the same precision perform no rounding
-/// or calculation.
-public static D pin(D)(int precision, D estimate = D.PI) if (isDecimal!D)
-{
-  static D value = D.PI;
-  static int last = D.precision;
-  static D highValue = D.PI;
-  static int high = D.precision;
-
-  // attempt to use previously calculated values
-  value = avoidCalculation(precision, last, value, high, highValue);
-
-  // if the returned value is NaN, a recalculation is needed.
-  if (value.isNaN)
-  {
-    Context context = changePrecision(D.context, precision);
-    value = eris.decimal.math.pi!D(context);
-    high = precision;
-    last = high;
-  }
-  return value;
-}
-
 unittest
-{  // pi
-  static struct S { int n; TD expect; }
-  S[] s =
-  [
-    {  9, "3.14159265" },
-    { 10, "3.141592654" },
-    { 12, "3.14159265359" },
-    { 20, "3.1415926535897932385" },
-    { 14, "3.1415926535898" },
-    { 16, "3.141592653589793" },
-    { 18, "3.14159265358979324" },
-    { 22, "3.141592653589793238463" },
-    { 23, "3.1415926535897932384626" },
-    { 24, "3.14159265358979323846264" },
-    { 25, "3.141592653589793238462643" },
-    { 26, "3.1415926535897932384626434" },
-  ];
-  auto f = FunctionTest!(S,TD)("pin");
-  foreach (t; s) f.test(t, pin(t.n), t.n);
-  writefln(f.report);
-}*/
-
-/// Returns pi (3.14159265...) at the specified precision.
-/// If the precision is less than or equal to a prior precision,
-/// the earlier calculated value is returned (rounded if needed).
-/// If the specified precision is higher than any previously calculated
-/// precision, then the constant is recalculated and the higher value
-/// is retained for subsequent use.
-/// Repeated calls to the function at the same precision perform no rounding
-/// or calculation.
-public D pi(D)(Context context) if (isDecimal!D)
 {
-	// TODO: (behavior) if only 2 guard digits are used, function doesn't return
-	auto guarded = guard(context, 3);
-	// AGM algorithm
-	long k = 1;
-	D a0 = D.one;
-	D b0 = sqrt1_2!D(guarded);
-	D s0 = D(5,-1);//.HALF;
-	D a1, b1, s1;
-	// loop until the arithmetic mean equals the geometric mean
-	while (!equals(a0, b0, guarded))
-	{
-		// arithmetic mean: a1 = (a0+bo)/2))
-		a1 = mul(D.HALF, add(a0, b0, guarded), guarded);
-		// geometric mean: b1 = sqrt(a0*b0)
-		b1 = sqrt(mul(a0, b0, guarded), guarded);
-		k *= 2;
-		s1 = sub(s0, mul(sub(sqr(a1, guarded), sqr(b1, guarded), guarded), k, guarded), guarded);
-		a0 = a1;
-		b0 = b1;
-		s0 = s1;
-	}
-	D pi = mul(div(sqr(a1, guarded), s1, guarded), 2, guarded);
-	return round(pi, context);
+	writeln("------- constants --------");
 }
 
-//mixin (Constant!("pi_2"));
-package T pi_2(T)(Context inContext) if (isDecimal!T)
+mixin template MCInit(D, string str)
 {
-	auto context = guard(inContext);
-	T halfPi = mul(pi!T(context), T.HALF, context);
-	return round(halfPi, inContext);
+  enum D typeValue = roundString(str, D.precision);
+  static D value = typeValue;
+  static int last = D.precision;
+  static D highValue = typeValue;
+  static int high = D.precision;
 }
 
-/*unittest
-{	// pi_2
-	static struct S { int n; TD expect; }
-	S[] s =
-	[
-		{  9, "1.57079633" },
-		{ 25, "1.570796326794896619231322" },
-		{  5, "1.5708234" },	// note extra incorrect digits
-	];
-	auto f = FunctionTest!(S,TD)("pi/2");
-	foreach (t; s) f.test(t, TD.pi_2(t.n), t.n);
-  writefln(f.report);
-}*/
-
-//mixin (Constant!("invPi"));
-// TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
-// TODO: shouldn't this be a calculation without a division?
-/// Calculates the value of 1/pi in the specified context.
-package T invPi(T)(Context inContext) if (isDecimal!T)
-{
-	auto context = guard(inContext, 4);
-	T alpha =  div(T.one, pi!T(context), context);
-	return round(alpha, inContext);
-}
-
-/*unittest
-{	// invPi
-	static struct S { int n; TD expect; }
-	S[] s =
-	[
-		{  9, "0.318309886" },
-		{ 25, "0.3183098861837906715377675" },
-		{  5, "0.3183144449" },	// note extra incorrect digits
-	];
-	auto f = FunctionTest!(S,TD)("1/pi");
-	foreach (t; s) f.test(t, TD.invPi(t.n), t.n);
-  writefln(f.report);
-}*/
-
-//mixin (Constant!("twoInvPi"));
-// TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
-// TODO: shouldn't this be a calculation without a division?
-/// Calculates the value of 1/pi in the specified context.
-package T twoInvPi(T)(Context inContext) if (isDecimal!T)
-{
-	auto context = guard(inContext, 4);
-	T alpha =  div(T.TWO, pi!T(context), context);
-	return round(alpha, inContext);
-}
-
-/*unittest
-{	// twoInvPi
-	static struct S { int n; TD expect; }
-	S[] s =
-	[
-		{  9, "0.636619772" },
-		{ 25, "0.6366197723675813430755351" },
-		{  5, "0.63662" },
-	];
-	auto f = FunctionTest!(S,TD)("2/pi");
-	foreach (t; s) f.test(t, TD.twoInvPi(t.n), t.n);
-  writefln(f.report);
-}*/
+//mixin template MCType(D)
+//{
+//  if
 
 /// If a constant has already been calculated, this function attempts
 /// to use an existing value rather than recalculate.
 /// If the constant has not yet been calculated to the desired precision,
-/// returns null.
-package D avoidCalculation(D)(int precision,
-  ref int last, ref D value,
-  ref int high, ref D highValue)
+/// returns false.
+package D Constant(D, D typeValue)(/*D function(int) calc, */int precision)
+    if (isDecimal!D)
 {
-  // initialize the high value, if needed.
-  if (highValue.isNaN) highValue = value;
+  static D value = typeValue;
+  static int last = D.precision;
+  static D highValue = typeValue;
+  static int high = D.precision;
+
+  if (precision == D.precision) return typeValue;
 
   // if the input precision <= last precision used
-  if (precision == last)
-  {
-   return value;
-  }
+  if (precision == last) return value;
   if (precision < last)
   {
     last = precision;
@@ -550,50 +400,178 @@ package D avoidCalculation(D)(int precision,
     value = round(highValue, precision);
     return value;
   }
+  high = precision;
+  last = precision;
   return D.nan;
 }
 
-public D e(D)(int precision = D.precision) if (isDecimal!D)
+private Context calcContext(D)(int precision, int guardDigits = 2)
 {
-  enum D precValue = roundString(
-    "2.71828182845904523536028747135266" ~
-    "249775724709369995957496696762772" ~
-    "407663035354759457138217852516643",
-    D.precision);
-  static D value = precValue;
-  static int last = D.precision;
-  static D highValue = precValue;
-  static int high = D.precision;
+  return Context(precision + guardDigits, D.maxExpo, HALF_EVEN);
+}
 
-  if (precision == D.precision) return precValue;
-  // attempt to use previously calculated values
-  value = avoidCalculation!D(precision, last, value, high, highValue);
-
-  // if the returned value is NaN, a recalculation is needed.
-  if (value.isNaN)
-  {
-    value = eris.decimal.math.e!D(changePrecision(D.context, precision));
-    high = precision;
-    last = high;
-  }
+/// Returns pi (3.14159265...) at the specified precision.
+/// If the precision is less than or equal to a prior precision,
+/// the earlier calculated value is returned (rounded if needed).
+/// If the specified precision is higher than any previously calculated
+/// precision, then the constant is recalculated and the higher value
+/// is retained for subsequent use.
+/// Repeated calls to the function at the same precision perform no rounding
+/// or calculation.
+public static D pi(D)(int precision = D.precision) if (isDecimal!D)
+{
+  D value = Constant!(D, D.PI)(precision);
+  if (value.isNaN) value = calcPi!D(precision);
   return value;
 }
 
-/// Returns the value of e in the specified context.
-package D e(D)(Context context) if (isDecimal!D)
+/// Returns pi (3.14159265...) for the specified context.
+public D calcPi(D)(int precision) if (isDecimal!D)
 {
-  auto guarded = guard(context);
+  // TODO: (behavior) if only 2 guard digits are used, function doesn't return
+  auto ctxt = calcContext!D(precision, 3);
+  // AGM algorithm
+  long k = 1;
+  D a0 = D.one;
+  D b0 = D.HALF*M_SQRT2!D(ctxt);
+  D s0 = D(5,-1);//.HALF;
+  D a1, b1, s1;
+  // loop until the arithmetic mean equals the geometric mean
+  while (!equals(a0, b0, ctxt))
+  {
+    // arithmetic mean: a1 = (a0+bo)/2))
+    a1 = mul(D.HALF, add(a0, b0, ctxt), ctxt);
+    // geometric mean: b1 = sqrt(a0*b0)
+    b1 = sqrt(mul(a0, b0, ctxt), ctxt);
+    k *= 2;
+    s1 = sub(s0, mul(sub(sqr(a1, ctxt), sqr(b1, ctxt), ctxt), k, ctxt), ctxt);
+    a0 = a1;
+    b0 = b1;
+    s0 = s1;
+  }
+  D pi = mul(div(sqr(a1, ctxt), s1, ctxt), 2, ctxt);
+  return round(pi, precision, D.mode);
+}
+
+unittest
+{  // pi
+  static struct S { int n; TD expect; }
+  S[] s =
+  [
+    {  9, "3.14159265" },
+    { 10, "3.141592654" },
+    { 12, "3.14159265359" },
+    { 20, "3.1415926535897932385" },
+    { 14, "3.1415926535898" },
+    { 16, "3.141592653589793" },
+    { 18, "3.14159265358979324" },
+    { 22, "3.141592653589793238463" },
+    { 23, "3.1415926535897932384626" },
+    { 24, "3.14159265358979323846264" },
+    { 25, "3.141592653589793238462643" },
+    { 26, "3.1415926535897932384626434" },
+  ];
+  auto f = FunctionTest!(S,TD)("pi");
+  foreach (t; s) f.test(t, pi!TD(t.n), t.n);
+  writefln(f.report);
+}
+
+/*//mixin (Constant!("pi_2"));
+package T pi_2(T)(Context inContext) if (isDecimal!T)
+{
+	auto context = guard(inContext);
+	T halfPi = mul(pi!T(context), T.HALF, context);
+	return round(halfPi, inContext);
+}*/
+
+/*unittest
+{	// pi_2
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "1.57079633" },
+		{ 25, "1.570796326794896619231322" },
+		{  5, "1.5708234" },	// note extra incorrect digits
+	];
+	auto f = FunctionTest!(S,TD)("pi/2");
+	foreach (t; s) f.test(t, TD.pi_2(t.n), t.n);
+  writefln(f.report);
+}*/
+
+//mixin (Constant!("M_1_PI"));
+// TODO: shouldn't this be a calculation without a division?
+/// Calculates the value of 1/pi in the specified context.
+package D M_1_PI(D)(Context inContext) if (isDecimal!D)
+{
+	auto context = guard(inContext, 4);
+	D alpha =  div(D.ONE, pi!D(context), context);
+	return round(alpha, inContext);
+}
+
+/*unittest
+{	// M_1_PI
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "0.318309886" },
+		{ 25, "0.3183098861837906715377675" },
+		{  5, "0.3183144449" },	// note extra incorrect digits
+	];
+	auto f = FunctionTest!(S,TD)("1/pi");
+	foreach (t; s) f.test(t, TD.M_1_PI(t.n), t.n);
+  writefln(f.report);
+}*/
+
+//mixin (Constant!("M_2_PI"));
+// TODO: (efficiency) Need to ensure that previous version of pi isn't reset.
+// TODO: shouldn't this be a calculation without a division?
+/// Calculates the value of 1/pi in the specified context.
+package D M_2_PI(D)(Context inContext) if (isDecimal!D)
+{
+	auto context = guard(inContext, 4);
+	D alpha =  div(D.TWO, pi!D(context.precision), context);
+	return round(alpha, inContext);
+}
+
+/*unittest
+{	// M_2_PI
+	static struct S { int n; TD expect; }
+	S[] s =
+	[
+		{  9, "0.636619772" },
+		{ 25, "0.6366197723675813430755351" },
+		{  5, "0.63662" },
+	];
+	auto f = FunctionTest!(S,TD)("2/pi");
+	foreach (t; s) f.test(t, TD.M_2_PI(t.n), t.n);
+  writefln(f.report);
+}*/
+
+
+public D e(D)(int precision = D.precision) if (isDecimal!D)
+{
+  D value = Constant!(D, D.E)(precision);
+  if (value.isNaN) value = calcE!D(precision);
+  return value;
+}
+
+/// Calculates the value of e to the specified precision.
+/// Returns the calculated value.
+package D calcE(D)(int precision = D.precision) if (isDecimal!D)
+{
+  auto context = calcContext!D(precision);
+  auto epsilon = D.epsilon(context);
   // initialize Taylor series.
-  long n = 2;
   D term = D.one;
   D sum  = D.one;
   // loop until the term is too small to affect the sum.
-  while (term > D.epsilon(guarded)) {
-    sum  = add(sum, term, guarded);
-    term = div!D(term, n, guarded);
+  long n = 2;
+  while (term > epsilon) {
+    sum  = add(sum, term, context);
+    term = div!D(term, n, context);
     n++;
   }
-  return round(sum, context);
+  return round(sum, precision, D.mode);
 }
 
 unittest
@@ -609,6 +587,86 @@ unittest
   foreach (t; s) f.test(t, e!TD(t.n), t.n);
   writefln(f.report);
 }
+
+/// natural logarithm of 2 = 0.693147806...
+public D ln2(D)(int precision = D.precision)
+{
+  D value = Constant!(D, D.LN2)(precision);
+  if (value.isNaN) value = log(D.TEN, precision);
+  return value;
+}
+
+/// natural logarithm of 10 = 2.30258509...
+public D ln10(D)(int precision = D.precision)
+{
+  D value = Constant!(D, D.LN10)(precision);
+  if (value.isNaN) value = log(D.TEN, precision);
+  return value;
+}
+
+
+/// base 2 logarithm of e = 1.44269504...
+public D lbe(D)(int precision = D.precision)
+{
+  mixin MCInit!(D,
+  "1.44269504088896340735992468100189213" ~
+  "742664595415298593413544940693110921918118507988552662289350634" );
+
+  if (precision == D.precision) return typeValue;
+
+  // attempt to use previously calculated values
+  if (Constant!D(precision, last, value, high, highValue)) return value;
+
+  high = precision;
+  last = high;
+  value = log(D.TEN, precision);
+  return value;
+}
+
+
+/*/// base 2 logarithm of 10 = 3.32192809...
+public enum decimal LB10 = roundString(
+  "3.3219280948873623478703194294893901" ~
+  "7586483139302458061205475639581593477660862521585013974335937016",
+  decimal.precision);
+
+/// base 10 logarithm of 2 = 0.301029996...
+public enum decimal LG2 = roundString(
+  "0.3010299956639811952137388947244930" ~
+  "26768189881462108541310427461127108189274424509486927252118186172",
+  decimal.precision);
+
+/// base 10 logarithm of e  = 4.34294482...
+public enum decimal LGE = roundString(
+  "4.3429448190325182765112891891660508" ~
+  "2294397005803666566114453783165864649208870774729224949338431748",
+  decimal.precision);
+
+/// golden ratio = 1.6180339887...
+public enum decimal PHI = roundString(
+  "1.6180339887498948482045868343656381177" ~
+  "20309179805762862135448622705260462818902449707207204189391137",
+  decimal.precision);
+*/
+/// Returns the square root of two (1.41421357...) at the specified precision.
+public D M_SQRT2(D)(int precision = D.precision)
+{
+  mixin MCInit!(D,
+    "1.41421356237309504880168872420969"  ~
+      "807856967187537694807317667973799" ~
+      "073247846210703885038753432764157" );
+
+  if (precision == D.precision) return typeValue;
+
+  // attempt to use previously calculated values
+  if (Constant!D(precision, last, value, high, highValue)) return value;
+
+  high = precision;
+  last = high;
+  value = sqrt(D(2), precision);
+  return value;
+}
+
 
 /*//mixin (Constant!("ln10"));
 package enum T ln10(T)(Context context) if (isDecimal!T)
@@ -648,16 +706,16 @@ package enum T log10_2(T)(Context context) {
 	return log(T.TWO, context)/log(T.TWO, context, false);
 }
 
-//mixin (Constant!("sqrt2"));
-package enum T sqrt2(T)(Context context) if (isDecimal!T)
+//mixin (Constant!("M_SQRT2"));
+package enum T M_SQRT2(T)(Context context) if (isDecimal!T)
 {
 	return sqrt(T.TWO, context);
 }
 
-//mixin (Constant!("sqrt1_2"));
-package enum T sqrt1_2(T)(Context context) if (isDecimal!T)
+//mixin (Constant!("M_SQRT1_2"));
+package enum D M_SQRT1_2(D)(Context context) if (isDecimal!D)
 {
-	return sqrt(T.HALF, context);
+	return sqrt(D.HALF, context);
 }
 
 //mixin (Constant!("phi"));
@@ -683,15 +741,15 @@ package enum T invSqrtPi(T)(Context inContext) if (isDecimal!T)
 		{ TD.ln2,     9,  "0.693147181" },
 		{ TD.log2_e,  9,  "1.44269504" },
 		{ TD.log2_10, 9,  "3.32192809" },
-		{ TD.sqrt2,   9,  "1.41421356" },
-		{ TD.sqrt1_2, 9,  "0.707106781" },
+		{ TD.M_SQRT2,   9,  "1.41421356" },
+		{ TD.M_SQRT1_2, 9,  "0.707106781" },
 		{ TD.phi,     9,  "1.61803399" },
 		{ TD.ln10(16),    16, "2.302585092994046" },
 		{ TD.ln2(16),     16, "0.6931471805599453" },
 		{ TD.log2_e(16),  16, "1.442695040888963" },
 		{ TD.log2_10(16), 16, "3.21928094887362" }, // FIXTHIS: returns 3.321457567817785
-		{ TD.sqrt2(16),   16, "1.414213562373095" },
-		{ TD.sqrt1_2(16), 16, "0.7071067811865475" },
+		{ TD.M_SQRT2(16),   16, "1.414213562373095" },
+		{ TD.M_SQRT1_2(16), 16, "0.7071067811865475" },
 		{ TD.phi(16),     16, "1.618033988749895" },
 	];
 	auto f = FunctionTest!(S,TD)("constants");
@@ -848,7 +906,7 @@ public T invSqrt(T)(T x, Context inContext) if (isDecimal!T)
   writefln(f.report);
 }*/
 
-/// Returns the square root of the argument to the type precision.
+/// Returns the square root of the argument to the current precision.
 /// Uses Newton's method.
 public D sqrt(D)(D arg, Context context) if (isDecimal!D)
 {
@@ -927,7 +985,7 @@ unittest
 // exponentials and logarithms
 //--------------------------------
 
-/// Adds guard digits to the context precision and sets rounding to HALF_EVEN.
+/// Adds guard digits to the current precision and sets rounding to HALF_EVEN.
 /// This is useful for extended calculation to minimize errors.
 /// Returns a new context with the precision increased by the guard digits value.
 /// Note that this does not create a new Decimal type with this context.
@@ -936,7 +994,7 @@ public Context guard(Context context, int guardDigits = 2)
   return Context(context.precision + guardDigits, context.maxExpo, HALF_EVEN);
 }
 
-/// Changes the context precision and sets rounding to HALF_EVEN.
+/// Changes the current precision and sets rounding to HALF_EVEN.
 /// This is useful for extended calculation to minimize errors.
 /// Returns a new context with the precision increased by the guard digits value.
 /// Note that this does not create a new Decimal type with this context.
@@ -1344,7 +1402,7 @@ public T log2(T)(T x, Context inContext) if (isDecimal!T)
 unittest {
 	write("-- log2.............");
 	assertEqual(log2(TD(10)), TD("3.321928094887362"));
-	assertEqual(log2(TD.E), TD("1.442695040888963"));
+	assertEqual(log2(e!TD), TD("1.442695040888963"));
 	writeln("passed");
 }
 
@@ -1417,9 +1475,9 @@ private T reduceAngle(T)(in T x,
 	out int n, in Context inContext = T.context) if (isDecimal!T)
 {
 	auto context = guard(inContext);
-	T twoInvPi = twoInvPi!T(context);
-	T pi_2 = pi_2!T(context);
-	T y = mul(x, twoInvPi, context);
+	T M_2_PI = M_2_PI!T(context);
+	T pi_2 = mul(pi!T(context.precision), T.HALF);
+	T y = mul(x, M_2_PI, context);
 	int k = rint(y).toInt;
 	n = k % 4;
 	T f = sub(y, k, context);
@@ -1919,7 +1977,7 @@ unittest
 		{ "1.0",   9, "0.881373587020" },
 		{ "0.5",   9,  "0.481211825060" },
 		{ "0.333", 9,  "0.327133906664" },
-		{ TD.PI,   9,  "1.86229574331" },
+		{ pi!TD,   9,  "1.86229574331" },
 		{ "1.1E-3", 9,    "1.1E-3" },
 		// FIXTHIS: These tests fail with precision problems.
 //		{ "1.0E-3", 9,    "0.000999999998" },
@@ -2033,7 +2091,5 @@ unittest
 }
 
 unittest {
-	writeln("==========================");
-	writeln("decimal math...........end");
 	writeln("==========================");
 }

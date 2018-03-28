@@ -99,7 +99,7 @@ public static int  totalFail;
 				}
 				else
 				{
-					// equal at context precision
+					// equal at type precision
 					passed = (actual == expect);
 				}
 

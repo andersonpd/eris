@@ -8,6 +8,7 @@ import std.traits;
 import eris.decimal;
 /*import eris.decimal.conv;*/
 import eris.decimal.logical;
+import eris.decimal.math;
 //import eris.decimal.arithmetic;
 
 version(unittest)
@@ -181,9 +182,10 @@ void main()
   writefln("D16.TWO = %s", D16.TWO);
   writefln("D16.TEN = %s", D16.TEN);
   writefln("D16.HALF = %s", D16.HALF);
-  writefln("D16.PI = %s", D16.PI);
-  writefln("D16.E = %s", D16.E);
-  writefln("D16.LN2 = %s", D16.LN2);
+  writefln("pi!D16 = %s", pi!D16);
+  // TODO: avoid conflict with std.math.E
+  writefln("e!D16 = %s", e!D16);
+  writefln("LN2!D16 = %s", ln2!D16);
 //  comment("note extra precision");
 //  writefln("D16.REAL_MAX = %s", D16.REAL_MAX);
 

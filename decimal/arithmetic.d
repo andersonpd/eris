@@ -792,9 +792,9 @@ unittest
 }
 
 /**
- *  Returns true if the operands are equal to the context precision.
+ *  Returns true if the operands are equal to the type precision.
  *  Finite numbers are equal if they are numerically equal
- *  to the context precision.
+ *  to the type precision.
  *  Infinities are equal if they have the same sign.
  *  Zeros are equal regardless of sign.
  *  A NaN is not equal to any number, not even another NaN.
@@ -847,7 +847,7 @@ public bool equals(D)(in D left, in D right, Context context = D.context)
     return true;
   }
 
-  // round operands to the context precision
+  // round operands to the current precision
   auto lf = round(left, context);
   auto rt = round(right, context);
 
@@ -879,7 +879,7 @@ unittest
 /**
  *  Returns true if the operands are equal to the specified precision. Special
  *  values are handled as in the equals() function. This function allows
- *  comparison at precision values other than the context precision.
+ *  comparison at precision values other than the type precision.
  */
 public bool precisionEquals(D)(D left, D right, int precision) if (isDecimal!D)
 {

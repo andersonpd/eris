@@ -35,7 +35,7 @@ version(unittest)
 }
 
 /**
- *  Returns the number rounded to its context precision.
+ *  Returns the number rounded to its type precision.
  *  Flags: SUBNORMAL, CLAMPED, OVERFLOW, INEXACT, ROUNDED.
  */
 public D round(D)(in D num) if (isDecimal!D)
@@ -219,10 +219,8 @@ unittest
   writefln(f.report);
 }
 
-
-// TODO: move this into round -- it's the only function that calls it.
 /**
- *  Rounds the number to the context precision
+ *  Rounds the number to the specified precision
  *  using the specified rounding mode.
  */
 private D modeRound(D)(D num, int precision, Round mode = D.mode,

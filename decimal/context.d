@@ -98,7 +98,7 @@ public enum : ubyte
  *	Decimal arithmetic operations are governed by their context.
  *  The context specifies the precision (number of decimal digits)
  *  the maximum exponent value and the rounding mode in place for the operation.
- * 	The result of most operations will be rounded to the context precision
+ * 	The result of most operations will be rounded to the type precision
  *  using the context rounding mode
  */
 public struct Context
