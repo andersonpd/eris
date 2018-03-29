@@ -40,7 +40,7 @@ unittest {
 version(unittest) {
 	import std.stdio;
 	import eris.decimal.test;
-  import eris.decimal.math : pi;
+  import eris.decimal.math : M_PI;
 }
 
 public enum DEFAULT_PRECISION = 6;
@@ -674,14 +674,15 @@ unittest
  *  Converts a string into a decimal number. This departs from the
  *  specification in that the coefficient string may contain underscores.
  *  A leading or trailing "." is allowed by the specification even though
- *  it is not valid as a D language real number.
+ *  not valid as a D language real.
  */
 public D fromString(D)(string inStr, bool round = true) if (isDecimal!D)
 {
 	D num;
 
-	// strip, copy, tolower
-	char[] str = strip(inStr).dup;
+	// copy, strip, tolower
+	char[] str = inStr.dup;
+  str = strip(str);
 	toLowerInPlace(str);
 
 	// check for minus sign or plus sign
@@ -1123,7 +1124,7 @@ unittest
         { "2.0E3",	0x3200000000000014 },
         { "2E3",	0x3220000000000002 },
         { "20E2",	0x3200000000000014 },
-        { pi!TD, 	0x2FEB29430A256D21 },
+        { M_PI!TD, 	0x2FEB29430A256D21 },
         { 9007199254740991, 0x31DFFFFFFFFFFFFF },
         { 9007199254740992, 0x6C70000000000000 },
     ];
@@ -1229,7 +1230,7 @@ unittest
 		{ 0x3220000000000002,  "2E3"  },
 		{ 0x31DFFFFFFFFFFFFF,  9007199254740991 },	// largest explicit
 		{ 0x6C70000000000000,  9007199254740992 },   // smallest implicit
-		{ 0x2FEB29430A256D21,  pi!TD    },
+		{ 0x2FEB29430A256D21,  M_PI!TD    },
 	];
 	auto f = FunctionTest!(S, TD, "%s")("fromBid(UL)");
 	foreach (t; s) f.test(t, fromBid!(TD,ulong)(t.bid));

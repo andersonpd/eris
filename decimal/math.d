@@ -351,6 +351,68 @@ unittest
 	writeln("------- constants --------");
 }
 
+public immutable D M_PI(D) = D(roundStr(
+  "3.1415926535897932384626433832795028841971693993751" ~
+    "0582097494459230781640628620899862803482534211707",
+  D.precision));
+
+public immutable D M_E(D) = D(roundStr(
+  "2.7182818284590452353602874713526624977572470936999" ~
+    "5957496696762772407663035354759457138217852516643",
+  D.precision));
+
+public immutable D M_LN2(D) = D(roundStr(
+  "0.69314718055994530941723212145817656807550013436025" ~
+    "52541206800094933936219696947156058633269964186887",
+  D.precision));
+
+public immutable D M_LN10(D) = D(roundStr(
+  "2.3025850929940456840179914546843642076011014886287" ~
+    "7297603332790096757260967735248023599720508959820",
+  D.precision));
+
+public immutable D M_LOG2E(D) = D(roundStr(
+  "1.4426950408889634073599246810018921374266459541529" ~
+    "8593413544940693110921918118507988552662289350634",
+  D.precision));
+
+public immutable D M_LOG2T(D) = D(roundStr(
+  "3.3219280948873623478703194294893901758648313930245" ~
+    "8061205475639581593477660862521585013974335937016",
+  D.precision));
+
+public immutable D M_LOG10E(D) = D(roundStr(
+  "4.3429448190325182765112891891660508229439700580366" ~
+    "6566114453783165864649208870774729224949338431748",
+  D.precision));
+
+public immutable D M_LOGT2(D) = D(roundStr(
+  "0.30102999566398119521373889472449302676818988146210" ~
+    "8541310427461127108189274424509486927252118186172",
+  D.precision));
+
+public immutable D M_SQRT2(D) = D(roundStr(
+  "1.4142135623730950488016887242096980785696718753769" ~
+    "4807317667973799073247846210703885038753432764157",
+  D.precision));
+
+unittest
+{  // constants
+  static struct S { TD x; TD expect; }
+  S[] s =
+  [
+    { M_E!TD,     "2.718281828459045" },
+    { M_PI!TD,  "3.141592653589793" },
+    { M_LN2!TD,   "0.6931471805599453" },
+    { M_LN10!TD,  "2.302585092994046" },
+    { M_SQRT2!TD, "1.414213562373095" },
+//      { TD.INV_PI,"0.318309886" },
+  ];
+  auto f = FunctionTest!(S,TD)("constants");
+  foreach (t; s) f.test(t, t.x);
+  writefln(f.report);
+}
+
 mixin template MCInit(D, string str)
 {
   enum D typeValue = roundString(str, D.precision);
@@ -420,7 +482,7 @@ private Context calcContext(D)(int precision, int guardDigits = 2)
 /// or calculation.
 public static D pi(D)(int precision = D.precision) if (isDecimal!D)
 {
-  D value = Constant!(D, D.PI)(precision);
+  D value = Constant!(D, M_PI!D)(precision);
   if (value.isNaN) value = calcPi!D(precision);
   return value;
 }
@@ -433,7 +495,7 @@ public D calcPi(D)(int precision) if (isDecimal!D)
   // AGM algorithm
   long k = 1;
   D a0 = D.one;
-  D b0 = D.HALF*M_SQRT2!D(ctxt);
+  D b0 = D.HALF * sqrt2!D(precision);
   D s0 = D(5,-1);//.HALF;
   D a1, b1, s1;
   // loop until the arithmetic mean equals the geometric mean
@@ -550,7 +612,7 @@ package D M_2_PI(D)(Context inContext) if (isDecimal!D)
 
 public D e(D)(int precision = D.precision) if (isDecimal!D)
 {
-  D value = Constant!(D, D.E)(precision);
+  D value = Constant!(D, M_E!D)(precision);
   if (value.isNaN) value = calcE!D(precision);
   return value;
 }
@@ -591,7 +653,7 @@ unittest
 /// natural logarithm of 2 = 0.693147806...
 public D ln2(D)(int precision = D.precision)
 {
-  D value = Constant!(D, D.LN2)(precision);
+  D value = Constant!(D, M_LN2!D)(precision);
   if (value.isNaN) value = log(D.TEN, precision);
   return value;
 }
@@ -599,7 +661,7 @@ public D ln2(D)(int precision = D.precision)
 /// natural logarithm of 10 = 2.30258509...
 public D ln10(D)(int precision = D.precision)
 {
-  D value = Constant!(D, D.LN10)(precision);
+  D value = Constant!(D, M_LN10!D)(precision);
   if (value.isNaN) value = log(D.TEN, precision);
   return value;
 }
@@ -649,21 +711,10 @@ public enum decimal PHI = roundString(
   decimal.precision);
 */
 /// Returns the square root of two (1.41421357...) at the specified precision.
-public D M_SQRT2(D)(int precision = D.precision)
+public D sqrt2(D)(int precision = D.precision)
 {
-  mixin MCInit!(D,
-    "1.41421356237309504880168872420969"  ~
-      "807856967187537694807317667973799" ~
-      "073247846210703885038753432764157" );
-
-  if (precision == D.precision) return typeValue;
-
-  // attempt to use previously calculated values
-  if (Constant!D(precision, last, value, high, highValue)) return value;
-
-  high = precision;
-  last = high;
-  value = sqrt(D(2), precision);
+  D value = Constant!(D, M_SQRT2!D)(precision);
+  if (value.isNaN) value = sqrt(D(2), precision);
   return value;
 }
 
@@ -707,7 +758,7 @@ package enum T log10_2(T)(Context context) {
 }
 
 //mixin (Constant!("M_SQRT2"));
-package enum T M_SQRT2(T)(Context context) if (isDecimal!T)
+package enum T sqrt2(T)(Context context) if (isDecimal!T)
 {
 	return sqrt(T.TWO, context);
 }

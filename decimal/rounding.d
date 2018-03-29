@@ -428,6 +428,58 @@ unittest
   writeln("passed");
 }*/
 
+///
+/// Returns a numeric string with the specified precision.
+public string roundStr(string str, int precision)
+{
+
+  // make a copy, deleting any whitespace at ends of the string
+  char[] copy = strip(str).dup;
+
+  // if the string has a decimal point increment the precision to account
+  // for the extra character
+  if (copy.indexOf('.') >= 0) precision++;
+
+  // strip out any underscores
+  copy = copy.replace("_", "");
+
+  // ignore leading zeros
+  size_t index = 0;
+  while (copy[index] == '0') index++;
+  precision += index;
+
+  // if the precision is greater than the length return the whole string
+  if (precision >= copy.length) return str;
+
+  // get the last digit in the (to-be-)clipped string,
+  // and the following digit
+  char last = str[precision-1];
+  char follow = str[precision];
+
+  // if the following digit is less than five return the clipped string
+  if (follow < '5') return copy[0..precision].idup;
+
+  // otherwise, increment last digit in the string(round half-up)
+  copy = copy[0..precision];
+  copy[precision-1] += 1;
+
+  // if the increment resulted in a digit return the clipped string
+  if (copy[precision-1] <= '9') return copy[0..precision].idup;
+
+  // otherwise, (the last digit increment resulted in a non-digit)
+  // set the last digit to '0' and increment its preceding digit,
+  // repeat as necessary
+  int lix = precision - 1;
+  last = copy[lix];
+  while (last > '9') {
+    copy[lix] = '0';
+    lix--;
+    copy[lix] += 1;
+    last = copy[lix];
+  }
+  return copy[0..precision].idup;
+}
+
 /**
  *  Returns -1, 1, or 0 if the remainder is less than, more than,
  *  or exactly half the least significant digit of the shortened coefficient.

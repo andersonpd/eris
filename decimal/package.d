@@ -138,9 +138,9 @@ static if (context == Bid64) {
 
   /// Constructs a decimal number from a boolean value.
   /// false == 0, true == 1
-  this(bool sign)
+  this(bool value)
   {
-    if (sign) {
+    if (value) {
       this(BigInt(1));
     }
     else
@@ -152,7 +152,7 @@ static if (context == Bid64) {
   // Constructs a decimal number from a string representation
   this(string str)
   {
-    this = eris.decimal.conv.fromString!decimal(str);
+    this = fromString!decimal(str);
   }
 
   this(U)(U r)
@@ -483,16 +483,16 @@ static if (context == Bid64)
 
   /// Returns the default value for this type (NaN)
   @safe
-  static decimal init()
+  static D init()
   {
     return NAN;
   }
 
   /// Returns NaN
   @safe
-  static decimal nan(ushort payload = 0, bool sign = false)
+  static D nan(ushort payload = 0, bool sign = false)
   {
-    decimal dec = NAN;
+    D dec = NAN;
     dec.m_coff = payload;
     dec.m_sign = sign;
     return dec;
@@ -500,9 +500,9 @@ static if (context == Bid64)
 
   /// Returns signaling NaN
   @safe
-  static decimal snan(ushort payload = 0, bool sign = false)
+  static D snan(ushort payload = 0, bool sign = false)
   {
-    decimal dec = SNAN;
+    D dec = SNAN;
     dec.m_coff = payload;
     dec.m_sign = sign;
     return dec;
@@ -510,19 +510,19 @@ static if (context == Bid64)
 
   /// Returns infinity.
   @safe
-  static decimal infinity(bool sign = false)
+  static D infinity(bool sign = false)
   {
     return sign ? MINF : INF;
   }
 
   /// Returns the maximum representable normal value in the current context.
-  static decimal max()
+  static D max()
   {
     static initialized = false;
-    static decimal maxVal;
+    static D maxVal;
     if (!initialized)
     {
-      maxVal = decimal(maxCoefficient, maxAdjustedExpo);
+      maxVal = D(maxCoefficient, maxAdjustedExpo);
       initialized = true;
       return maxVal;
     }
@@ -534,42 +534,42 @@ static if (context == Bid64)
 
   /// Returns the minimum representable normal value in this context.
   @safe
-  enum decimal min_normal = decimal(1L, minExpo);
+  enum D min_normal = D(1L, minExpo);
 
   /// Returns the minimum representable subnormal value in this context.
   @safe
-  enum decimal min = decimal(1, tinyExpo);
+  enum D min = D(1, tinyExpo);
 
   /// Returns the smallest available increment to 1.0 in this context
-  static enum decimal epsilon(in Context inContext = context) {
-    return decimal(1, -inContext.precision);}
+  static enum D epsilon(in Context inContext = context) {
+    return D(1, -inContext.precision);}
 
-  /// Returns the radix, which is always ten for decimal numbers.
+  /// Returns the radix, which is always ten for D numbers.
   @safe
   enum int radix = 10;
 
   // TODO: need to determine what constants it makes sense to include
-  // common decimal numbers
-  enum decimal ZERO    = decimal(Tag.NONE);
-  enum decimal NEG_ZRO = -ZERO; // decimal(Tag.NONE, true);
-  enum decimal HALF    = decimal(5, -1);
-  enum decimal ONE     = decimal(1);
-  enum decimal NEG_ONE = decimal(-1);
-  enum decimal TWO     = decimal(2);
-//  enum decimal THREE   = decimal(3);
-  enum decimal FIVE    = decimal(5);
-  enum decimal TEN     = decimal(10);
+  // common D numbers
+  enum D ZERO    = D(Tag.NONE);
+  enum D NEG_ZRO = -ZERO; // D(Tag.NONE, true);
+  enum D HALF    = D(5, -1);
+  enum D ONE     = D(1);
+  enum D NEG_ONE = D(-1);
+  enum D TWO     = D(2);
+//  enum D THREE   = D(3);
+  enum D FIVE    = D(5);
+  enum D TEN     = D(10);
 
   /// Returns zero.
   @safe
-  static enum decimal zero(bool sign = false)
+  static enum D zero(bool sign = false)
   {
     return sign ? NEG_ZRO : ZERO;
   }
 
   /// Returns 1.
   //@safe
-  static decimal one(bool sign = false) {
+  static D one(bool sign = false) {
     return sign ? NEG_ONE : ONE;
   }
 
@@ -1177,7 +1177,6 @@ static if (context == Bid64)
 //--------------------------------
 
   /// Assigns a decimal number (makes a copy)
-  // COMPILER BUG?
   void opAssign(T:decimal)(in T that)
   {
     this.m_tag    = that.m_tag ;
@@ -1544,60 +1543,6 @@ static if (context == Bid64)
 // mathematical constants
 //--------------------------------
 
-	public enum D PI =
-    roundString(
-    "3.1415926535897932384626433832795028841971693993751" ~
-      "0582097494459230781640628620899862803482534211707",
-		D.precision);
-
-	public enum D E =
-		roundString(
-    "2.7182818284590452353602874713526624977572470936999" ~
-      "5957496696762772407663035354759457138217852516643",
-		D.precision);
-
-	public enum D LN2 =
-		roundString(
-    "0.69314718055994530941723212145817656807550013436025" ~
-      "52541206800094933936219696947156058633269964186887",
-		D.precision);
-
-	public enum D LN10 =
-		roundString(
-    "2.3025850929940456840179914546843642076011014886287" ~
-      "7297603332790096757260967735248023599720508959820",
-		D.precision);
-
-	public enum D LOG2E =
-		roundString(
-    "1.4426950408889634073599246810018921374266459541529" ~
-      "8593413544940693110921918118507988552662289350634",
-		D.precision);
-
-	public enum D LOG2T =
-		roundString(
-    "3.3219280948873623478703194294893901758648313930245" ~
-      "8061205475639581593477660862521585013974335937016",
-		D.precision);
-
-	public enum D LOG10E =
-		roundString(
-    "4.3429448190325182765112891891660508229439700580366" ~
-      "6566114453783165864649208870774729224949338431748",
-		D.precision);
-
-	public enum D LOGT2 =
-		roundString(
-    "0.30102999566398119521373889472449302676818988146210" ~
-      "8541310427461127108189274424509486927252118186172",
-		D.precision);
-
-	public enum D SQRT2 =
-    roundString(
-    "1.4142135623730950488016887242096980785696718753769" ~
-      "4807317667973799073247846210703885038753432764157",
-    D.precision);
-
 /*  enum decimal RealMax = decimal("1.1897314953572317649E+4932");
   enum decimal RealMin = RealMax.copyNegate;
   enum decimal RealMinNorm = decimal("3.362103143112093506E-4932");
@@ -1611,25 +1556,6 @@ static if (context == Bid64)
   enum decimal IntMin = decimal("-2147483648");*/
 
 //  mixin Constant!("REAL_MAX", "1.1897314953572317649E+4932");
-static if (context == Bid64)
-{
-  unittest
-  {  // constants
-    static struct S { TD x; TD expect; }
-    S[] s =
-    [
-      { TD.E,     "2.718281828459045" },
-      { TD.PI,    "3.141592653589793" },
-      { TD.LN2,   "0.6931471805599453" },
-      { TD.LN10,  "2.302585092994046" },
-      { TD.SQRT2, "1.41421356" },
-//      { TD.INV_PI,"0.318309886" },
-    ];
-    auto f = FunctionTest!(S,TD)("constants");
-    foreach (t; s) f.test(t, t.x);
-    writefln(f.report);
-  }
-}
 
 //-----------------------------
 // nextUp, nextDown, nextAfter
@@ -1839,55 +1765,6 @@ mixin template Constant(string lcName, string ucName)
 */
 
 // TODO: move this to rounding.d
-public string roundString(string str, int precision)
-{
-
-  // make a copy, deleting any whitespace at ends of the string
-  char[] copy = strip(str).dup;
-
-  // if the string has a decimal point increment the precision to account
-  // for the extra character
-  if (copy.indexOf('.') >= 0) precision++;
-
-  // strip out any underscores
-  copy = copy.replace("_", "");
-
-  // ignore leading zeros
-  size_t index = 0;
-  while (copy[index] == '0') index++;
-  precision += index;
-
-  // if the precision is greater than the length return the whole string
-  if (precision >= copy.length) return str;
-
-  // get the last digit in the (to-be-)clipped string,
-  // and the following digit
-  char last = str[precision-1];
-  char follow = str[precision];
-
-  // if the following digit is less than five return the clipped string
-  if (follow < '5') return copy[0..precision].idup;
-
-  // otherwise, increment last digit in the string(round half-up)
-  copy = copy[0..precision];
-  copy[precision-1] += 1;
-
-  // if the increment resulted in a digit return the clipped string
-  if (copy[precision-1] <= '9') return copy[0..precision].idup;
-
-  // otherwise, (the last digit increment resulted in a non-digit)
-  // set the last digit to '0' and increment its preceding digit,
-  // repeat as necessary
-  int lix = precision - 1;
-  last = copy[lix];
-  while (last > '9') {
-    copy[lix] = '0';
-    lix--;
-    copy[lix] += 1;
-    last = copy[lix];
-  }
-  return copy[0..precision].idup;
-}
 
 version(unittest)
 {
